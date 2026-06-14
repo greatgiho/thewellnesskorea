@@ -50,6 +50,12 @@ function validateInput(input: PersonFormInput): void {
   }
 }
 
+function revalidatePersonCaches(isPublished: boolean, personId?: string) {
+  revalidatePath("/admin/people")
+  if (personId) revalidatePath(`/admin/people/${personId}/edit`)
+  if (isPublished) revalidatePath("/")
+}
+
 function rowFromInput(input: PersonFormInput, slug: string, sortOrder: number) {
   return {
     slug,
@@ -66,6 +72,11 @@ function rowFromInput(input: PersonFormInput, slug: string, sortOrder: number) {
     sort_order: sortOrder,
     is_published: input.is_published,
   }
+}
+
+export type SavePersonOptions = {
+  newPersonId?: string
+  photoPath?: string | null
 }
 
 async function savePrograms(
@@ -100,32 +111,58 @@ export async function signOut() {
   redirect("/admin/login")
 }
 
-export async function savePerson(input: PersonFormInput, personId?: string) {
+export async function savePerson(
+  input: PersonFormInput,
+  personId?: string,
+  options?: SavePersonOptions,
+) {
   validateInput(input)
   const supabase = await requireAuth()
   const baseSlug = slugify(input.name_en)
   const slug = await uniqueSlug(supabase, baseSlug, personId)
 
   let sortOrder = 0
+  let existingPhotoPath: string | null = null
   if (personId) {
     const { data: existing } = await supabase
       .from("people")
-      .select("sort_order")
+      .select("sort_order, photo_path")
       .eq("id", personId)
       .maybeSingle()
     sortOrder = existing?.sort_order ?? 0
+    existingPhotoPath = existing?.photo_path ?? null
   }
 
-  const row = rowFromInput(input, slug, sortOrder)
+  const row = rowFromInput(input, slug, sortOrder) as ReturnType<
+    typeof rowFromInput
+  > & { photo_path?: string | null }
+
+  if (options?.photoPath !== undefined) {
+    row.photo_path = options.photoPath
+  } else if (!personId) {
+    row.photo_path = null
+  }
+
+  if (
+    personId &&
+    options?.photoPath &&
+    existingPhotoPath &&
+    existingPhotoPath !== options.photoPath
+  ) {
+    await supabase.storage.from("person-photos").remove([existingPhotoPath])
+  }
 
   if (personId) {
     const { error } = await supabase.from("people").update(row).eq("id", personId)
     if (error) throw new Error(error.message)
     await savePrograms(supabase, personId, input)
   } else {
+    const insertRow = options?.newPersonId
+      ? { id: options.newPersonId, ...row }
+      : row
     const { data, error } = await supabase
       .from("people")
-      .insert(row)
+      .insert(insertRow)
       .select("id")
       .single()
     if (error) throw new Error(error.message)
@@ -133,9 +170,7 @@ export async function savePerson(input: PersonFormInput, personId?: string) {
     await savePrograms(supabase, personId, input)
   }
 
-  revalidatePath("/")
-  revalidatePath("/admin/people")
-  if (personId) revalidatePath(`/admin/people/${personId}/edit`)
+  revalidatePersonCaches(input.is_published, personId)
 
   return personId
 }
@@ -151,6 +186,12 @@ export async function updatePerson(id: string, input: PersonFormInput) {
 export async function updatePersonPhotoPath(id: string, photoPath: string) {
   const supabase = await requireAuth()
 
+  const { data: existing } = await supabase
+    .from("people")
+    .select("photo_path, is_published")
+    .eq("id", id)
+    .maybeSingle()
+
   const { error } = await supabase
     .from("people")
     .update({ photo_path: photoPath })
@@ -158,9 +199,12 @@ export async function updatePersonPhotoPath(id: string, photoPath: string) {
 
   if (error) throw new Error(error.message)
 
-  revalidatePath("/")
-  revalidatePath("/admin/people")
-  revalidatePath(`/admin/people/${id}/edit`)
+  const oldPath = existing?.photo_path
+  if (oldPath && oldPath !== photoPath) {
+    await supabase.storage.from("person-photos").remove([oldPath])
+  }
+
+  revalidatePersonCaches(existing?.is_published ?? false, id)
 }
 
 export async function deletePerson(id: string) {
@@ -168,7 +212,7 @@ export async function deletePerson(id: string) {
 
   const { data: person } = await supabase
     .from("people")
-    .select("photo_path")
+    .select("photo_path, is_published")
     .eq("id", id)
     .maybeSingle()
 
@@ -179,7 +223,6 @@ export async function deletePerson(id: string) {
   const { error } = await supabase.from("people").delete().eq("id", id)
   if (error) throw new Error(error.message)
 
-  revalidatePath("/")
-  revalidatePath("/admin/people")
+  revalidatePersonCaches(person?.is_published ?? false)
   redirect("/admin/people")
 }

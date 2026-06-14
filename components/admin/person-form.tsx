@@ -6,7 +6,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import type { PersonFormInput, PersonWithPrograms } from "@/lib/people/types"
-import { savePerson, updatePersonPhotoPath } from "@/app/admin/actions"
+import { savePerson } from "@/app/admin/actions"
 import {
   extFromMime,
   getPersonPhotoUrl,
@@ -83,18 +83,20 @@ export function PersonForm({ person }: PersonFormProps) {
     setPreview(URL.createObjectURL(f))
   }
 
-  const uploadPhoto = async (personId: string) => {
-    if (!file) return
+  const uploadPhotoFile = async (
+    personId: string,
+    photo: File,
+  ): Promise<string> => {
     const supabase = createClient()
-    const ext = extFromMime(file.type)
+    const ext = extFromMime(photo.type)
     const path = photoStoragePath(personId, ext)
 
     const { error: uploadError } = await supabase.storage
       .from("person-photos")
-      .upload(path, file, { upsert: true, contentType: file.type })
+      .upload(path, photo, { upsert: true, contentType: photo.type })
 
     if (uploadError) throw new Error(uploadError.message)
-    await updatePersonPhotoPath(personId, path)
+    return path
   }
 
   const onSubmit = async (e: React.FormEvent) => {
@@ -102,12 +104,19 @@ export function PersonForm({ person }: PersonFormProps) {
     setError(null)
     setPending(true)
     try {
-      const personId = await savePerson(input, person?.id)
-      if (file && personId) {
-        await uploadPhoto(personId)
+      const personId = person?.id ?? crypto.randomUUID()
+      let photoPath: string | null | undefined = undefined
+      if (file) {
+        photoPath = await uploadPhotoFile(personId, file)
+      } else if (!person) {
+        photoPath = null
       }
+
+      await savePerson(input, person?.id, {
+        newPersonId: person?.id ? undefined : personId,
+        photoPath,
+      })
       router.push("/admin/people")
-      router.refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.")
     } finally {
