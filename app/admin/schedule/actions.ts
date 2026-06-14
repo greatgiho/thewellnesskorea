@@ -52,6 +52,11 @@ function validateSessionInput(input: SessionFormInput): {
   return { starts_at, ends_at }
 }
 
+function revalidateSessionCaches(isPublished: boolean) {
+  revalidatePath("/admin/schedule")
+  if (isPublished) revalidatePath("/")
+}
+
 async function assertNoConflicts(
   supabase: Awaited<ReturnType<typeof createClient>>,
   input: SessionFormInput,
@@ -66,6 +71,9 @@ async function assertNoConflicts(
     .select("id, floor_id, instructor_id, starts_at, ends_at, title")
     .gte("starts_at", start)
     .lt("starts_at", end)
+    .or(
+      `floor_id.eq.${input.floor_id},instructor_id.eq.${input.instructor_id}`,
+    )
 
   if (error) throw new Error(error.message)
 
@@ -153,6 +161,7 @@ async function copySessionPhotos(
 export async function saveSession(
   input: SessionFormInput,
   sessionId?: string,
+  newSessionId?: string,
 ): Promise<string> {
   const supabase = await requireAuth()
   const { starts_at, ends_at } = validateSessionInput(input)
@@ -179,21 +188,21 @@ export async function saveSession(
       .eq("id", sessionId)
     if (error) throw new Error(error.message)
 
-    revalidatePath("/admin/schedule")
-    revalidatePath("/")
+    revalidateSessionCaches(input.is_published)
     return sessionId
   }
 
+  const insertRow = newSessionId ? { id: newSessionId, ...row } : row
+
   const { data, error } = await supabase
     .from("sessions")
-    .insert(row)
+    .insert(insertRow)
     .select("id")
     .single()
 
   if (error) throw new Error(error.message)
 
-  revalidatePath("/admin/schedule")
-  revalidatePath("/")
+  revalidateSessionCaches(input.is_published)
   return data.id
 }
 
@@ -266,8 +275,7 @@ export async function duplicateSession(
     }
   }
 
-  revalidatePath("/admin/schedule")
-  revalidatePath("/")
+  revalidateSessionCaches(target.is_published ?? false)
   return inserted.id
 }
 
@@ -276,7 +284,7 @@ export async function deleteSession(sessionId: string) {
 
   const { data: session, error: fetchError } = await supabase
     .from("sessions")
-    .select("image_paths")
+    .select("image_paths, is_published")
     .eq("id", sessionId)
     .maybeSingle()
 
@@ -288,6 +296,5 @@ export async function deleteSession(sessionId: string) {
   const { error } = await supabase.from("sessions").delete().eq("id", sessionId)
   if (error) throw new Error(error.message)
 
-  revalidatePath("/admin/schedule")
-  revalidatePath("/")
+  revalidateSessionCaches(session?.is_published ?? false)
 }

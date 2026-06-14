@@ -19,7 +19,6 @@ import { PhilosophyPathPicker } from "@/components/admin/philosophy-path-picker"
 import { InstructorSearchPicker } from "@/components/admin/instructor-search-picker"
 import { SessionDescriptionFields } from "@/components/admin/session-description-fields"
 import {
-  pathsFromSlots,
   SessionImageUpload,
   slotsFromPaths,
   uploadSessionImageSlots,
@@ -89,7 +88,10 @@ export function SessionFormDialog({
   const [pending, setPending] = useState(false)
 
   useEffect(() => {
-    if (!open) return
+    if (!open) {
+      setPending(false)
+      return
+    }
 
     if (session) {
       setInput({
@@ -148,16 +150,13 @@ export function SessionFormDialog({
   }
 
   const persistSession = async (): Promise<void> => {
-    const pathsBeforeUpload = pathsFromSlots(imageSlots)
-    const formInput: SessionFormInput = {
-      ...input,
-      image_paths: pathsBeforeUpload,
-    }
-    const id = await saveSession(formInput, session?.id)
-    const uploadedPaths = await uploadSessionImageSlots(id, imageSlots)
-    if (JSON.stringify(uploadedPaths) !== JSON.stringify(pathsBeforeUpload)) {
-      await saveSession({ ...formInput, image_paths: uploadedPaths }, id)
-    }
+    const sessionId = session?.id ?? crypto.randomUUID()
+    const image_paths = await uploadSessionImageSlots(sessionId, imageSlots)
+    await saveSession(
+      { ...input, image_paths },
+      session?.id,
+      session?.id ? undefined : sessionId,
+    )
   }
 
   const onSubmit = async (e: React.FormEvent) => {
@@ -195,6 +194,7 @@ export function SessionFormDialog({
       onClose()
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to duplicate session.")
+    } finally {
       setPending(false)
     }
   }
@@ -209,6 +209,7 @@ export function SessionFormDialog({
       onClose()
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete.")
+    } finally {
       setPending(false)
     }
   }

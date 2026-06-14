@@ -51,26 +51,28 @@ export async function uploadSessionImageSlots(
   slots: SessionImageSlot[],
 ): Promise<string[]> {
   const supabase = createClient()
-  const paths: string[] = []
 
-  for (let i = 0; i < slots.length; i++) {
-    const slot = slots[i]
-    if (slot.pendingFile) {
-      const path = storagePathFromFile(sessionId, i, slot.pendingFile)
-      const { error } = await supabase.storage
-        .from(SESSION_PHOTOS_BUCKET)
-        .upload(path, slot.pendingFile, {
-          upsert: true,
-          contentType: slot.pendingFile.type,
-        })
-      if (error) throw new Error(error.message)
-      paths.push(path)
-    } else if (slot.path) {
-      paths.push(slot.path)
-    }
-  }
+  const pathResults = await Promise.all(
+    slots.map(async (slot, index) => {
+      if (slot.pendingFile) {
+        const path = storagePathFromFile(sessionId, index, slot.pendingFile)
+        const { error } = await supabase.storage
+          .from(SESSION_PHOTOS_BUCKET)
+          .upload(path, slot.pendingFile, {
+            upsert: true,
+            contentType: slot.pendingFile.type,
+          })
+        if (error) throw new Error(error.message)
+        return path
+      }
+      if (slot.path) return slot.path
+      return null
+    }),
+  )
 
-  return paths.slice(0, MAX_SESSION_IMAGES)
+  return pathResults
+    .filter((path): path is string => Boolean(path))
+    .slice(0, MAX_SESSION_IMAGES)
 }
 
 export function SessionImageUpload({
