@@ -6,7 +6,6 @@ import {
   buildWeekDateKeys,
   dateKeyFromIso,
   formatDisplayDate,
-  formatTimeInKst,
   gridTotalHeightPx,
   sessionHeightPx,
   sessionTopPx,
@@ -14,6 +13,7 @@ import {
   WEEKDAY_LABELS_KO,
 } from "@/lib/schedule/utils"
 import { SLOT_HEIGHT_PX } from "@/lib/schedule/constants"
+import { ScheduleSessionBlock } from "@/components/admin/schedule-session-block"
 
 type ScheduleWeekGridProps = {
   weekAnchorDateKey: string
@@ -113,31 +113,17 @@ export function ScheduleWeekGrid({
                 ))}
 
                 {daySessions.map((session) => (
-                  <button
+                  <ScheduleSessionBlock
                     key={session.id}
-                    type="button"
+                    session={session}
+                    variant="week"
+                    top={sessionTopPx(session) + 1}
+                    height={Math.max(
+                      sessionHeightPx(session) - 2,
+                      SLOT_HEIGHT_PX - 2,
+                    )}
                     onClick={() => onSessionClick(session)}
-                    className={`absolute inset-x-0.5 z-10 overflow-hidden rounded-md border px-1.5 py-0.5 text-left shadow-sm transition-all hover:brightness-95 ${
-                      session.is_published
-                        ? "border-primary/30 bg-primary/15"
-                        : "border-border bg-secondary/80"
-                    }`}
-                    style={{
-                      top: sessionTopPx(session) + 1,
-                      height: Math.max(
-                        sessionHeightPx(session) - 2,
-                        SLOT_HEIGHT_PX - 2,
-                      ),
-                    }}
-                  >
-                    <p className="truncate text-[10px] font-medium text-foreground">
-                      {session.title}
-                    </p>
-                    <p className="truncate text-[9px] text-muted-foreground">
-                      {formatTimeInKst(session.starts_at)} ·{" "}
-                      {session.instructor?.name_en ?? "—"}
-                    </p>
-                  </button>
+                  />
                 ))}
               </div>
             )

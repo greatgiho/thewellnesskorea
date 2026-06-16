@@ -1,10 +1,8 @@
 "use client"
 
-import { pathLabelKo } from "@/lib/paths/paths-data"
 import type { SessionWithRelations } from "@/lib/schedule/types"
 import {
   buildTimeSlots,
-  formatTimeInKst,
   gridTotalHeightPx,
   sessionHeightPx,
   sessionTopPx,
@@ -12,6 +10,7 @@ import {
 } from "@/lib/schedule/utils"
 import { SLOT_HEIGHT_PX } from "@/lib/schedule/constants"
 import type { FloorRow } from "@/lib/schedule/types"
+import { ScheduleSessionBlock } from "@/components/admin/schedule-session-block"
 
 type ScheduleDayGridProps = {
   floors: FloorRow[]
@@ -84,36 +83,17 @@ export function ScheduleDayGrid({
                 ))}
 
                 {floorSessions.map((session) => (
-                  <button
+                  <ScheduleSessionBlock
                     key={session.id}
-                    type="button"
-                    onClick={() => onSessionClick(session)}
-                    className={`absolute inset-x-1 z-10 overflow-hidden rounded-lg border px-2 py-1 text-left shadow-sm transition-all hover:brightness-95 ${
-                      session.is_published
-                        ? "border-primary/30 bg-primary/15"
-                        : "border-border bg-secondary/80"
-                    }`}
-                    style={{
-                      top: sessionTopPx(session) + 1,
-                      height: Math.max(sessionHeightPx(session) - 2, SLOT_HEIGHT_PX - 2),
-                    }}
-                  >
-                    <p className="truncate text-xs font-medium text-foreground">
-                      {session.title}
-                    </p>
-                    <p className="truncate text-[10px] text-muted-foreground">
-                      {formatTimeInKst(session.starts_at)}–
-                      {formatTimeInKst(session.ends_at)}
-                    </p>
-                    <p className="truncate text-[10px] text-primary/90">
-                      {session.instructor?.name_en ?? "—"}
-                    </p>
-                    {session.path_keys?.length > 0 && (
-                      <p className="mt-0.5 truncate text-[9px] uppercase tracking-wide text-primary/70">
-                        {session.path_keys.map(pathLabelKo).join(" · ")}
-                      </p>
+                    session={session}
+                    variant="day"
+                    top={sessionTopPx(session) + 1}
+                    height={Math.max(
+                      sessionHeightPx(session) - 2,
+                      SLOT_HEIGHT_PX - 2,
                     )}
-                  </button>
+                    onClick={() => onSessionClick(session)}
+                  />
                 ))}
               </div>
             )
