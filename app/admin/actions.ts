@@ -210,6 +210,18 @@ export async function updatePersonPhotoPath(id: string, photoPath: string) {
 export async function deletePerson(id: string) {
   const supabase = await requireAuth()
 
+  const { count: sessionCount, error: sessionCountError } = await supabase
+    .from("sessions")
+    .select("id", { count: "exact", head: true })
+    .eq("instructor_id", id)
+
+  if (sessionCountError) throw new Error(sessionCountError.message)
+  if (sessionCount && sessionCount > 0) {
+    throw new Error(
+      "Cannot delete: this instructor has scheduled sessions. Remove or reassign them first.",
+    )
+  }
+
   const { data: person } = await supabase
     .from("people")
     .select("photo_path, is_published")
@@ -224,5 +236,4 @@ export async function deletePerson(id: string) {
   if (error) throw new Error(error.message)
 
   revalidatePersonCaches(person?.is_published ?? false)
-  redirect("/admin/people")
 }

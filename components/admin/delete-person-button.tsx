@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { deletePerson } from "@/app/admin/actions"
 import { Button } from "@/components/ui/button"
 
@@ -10,6 +11,7 @@ type DeletePersonButtonProps = {
 }
 
 export function DeletePersonButton({ id, name }: DeletePersonButtonProps) {
+  const router = useRouter()
   const [pending, setPending] = useState(false)
 
   const onDelete = async () => {
@@ -17,8 +19,10 @@ export function DeletePersonButton({ id, name }: DeletePersonButtonProps) {
     setPending(true)
     try {
       await deletePerson(id)
-    } catch {
-      alert("Failed to delete.")
+      router.push("/admin/people")
+      router.refresh()
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to delete.")
       setPending(false)
     }
   }

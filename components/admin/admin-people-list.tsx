@@ -143,8 +143,9 @@ export function AdminPeopleList({ people }: AdminPeopleListProps) {
           No matches. Try adjusting search or philosophy filters.
         </div>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-border">
-          <table className="w-full text-left text-sm">
+        <div className="-mx-6 overflow-x-auto px-6 sm:mx-0 sm:px-0">
+          <div className="min-w-[720px] overflow-hidden rounded-2xl border border-border">
+            <table className="w-full text-left text-sm">
             <thead className="border-b border-border bg-secondary/50 text-xs uppercase tracking-wider text-muted-foreground">
               <tr>
                 <th className="px-4 py-3 font-medium">Photo</th>
@@ -223,6 +224,7 @@ export function AdminPeopleList({ people }: AdminPeopleListProps) {
               })}
             </tbody>
           </table>
+          </div>
         </div>
       )}
     </div>

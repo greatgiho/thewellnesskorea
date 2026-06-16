@@ -9,8 +9,8 @@ export default function AdminDashboardLayout({
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card/50">
-        <div className="mx-auto flex max-w-[1400px] items-center justify-between gap-4 px-6 py-4">
-          <div className="flex items-center gap-6">
+        <div className="mx-auto flex max-w-[1400px] flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6">
+          <div className="flex flex-wrap items-center gap-4 sm:gap-6">
             <Link href="/admin/people" className="font-serif text-xl text-foreground">
               Admin
             </Link>
@@ -47,7 +47,7 @@ export default function AdminDashboardLayout({
           </div>
         </div>
       </header>
-      <main className="mx-auto max-w-[1400px] px-6 py-10">{children}</main>
+      <main className="mx-auto max-w-[1400px] px-4 py-8 sm:px-6 sm:py-10">{children}</main>
     </div>
   )
 }
