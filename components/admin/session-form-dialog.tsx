@@ -13,8 +13,10 @@ import {
 import {
   deleteSession,
   duplicateSession,
+  confirmSession,
   saveSession,
 } from "@/app/admin/schedule/actions"
+import { sessionStatusLabel } from "@/lib/schedule/session-status"
 import { PhilosophyPathPicker } from "@/components/admin/philosophy-path-picker"
 import { InstructorSearchPicker } from "@/components/admin/instructor-search-picker"
 import { SessionDescriptionFields } from "@/components/admin/session-description-fields"
@@ -52,6 +54,7 @@ const defaultInput = (
   end_time: defaultEndTime(startTime, 60),
   capacity: 12,
   is_published: false,
+  status: "processing",
   image_paths: [],
   description_blocks: { ...EMPTY_SESSION_DESCRIPTION },
 })
@@ -105,6 +108,7 @@ export function SessionFormDialog({
         end_time: formatTimeInKst(session.ends_at),
         capacity: session.capacity,
         is_published: session.is_published,
+        status: session.status ?? "confirmed",
         image_paths: session.image_paths ?? [],
         description_blocks: session.description_blocks ?? {
           ...EMPTY_SESSION_DESCRIPTION,
@@ -188,12 +192,27 @@ export function SessionFormDialog({
         floor_id: duplicateFloorId,
         start_time: duplicateStart,
         end_time: duplicateEnd,
-        is_published: false,
       })
       onSaved()
       onClose()
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to duplicate session.")
+    } finally {
+      setPending(false)
+    }
+  }
+
+  const onConfirm = async () => {
+    if (!session) return
+    setError(null)
+    setPending(true)
+    try {
+      await persistSession()
+      await confirmSession(session.id)
+      onSaved()
+      onClose()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to confirm session.")
     } finally {
       setPending(false)
     }
@@ -219,6 +238,9 @@ export function SessionFormDialog({
   const fieldClass =
     "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring/50"
 
+  const isProcessing = input.status === "processing"
+  const isConfirmed = input.status === "confirmed"
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <button
@@ -234,7 +256,21 @@ export function SessionFormDialog({
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
             Schedule · {input.date}
+            {session && (
+              <>
+                {" "}
+                ·{" "}
+                <span className="font-medium text-foreground">
+                  {sessionStatusLabel(session.status)}
+                </span>
+              </>
+            )}
           </p>
+          {session?.created_by_email && (
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Entered by {session.created_by_email}
+            </p>
+          )}
         </div>
 
         <form onSubmit={onSubmit} className="flex flex-col overflow-hidden">
@@ -400,13 +436,27 @@ export function SessionFormDialog({
               <input
                 type="checkbox"
                 checked={input.is_published}
+                disabled={isProcessing || pending}
                 onChange={(e) =>
                   setInput((v) => ({ ...v, is_published: e.target.checked }))
                 }
-                className="size-4 rounded border-border"
+                className="size-4 rounded border-border disabled:opacity-50"
               />
-              <span className="text-sm font-medium">Published on site</span>
+              <span className="text-sm font-medium">
+                Published on site
+                {isProcessing && (
+                  <span className="ml-1 font-normal text-muted-foreground">
+                    (confirm session first)
+                  </span>
+                )}
+              </span>
             </label>
+
+            {isConfirmed && session && (
+              <p className="text-xs text-muted-foreground">
+                Confirmed sessions cannot revert to processing.
+              </p>
+            )}
 
             {session && (
               <div className="rounded-xl border border-border bg-secondary/20 p-4 space-y-4">
@@ -492,6 +542,16 @@ export function SessionFormDialog({
             >
               {pending ? "Saving…" : session ? "Save" : "Create"}
             </button>
+            {session && isProcessing && (
+              <button
+                type="button"
+                disabled={pending}
+                onClick={onConfirm}
+                className="inline-flex h-9 items-center rounded-lg bg-blue-600 px-4 text-sm font-medium text-white hover:bg-blue-600/90 disabled:opacity-50"
+              >
+                {pending ? "Confirming…" : "Confirm session"}
+              </button>
+            )}
             <button
               type="button"
               onClick={onClose}

@@ -3,6 +3,14 @@
 import Image from "next/image"
 import { PATHS, pathLabelKo, type PathKey } from "@/lib/paths/paths-data"
 import { getSessionPhotoUrl } from "@/lib/schedule/images"
+import {
+  layoutLeftForSession,
+  layoutWidthForSession,
+} from "@/lib/schedule/layout"
+import {
+  SESSION_STATUS_RIBBON_CLASS,
+  sessionStatusLabel,
+} from "@/lib/schedule/session-status"
 import type { SessionWithRelations } from "@/lib/schedule/types"
 import { SLOT_HEIGHT_PX } from "@/lib/schedule/constants"
 import { formatTimeInKst } from "@/lib/schedule/utils"
@@ -61,6 +69,30 @@ function PhilosophyCornerRibbon({
   )
 }
 
+function StatusCornerRibbon({
+  status,
+}: {
+  status: SessionWithRelations["status"]
+}) {
+  const label = sessionStatusLabel(status)
+  const ribbonWidth = label.length > 8 ? 76 : 62
+
+  return (
+    <span
+      className="pointer-events-none absolute -right-px -top-px z-20 overflow-hidden"
+      style={{ width: 44, height: 44 }}
+      aria-hidden
+    >
+      <span
+        className={`absolute right-[-14px] top-[10px] block rotate-45 py-0.5 text-center text-[7px] font-semibold leading-tight shadow-sm ${SESSION_STATUS_RIBBON_CLASS[status]}`}
+        style={{ width: ribbonWidth }}
+      >
+        {label}
+      </span>
+    </span>
+  )
+}
+
 export function ScheduleSessionBlock({
   session,
   top,
@@ -78,6 +110,16 @@ export function ScheduleSessionBlock({
   const instructorName = session.instructor?.name_en ?? "—"
   const showPathLine =
     (session.path_keys?.length ?? 0) > 1 && height >= SLOT_HEIGHT_PX * 1.75
+  const isProcessing = session.status === "processing"
+  const isConfirmed = session.status === "confirmed"
+  const enteredBy = session.created_by_email
+
+  const blockStyle = {
+    top,
+    height,
+    left: layoutLeftForSession(session),
+    width: layoutWidthForSession(session),
+  }
 
   return (
     <button
@@ -88,18 +130,23 @@ export function ScheduleSessionBlock({
           ? `${session.title}, ${pathSummary}`
           : session.title
       }
-      className="absolute inset-x-0 z-10 overflow-visible p-0 text-left transition-all hover:brightness-95"
-      style={{ top, height }}
+      className="absolute z-10 overflow-visible p-0 text-left transition-all hover:brightness-95"
+      style={blockStyle}
     >
       <PhilosophyCornerRibbon pathKeys={session.path_keys} />
+      <StatusCornerRibbon status={session.status} />
 
       <div
         className={`relative h-full w-full overflow-hidden border shadow-sm ${
           variant === "week" ? "rounded-md" : "rounded-lg"
         } ${
-          session.is_published
-            ? "border-primary/30 bg-primary/15"
-            : "border-border bg-secondary/80"
+          isProcessing
+            ? "border-dashed border-amber-400/70 bg-amber-50/80 dark:bg-amber-950/20"
+            : isConfirmed && session.is_published
+              ? "border-primary/30 bg-primary/15"
+              : isConfirmed
+                ? "border-blue-600/30 bg-blue-50/60 dark:bg-blue-950/20"
+                : "border-border bg-secondary/80"
         }`}
       >
         {photoUrl && (
@@ -125,6 +172,14 @@ export function ScheduleSessionBlock({
               <p className="truncate text-[9px] text-muted-foreground">
                 {formatTimeInKst(session.starts_at)} · {instructorName}
               </p>
+              {enteredBy && (
+                <p
+                  className="truncate text-[8px] text-muted-foreground/80"
+                  title={enteredBy}
+                >
+                  by {enteredBy}
+                </p>
+              )}
               {showPathLine && (
                 <p
                   className="truncate text-[8px] text-primary/75"
@@ -146,6 +201,14 @@ export function ScheduleSessionBlock({
               <p className="truncate text-[10px] text-primary/90">
                 {instructorName}
               </p>
+              {enteredBy && (
+                <p
+                  className="truncate text-[9px] text-muted-foreground/80"
+                  title={enteredBy}
+                >
+                  Entered by {enteredBy}
+                </p>
+              )}
               {showPathLine && (
                 <p
                   className="truncate text-[8px] text-primary/75"

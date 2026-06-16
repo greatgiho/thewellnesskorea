@@ -91,9 +91,13 @@ export function ScheduleMonthCalendar({
                       type="button"
                       onClick={() => onSessionClick(session)}
                       className={`w-full rounded-md border px-1.5 py-1 text-left transition-colors hover:brightness-95 ${
-                        session.is_published
-                          ? "border-primary/25 bg-primary/10"
-                          : "border-border bg-secondary/60"
+                        session.status === "processing"
+                          ? "border-dashed border-amber-400/60 bg-amber-50/70 dark:bg-amber-950/20"
+                          : session.is_published
+                            ? "border-primary/25 bg-primary/10"
+                            : session.status === "confirmed"
+                              ? "border-blue-600/25 bg-blue-50/60 dark:bg-blue-950/20"
+                              : "border-border bg-secondary/60"
                       }`}
                     >
                       <p className="truncate text-[10px] font-medium leading-tight text-foreground">

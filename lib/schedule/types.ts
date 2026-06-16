@@ -1,5 +1,7 @@
 import type { PathKey } from "@/lib/paths/paths-data"
 
+export type SessionStatus = "processing" | "confirmed" | "cancelled"
+
 export type SessionDescriptionBlocks = {
   intro: string
   progress: string
@@ -27,6 +29,15 @@ export type SessionRow = {
   capacity: number
   booked_count: number
   is_published: boolean
+  status: SessionStatus
+  slot_lane: number
+  confirmed_at: string | null
+  confirmed_by: string | null
+  created_by: string | null
+  created_by_email: string | null
+  cancelled_at: string | null
+  cancelled_by: string | null
+  cancel_reason: string | null
   image_paths: string[]
   description_blocks: SessionDescriptionBlocks
   created_at: string
@@ -55,6 +66,7 @@ export type SessionFormInput = {
   end_time: string
   capacity: number
   is_published: boolean
+  status: SessionStatus
   image_paths: string[]
   description_blocks: SessionDescriptionBlocks
 }

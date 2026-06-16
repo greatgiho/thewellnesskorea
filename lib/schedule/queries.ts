@@ -54,6 +54,7 @@ export async function getSessionsForRange(
     .select(SESSION_WITH_RELATIONS)
     .gte("starts_at", start)
     .lt("starts_at", end)
+    .neq("status", "cancelled")
     .order("starts_at", { ascending: true })
 
   if (error || !data) return []
