@@ -3,12 +3,14 @@
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
-import type { PersonFormInput, PersonKind } from "@/lib/people/types"
+import type { PersonFormInput, PersonRegistrationStatus } from "@/lib/people/types"
 import {
-  isValidEmail,
-  normalizeInstagram,
-  slugify,
-} from "@/lib/people/utils"
+  personRowFromInput,
+  resolvePersonSlug,
+  savePersonPrograms,
+} from "@/lib/people/persist"
+import { canPublishPerson } from "@/lib/people/registration-status"
+import { validatePersonInput } from "@/lib/people/validate"
 
 async function requireAuth() {
   const supabase = await createClient()
@@ -16,38 +18,7 @@ async function requireAuth() {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) redirect("/admin/login")
-  return supabase
-}
-
-async function uniqueSlug(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  base: string,
-  excludeId?: string,
-): Promise<string> {
-  let slug = base
-  let n = 1
-  while (true) {
-    let query = supabase.from("people").select("id").eq("slug", slug)
-    if (excludeId) query = query.neq("id", excludeId)
-    const { data } = await query.maybeSingle()
-    if (!data) return slug
-    n += 1
-    slug = `${base}-${n}`
-  }
-}
-
-function validateInput(input: PersonFormInput): void {
-  if (!isValidEmail(input.email)) {
-    throw new Error("Invalid email format.")
-  }
-  for (const program of input.programs) {
-    if (!program.title.trim()) {
-      throw new Error("Each program needs a title.")
-    }
-    if (program.path_keys.length === 0) {
-      throw new Error(`Select at least one philosophy path for “${program.title.trim()}”.`)
-    }
-  }
+  return { supabase, user }
 }
 
 function revalidatePersonCaches(isPublished: boolean, personId?: string) {
@@ -56,53 +27,9 @@ function revalidatePersonCaches(isPublished: boolean, personId?: string) {
   if (isPublished) revalidatePath("/")
 }
 
-function rowFromInput(input: PersonFormInput, slug: string, sortOrder: number) {
-  return {
-    slug,
-    kind: input.kind as PersonKind,
-    name_ko: input.name_ko.trim(),
-    name_en: input.name_en.trim(),
-    role_ko: input.role_ko.trim(),
-    role_en: input.role_en.trim(),
-    quote: input.quote.trim() || null,
-    phone: input.phone.trim() || null,
-    email: input.email.trim() || null,
-    instagram: normalizeInstagram(input.instagram),
-    modalities: input.programs.map((p) => p.title.trim()),
-    sort_order: sortOrder,
-    is_published: input.is_published,
-  }
-}
-
 export type SavePersonOptions = {
   newPersonId?: string
   photoPath?: string | null
-}
-
-async function savePrograms(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  personId: string,
-  input: PersonFormInput,
-) {
-  const { error: deleteError } = await supabase
-    .from("person_programs")
-    .delete()
-    .eq("person_id", personId)
-
-  if (deleteError) throw new Error(deleteError.message)
-
-  if (input.programs.length === 0) return
-
-  const rows = input.programs.map((program, index) => ({
-    person_id: personId,
-    title: program.title.trim(),
-    description: program.description.trim() || null,
-    path_keys: program.path_keys,
-    sort_order: index,
-  }))
-
-  const { error: insertError } = await supabase.from("person_programs").insert(rows)
-  if (insertError) throw new Error(insertError.message)
 }
 
 export async function signOut() {
@@ -116,26 +43,41 @@ export async function savePerson(
   personId?: string,
   options?: SavePersonOptions,
 ) {
-  validateInput(input)
-  const supabase = await requireAuth()
-  const baseSlug = slugify(input.name_en)
-  const slug = await uniqueSlug(supabase, baseSlug, personId)
+  validatePersonInput(input)
+  const { supabase } = await requireAuth()
+  const slug = await resolvePersonSlug(supabase, input, personId)
 
   let sortOrder = 0
   let existingPhotoPath: string | null = null
+  let registrationStatus: PersonRegistrationStatus = "admin"
+
   if (personId) {
     const { data: existing } = await supabase
       .from("people")
-      .select("sort_order, photo_path")
+      .select("sort_order, photo_path, registration_status, is_published")
       .eq("id", personId)
       .maybeSingle()
+
     sortOrder = existing?.sort_order ?? 0
     existingPhotoPath = existing?.photo_path ?? null
+    registrationStatus = (existing?.registration_status ??
+      "admin") as PersonRegistrationStatus
+
+    if (
+      input.is_published &&
+      !canPublishPerson(registrationStatus)
+    ) {
+      throw new Error("Profile must be approved before publishing.")
+    }
   }
 
-  const row = rowFromInput(input, slug, sortOrder) as ReturnType<
-    typeof rowFromInput
-  > & { photo_path?: string | null }
+  const row = personRowFromInput(input, slug, sortOrder) as ReturnType<
+    typeof personRowFromInput
+  > & { photo_path?: string | null; registration_status?: string }
+
+  if (!personId) {
+    row.registration_status = "admin"
+  }
 
   if (options?.photoPath !== undefined) {
     row.photo_path = options.photoPath
@@ -155,7 +97,7 @@ export async function savePerson(
   if (personId) {
     const { error } = await supabase.from("people").update(row).eq("id", personId)
     if (error) throw new Error(error.message)
-    await savePrograms(supabase, personId, input)
+    await savePersonPrograms(supabase, personId, input)
   } else {
     const insertRow = options?.newPersonId
       ? { id: options.newPersonId, ...row }
@@ -167,11 +109,10 @@ export async function savePerson(
       .single()
     if (error) throw new Error(error.message)
     personId = data.id as string
-    await savePrograms(supabase, personId, input)
+    await savePersonPrograms(supabase, personId, input)
   }
 
   revalidatePersonCaches(input.is_published, personId)
-
   return personId
 }
 
@@ -184,7 +125,7 @@ export async function updatePerson(id: string, input: PersonFormInput) {
 }
 
 export async function updatePersonPhotoPath(id: string, photoPath: string) {
-  const supabase = await requireAuth()
+  const { supabase } = await requireAuth()
 
   const { data: existing } = await supabase
     .from("people")
@@ -207,8 +148,46 @@ export async function updatePersonPhotoPath(id: string, photoPath: string) {
   revalidatePersonCaches(existing?.is_published ?? false, id)
 }
 
+export async function approvePerson(personId: string) {
+  const { supabase, user } = await requireAuth()
+  const now = new Date().toISOString()
+
+  const { error } = await supabase
+    .from("people")
+    .update({
+      registration_status: "approved",
+      reviewed_at: now,
+      reviewed_by: user.id,
+      rejection_reason: null,
+    })
+    .eq("id", personId)
+
+  if (error) throw new Error(error.message)
+  revalidatePersonCaches(false, personId)
+}
+
+export async function rejectPerson(personId: string, reason: string) {
+  const { supabase, user } = await requireAuth()
+  const trimmed = reason.trim()
+  if (!trimmed) throw new Error("Rejection reason is required.")
+
+  const { error } = await supabase
+    .from("people")
+    .update({
+      registration_status: "rejected",
+      reviewed_at: new Date().toISOString(),
+      reviewed_by: user.id,
+      rejection_reason: trimmed,
+      is_published: false,
+    })
+    .eq("id", personId)
+
+  if (error) throw new Error(error.message)
+  revalidatePersonCaches(false, personId)
+}
+
 export async function deletePerson(id: string) {
-  const supabase = await requireAuth()
+  const { supabase } = await requireAuth()
 
   const { count: sessionCount, error: sessionCountError } = await supabase
     .from("sessions")

@@ -6,11 +6,28 @@ import Link from "next/link"
 import { Search } from "lucide-react"
 import type { PathKey } from "@/lib/paths/paths-data"
 import { PATH_OPTIONS } from "@/lib/paths/paths-data"
-import type { PersonWithPrograms } from "@/lib/people/types"
+import type { PersonRegistrationStatus, PersonWithPrograms } from "@/lib/people/types"
+import {
+  isSelfRegistered,
+  REGISTRATION_STATUS_BADGE_CLASS,
+  registrationStatusLabel,
+} from "@/lib/people/registration-status"
 import { getPersonPhotoUrl, sortPeopleByName } from "@/lib/people/utils"
 
 type AdminPeopleListProps = {
   people: PersonWithPrograms[]
+  applyLink: string
+}
+
+type StatusFilter = "all" | "submitted" | "self" | PersonRegistrationStatus
+
+function personMatchesStatus(
+  person: PersonWithPrograms,
+  filter: StatusFilter,
+): boolean {
+  if (filter === "all") return true
+  if (filter === "self") return isSelfRegistered(person.registration_status)
+  return person.registration_status === filter
 }
 
 function personMatchesPhilosophy(person: PersonWithPrograms, paths: PathKey[]) {
@@ -34,18 +51,27 @@ function personMatchesSearch(person: PersonWithPrograms, query: string) {
   )
 }
 
-export function AdminPeopleList({ people }: AdminPeopleListProps) {
+export function AdminPeopleList({ people, applyLink }: AdminPeopleListProps) {
   const [search, setSearch] = useState("")
   const [philosophyFilters, setPhilosophyFilters] = useState<PathKey[]>([])
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all")
+  const [copied, setCopied] = useState(false)
+
+  const copyApplyLink = async () => {
+    await navigator.clipboard.writeText(applyLink)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
 
   const filtered = useMemo(() => {
     const list = people.filter(
       (person) =>
         personMatchesSearch(person, search) &&
-        personMatchesPhilosophy(person, philosophyFilters),
+        personMatchesPhilosophy(person, philosophyFilters) &&
+        personMatchesStatus(person, statusFilter),
     )
     return sortPeopleByName(list)
-  }, [people, search, philosophyFilters])
+  }, [people, search, philosophyFilters, statusFilter])
 
   const togglePhilosophy = (key: PathKey) => {
     setPhilosophyFilters((prev) =>
@@ -73,12 +99,51 @@ export function AdminPeopleList({ people }: AdminPeopleListProps) {
             aria-label="Search people"
           />
         </div>
-        <Link
-          href="/admin/people/new"
-          className="inline-flex h-9 shrink-0 items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-all hover:bg-primary/90"
-        >
-          Add person
-        </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={copyApplyLink}
+            className="inline-flex h-9 items-center rounded-lg border border-primary/40 px-4 text-sm font-medium text-primary hover:bg-primary/5"
+          >
+            {copied ? "Copied!" : "Copy apply link"}
+          </button>
+          <Link
+            href="/admin/people/new"
+            className="inline-flex h-9 shrink-0 items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-all hover:bg-primary/90"
+          >
+            Add person
+          </Link>
+        </div>
+      </div>
+
+      <p className="text-xs text-muted-foreground">
+        Teacher self-registration: {applyLink} · code{" "}
+        <span className="font-mono">twk2026</span>
+      </p>
+
+      <div className="flex flex-wrap gap-2">
+        {(
+          [
+            ["all", "All"],
+            ["submitted", "Pending review"],
+            ["approved", "Approved"],
+            ["rejected", "Rejected"],
+            ["self", "Self-registered"],
+          ] as const
+        ).map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setStatusFilter(key)}
+            className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+              statusFilter === key
+                ? "border-primary bg-primary/10 text-primary"
+                : "border-border text-muted-foreground hover:border-primary/40"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
       <div className="rounded-2xl border border-border bg-card/40 p-4">
@@ -154,6 +219,7 @@ export function AdminPeopleList({ people }: AdminPeopleListProps) {
                 <th className="px-4 py-3 font-medium">Programs</th>
                 <th className="px-4 py-3 font-medium">Philosophy</th>
                 <th className="px-4 py-3 font-medium">Contact</th>
+                <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3 font-medium">Published</th>
                 <th className="px-4 py-3 font-medium" />
               </tr>
@@ -180,6 +246,11 @@ export function AdminPeopleList({ people }: AdminPeopleListProps) {
                     <td className="px-4 py-3">
                       <p className="font-medium text-foreground">{p.name_en}</p>
                       <p className="text-xs text-muted-foreground">{p.name_ko}</p>
+                      {isSelfRegistered(p.registration_status) && (
+                        <p className="mt-0.5 text-[10px] text-muted-foreground">
+                          Self-registered
+                        </p>
+                      )}
                     </td>
                     <td className="px-4 py-3 capitalize text-muted-foreground">{p.kind}</td>
                     <td className="px-4 py-3 text-muted-foreground">{p.programs.length}</td>
@@ -203,6 +274,15 @@ export function AdminPeopleList({ people }: AdminPeopleListProps) {
                       {p.email && <p>{p.email}</p>}
                       {p.phone && <p>{p.phone}</p>}
                       {!p.email && !p.phone && "—"}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                          REGISTRATION_STATUS_BADGE_CLASS[p.registration_status]
+                        }`}
+                      >
+                        {registrationStatusLabel(p.registration_status)}
+                      </span>
                     </td>
                     <td className="px-4 py-3">
                       {p.is_published ? (

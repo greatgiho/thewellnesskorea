@@ -2,12 +2,19 @@
 
 import { useState } from "react"
 import Image from "next/image"
-import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
+import {
+  saveTeacherProfileDraft,
+  submitTeacherProfile,
+  signOutTeacher,
+} from "@/app/apply/actions"
+import { ProgramListEditor } from "@/components/admin/program-list-editor"
 import type { PersonFormInput, PersonWithPrograms } from "@/lib/people/types"
-import { savePerson } from "@/app/admin/actions"
-import { canPublishPerson } from "@/lib/people/registration-status"
+import {
+  REGISTRATION_STATUS_BADGE_CLASS,
+  registrationStatusLabel,
+} from "@/lib/people/registration-status"
 import {
   extFromMime,
   getPersonPhotoUrl,
@@ -15,13 +22,13 @@ import {
   PERSON_KINDS,
   photoStoragePath,
 } from "@/lib/people/utils"
-import { ProgramListEditor } from "@/components/admin/program-list-editor"
 
-type PersonFormProps = {
-  person?: PersonWithPrograms
+type TeacherProfileFormProps = {
+  person: PersonWithPrograms | null
+  loginEmail: string
 }
 
-const defaultInput: PersonFormInput = {
+const defaultInput = (loginEmail: string): PersonFormInput => ({
   kind: "guide",
   name_ko: "",
   name_en: "",
@@ -29,11 +36,11 @@ const defaultInput: PersonFormInput = {
   role_en: "",
   quote: "",
   phone: "",
-  email: "",
+  email: loginEmail,
   instagram: "",
   is_published: false,
   programs: [],
-}
+})
 
 function formFromPerson(person: PersonWithPrograms): PersonFormInput {
   return {
@@ -46,7 +53,7 @@ function formFromPerson(person: PersonWithPrograms): PersonFormInput {
     phone: person.phone ?? "",
     email: person.email ?? "",
     instagram: instagramHandle(person.instagram) ?? person.instagram ?? "",
-    is_published: person.is_published,
+    is_published: false,
     programs: person.programs.map((p) => ({
       title: p.title,
       description: p.description ?? "",
@@ -55,11 +62,13 @@ function formFromPerson(person: PersonWithPrograms): PersonFormInput {
   }
 }
 
-export function PersonForm({ person }: PersonFormProps) {
+export function TeacherProfileForm({
+  person,
+  loginEmail,
+}: TeacherProfileFormProps) {
   const router = useRouter()
-  const isEdit = Boolean(person)
   const [input, setInput] = useState<PersonFormInput>(
-    person ? formFromPerson(person) : defaultInput,
+    person ? formFromPerson(person) : defaultInput(loginEmail),
   )
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<string | null>(
@@ -68,19 +77,18 @@ export function PersonForm({ person }: PersonFormProps) {
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
 
-  const publishAllowed = person
-    ? canPublishPerson(person.registration_status)
-    : true
+  const status = person?.registration_status ?? "draft"
+  const isApproved = status === "approved"
 
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0]
     if (!f) return
     if (!["image/jpeg", "image/png", "image/webp"].includes(f.type)) {
-      setError("Use JPG, PNG, or WebP.")
+      setError("JPG, PNG, WebP만 업로드할 수 있습니다.")
       return
     }
     if (f.size > 5 * 1024 * 1024) {
-      setError("Max file size is 5MB.")
+      setError("최대 5MB까지 업로드할 수 있습니다.")
       return
     }
     setError(null)
@@ -104,8 +112,7 @@ export function PersonForm({ person }: PersonFormProps) {
     return path
   }
 
-  const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const persist = async (submit: boolean) => {
     setError(null)
     setPending(true)
     try {
@@ -117,13 +124,20 @@ export function PersonForm({ person }: PersonFormProps) {
         photoPath = null
       }
 
-      await savePerson(input, person?.id, {
+      const options = {
         newPersonId: person?.id ? undefined : personId,
         photoPath,
-      })
-      router.push("/admin/people")
+      }
+
+      if (submit) {
+        await submitTeacherProfile(input, options)
+        router.push("/apply/profile/submitted")
+      } else {
+        await saveTeacherProfileDraft(input, options)
+        router.refresh()
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong.")
+      setError(err instanceof Error ? err.message : "저장에 실패했습니다.")
     } finally {
       setPending(false)
     }
@@ -133,15 +147,42 @@ export function PersonForm({ person }: PersonFormProps) {
     "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/50"
 
   return (
-    <form onSubmit={onSubmit} className="mx-auto max-w-2xl space-y-10">
+    <form
+      onSubmit={(e) => {
+        e.preventDefault()
+        void persist(true)
+      }}
+      className="space-y-10"
+    >
+      <div
+        className={`rounded-xl border px-4 py-3 text-sm ${
+          REGISTRATION_STATUS_BADGE_CLASS[status]
+        }`}
+      >
+        <p className="font-medium">
+          상태: {registrationStatusLabel(status, "ko")}
+        </p>
+        {status === "rejected" && person?.rejection_reason && (
+          <p className="mt-1 text-sm opacity-90">
+            반려 사유: {person.rejection_reason}
+          </p>
+        )}
+        {isApproved && (
+          <p className="mt-1 text-sm opacity-90">
+            승인된 프로필을 수정하면 다시 검토가 필요하며 홈페이지 노출이
+            중단됩니다.
+          </p>
+        )}
+      </div>
+
       {error && (
         <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
           {error}
         </p>
       )}
 
-      <section className="space-y-6">
-        <h2 className="font-serif text-xl text-foreground">Type</h2>
+      <section className="space-y-6 rounded-2xl border border-border bg-card p-6">
+        <h2 className="font-serif text-xl text-foreground">유형</h2>
         <label className="block space-y-2">
           <span className="text-sm font-medium">Kind</span>
           <select
@@ -163,14 +204,10 @@ export function PersonForm({ person }: PersonFormProps) {
         </label>
       </section>
 
-      <section className="space-y-6">
-        <h2 className="font-serif text-xl text-foreground">Basic info</h2>
-        <p className="text-sm text-muted-foreground">
-          Contact details are admin-only and never shown on the public site.
-        </p>
-
+      <section className="space-y-6 rounded-2xl border border-border bg-card p-6">
+        <h2 className="font-serif text-xl text-foreground">기본 정보</h2>
         <div className="space-y-3">
-          <span className="text-sm font-medium">Profile photo</span>
+          <span className="text-sm font-medium">프로필 사진</span>
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
             {preview && (
               <div className="relative size-32 shrink-0 overflow-hidden rounded-2xl border border-border">
@@ -185,10 +222,9 @@ export function PersonForm({ person }: PersonFormProps) {
             />
           </div>
         </div>
-
         <div className="grid gap-6 sm:grid-cols-2">
           <label className="block space-y-2">
-            <span className="text-sm font-medium">Name (KO)</span>
+            <span className="text-sm font-medium">이름 (한글)</span>
             <input
               required
               className={fieldClass}
@@ -206,7 +242,7 @@ export function PersonForm({ person }: PersonFormProps) {
             />
           </label>
           <label className="block space-y-2">
-            <span className="text-sm font-medium">Phone</span>
+            <span className="text-sm font-medium">전화</span>
             <input
               type="tel"
               className={fieldClass}
@@ -215,9 +251,10 @@ export function PersonForm({ person }: PersonFormProps) {
             />
           </label>
           <label className="block space-y-2">
-            <span className="text-sm font-medium">Email</span>
+            <span className="text-sm font-medium">이메일</span>
             <input
               type="email"
+              required
               className={fieldClass}
               value={input.email}
               onChange={(e) => setInput((v) => ({ ...v, email: e.target.value }))}
@@ -231,18 +268,15 @@ export function PersonForm({ person }: PersonFormProps) {
               value={input.instagram}
               onChange={(e) => setInput((v) => ({ ...v, instagram: e.target.value }))}
             />
-            <p className="text-xs text-muted-foreground">
-              Shown as a link on the public profile card.
-            </p>
           </label>
         </div>
       </section>
 
-      <section className="space-y-6">
-        <h2 className="font-serif text-xl text-foreground">Public profile</h2>
+      <section className="space-y-6 rounded-2xl border border-border bg-card p-6">
+        <h2 className="font-serif text-xl text-foreground">공개 프로필</h2>
         <div className="grid gap-6 sm:grid-cols-2">
           <label className="block space-y-2">
-            <span className="text-sm font-medium">Role (KO)</span>
+            <span className="text-sm font-medium">역할 (한글)</span>
             <input
               required
               className={fieldClass}
@@ -261,7 +295,7 @@ export function PersonForm({ person }: PersonFormProps) {
           </label>
         </div>
         <label className="block space-y-2">
-          <span className="text-sm font-medium">Quote</span>
+          <span className="text-sm font-medium">한 줄 소개</span>
           <textarea
             rows={3}
             className={fieldClass}
@@ -269,32 +303,12 @@ export function PersonForm({ person }: PersonFormProps) {
             onChange={(e) => setInput((v) => ({ ...v, quote: e.target.value }))}
           />
         </label>
-        <label className="flex items-center gap-3">
-          <input
-            type="checkbox"
-            checked={input.is_published}
-            disabled={!publishAllowed}
-            onChange={(e) =>
-              setInput((v) => ({ ...v, is_published: e.target.checked }))
-            }
-            className="size-4 rounded border-border disabled:opacity-50"
-          />
-          <span className="text-sm font-medium">
-            Published on site
-            {!publishAllowed && (
-              <span className="ml-1 font-normal text-muted-foreground">
-                (approve self-registered profile first)
-              </span>
-            )}
-          </span>
-        </label>
       </section>
 
-      <section className="space-y-4">
-        <h2 className="font-serif text-xl text-foreground">Programs</h2>
+      <section className="space-y-4 rounded-2xl border border-border bg-card p-6">
+        <h2 className="font-serif text-xl text-foreground">프로그램</h2>
         <p className="text-sm text-muted-foreground">
-          Add each class or offering. Assign philosophy paths per program for search
-          and scheduling.
+          수업·프로그램마다 철학 path를 선택해 주세요.
         </p>
         <ProgramListEditor
           programs={input.programs}
@@ -304,18 +318,28 @@ export function PersonForm({ person }: PersonFormProps) {
 
       <div className="flex flex-wrap gap-3">
         <button
+          type="button"
+          disabled={pending}
+          onClick={() => void persist(false)}
+          className="inline-flex h-10 items-center rounded-lg border border-border px-4 text-sm font-medium hover:bg-muted disabled:opacity-50"
+        >
+          {pending ? "저장 중…" : "임시 저장"}
+        </button>
+        <button
           type="submit"
           disabled={pending}
-          className="inline-flex h-9 items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-all hover:bg-primary/90 disabled:opacity-50"
+          className="inline-flex h-10 items-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
         >
-          {pending ? "Saving…" : isEdit ? "Save changes" : "Create person"}
+          {pending ? "제출 중…" : isApproved ? "수정 후 재제출" : "제출하기"}
         </button>
-        <Link
-          href="/admin/people"
-          className="inline-flex h-9 items-center justify-center rounded-lg border border-border bg-background px-4 text-sm font-medium transition-colors hover:bg-muted"
+        <button
+          type="button"
+          disabled={pending}
+          onClick={() => void signOutTeacher()}
+          className="inline-flex h-10 items-center rounded-lg px-4 text-sm text-muted-foreground hover:text-foreground"
         >
-          Cancel
-        </Link>
+          로그아웃
+        </button>
       </div>
     </form>
   )

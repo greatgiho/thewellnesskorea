@@ -1,5 +1,6 @@
 import { getAllPeopleAdmin } from "@/lib/people/queries"
 import { AdminPeopleList } from "@/components/admin/admin-people-list"
+import { applyLinkForTeachers } from "@/lib/notifications/admin-alerts"
 
 export default async function AdminPeoplePage() {
   const people = await getAllPeopleAdmin()
@@ -12,7 +13,7 @@ export default async function AdminPeoplePage() {
           Wellness guides and artists
         </p>
       </div>
-      <AdminPeopleList people={people} />
+      <AdminPeopleList people={people} applyLink={applyLinkForTeachers()} />
     </div>
   )
 }

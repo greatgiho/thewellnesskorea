@@ -32,6 +32,7 @@ export async function getPublishedPeople(
     .select(PUBLIC_SELECT)
     .in("kind", kinds)
     .eq("is_published", true)
+    .in("registration_status", ["admin", "approved"])
     .order("name_en", { ascending: true })
     .order("created_at", { ascending: false })
 

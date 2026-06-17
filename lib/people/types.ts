@@ -2,6 +2,13 @@ import type { PathKey } from "@/lib/paths/paths-data"
 
 export type PersonKind = "guide" | "artist" | "both"
 
+export type PersonRegistrationStatus =
+  | "admin"
+  | "draft"
+  | "submitted"
+  | "approved"
+  | "rejected"
+
 export type PersonRow = {
   id: string
   slug: string
@@ -18,6 +25,12 @@ export type PersonRow = {
   instagram: string | null
   sort_order: number
   is_published: boolean
+  user_id: string | null
+  registration_status: PersonRegistrationStatus
+  submitted_at: string | null
+  reviewed_at: string | null
+  reviewed_by: string | null
+  rejection_reason: string | null
   created_at: string
   updated_at: string
 }

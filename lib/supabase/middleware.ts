@@ -1,6 +1,11 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 
+function authRole(user: { app_metadata?: Record<string, unknown> } | null) {
+  const role = user?.app_metadata?.role
+  return typeof role === "string" ? role : null
+}
+
 export async function updateSession(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -35,19 +40,36 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  const isAdminRoute = request.nextUrl.pathname.startsWith("/admin")
-  const isLoginPage = request.nextUrl.pathname === "/admin/login"
+  const pathname = request.nextUrl.pathname
+  const isAdminRoute = pathname.startsWith("/admin")
+  const isLoginPage = pathname === "/admin/login"
+  const isApplyProfile = pathname.startsWith("/apply/profile")
+  const role = authRole(user)
 
-  if (isAdminRoute && !isLoginPage && !user) {
-    const url = request.nextUrl.clone()
-    url.pathname = "/admin/login"
-    return NextResponse.redirect(url)
+  if (isApplyProfile && !user) {
+    const redirectUrl = request.nextUrl.clone()
+    redirectUrl.pathname = "/apply"
+    return NextResponse.redirect(redirectUrl)
+  }
+
+  if (isAdminRoute && !isLoginPage) {
+    if (!user) {
+      const redirectUrl = request.nextUrl.clone()
+      redirectUrl.pathname = "/admin/login"
+      return NextResponse.redirect(redirectUrl)
+    }
+    if (role === "teacher") {
+      const redirectUrl = request.nextUrl.clone()
+      redirectUrl.pathname = "/apply/profile"
+      return NextResponse.redirect(redirectUrl)
+    }
   }
 
   if (isLoginPage && user) {
-    const url = request.nextUrl.clone()
-    url.pathname = "/admin/people"
-    return NextResponse.redirect(url)
+    const redirectUrl = request.nextUrl.clone()
+    redirectUrl.pathname =
+      role === "teacher" ? "/apply/profile" : "/admin/people"
+    return NextResponse.redirect(redirectUrl)
   }
 
   return supabaseResponse
