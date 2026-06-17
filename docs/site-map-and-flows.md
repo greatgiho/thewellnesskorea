@@ -81,7 +81,7 @@ Public links, magic links, notification URLs → `NEXT_PUBLIC_SITE_URL`.
 
 **Schedule admin query params:** `date` (YYYY-MM-DD) · `floor` (floor slug) · `view` (`week` \| `day` \| `month`)
 
-**Middleware matcher:** `/admin/*`, `/apply/profile/*`, `/auth/callback` only. `/` and `/apply` are unguarded.
+**Middleware matcher:** `/`, `/admin/*`, `/apply/profile/*`, `/auth/callback`. If Supabase lands on `/?code=...`, middleware forwards to `/auth/callback`.
 
 ---
 
@@ -174,7 +174,7 @@ page.tsx
 
 ```
 /apply → code + email → /apply/check-email
-  → magic link → /auth/callback?next=/apply/profile
+  → magic link → `/auth/callback` (or `/?code=…` → middleware → callback) → `/apply/profile`
   → /apply/profile (linkTeacherPerson by email if exists)
   → [임시 저장] draft | [제출하기] submitted + admin notify
   → /apply/profile/submitted

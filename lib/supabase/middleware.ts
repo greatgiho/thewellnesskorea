@@ -41,6 +41,18 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   const pathname = request.nextUrl.pathname
+  const authCode = request.nextUrl.searchParams.get("code")
+
+  // Supabase may redirect to Site URL (/) when callback URL is not allowlisted.
+  if (authCode && pathname !== "/auth/callback") {
+    const redirectUrl = request.nextUrl.clone()
+    redirectUrl.pathname = "/auth/callback"
+    if (!redirectUrl.searchParams.has("next")) {
+      redirectUrl.searchParams.set("next", "/apply/profile")
+    }
+    return NextResponse.redirect(redirectUrl)
+  }
+
   const isAdminRoute = pathname.startsWith("/admin")
   const isLoginPage = pathname === "/admin/login"
   const isApplyProfile = pathname.startsWith("/apply/profile")

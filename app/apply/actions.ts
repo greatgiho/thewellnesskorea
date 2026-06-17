@@ -41,7 +41,9 @@ export async function requestTeacherMagicLink(
   }
 
   const supabase = await createClient()
-  const redirectTo = `${siteOrigin()}/auth/callback?next=/apply/profile`
+  // Keep redirect URL exact (no query string) so Supabase allowlist matches reliably.
+  // /auth/callback defaults next=/apply/profile.
+  const redirectTo = `${siteOrigin()}/auth/callback`
 
   const { error } = await supabase.auth.signInWithOtp({
     email: email.trim().toLowerCase(),

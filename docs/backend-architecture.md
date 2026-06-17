@@ -76,7 +76,11 @@ sequenceDiagram
 
 ### Middleware guards (`middleware.ts`)
 
-Matcher: `/admin/:path*`, `/apply/profile/:path*`, `/auth/callback`
+Matcher: `/`, `/admin/:path*`, `/apply/profile/:path*`, `/auth/callback`
+
+If magic link lands on `/?code=…` (Supabase Site URL fallback), middleware redirects to `/auth/callback` with `next=/apply/profile`.
+
+Magic link `emailRedirectTo`: `{NEXT_PUBLIC_SITE_URL}/auth/callback` (no query string; `/auth/callback` defaults `next` to `/apply/profile`).
 
 | Path | Unauthenticated | Teacher | Admin |
 |------|-----------------|---------|-------|
