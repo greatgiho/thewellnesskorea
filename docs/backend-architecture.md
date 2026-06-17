@@ -289,6 +289,7 @@ stateDiagram-v2
 | Export | Role |
 |--------|------|
 | `generateTempPassword` | Random password for provision/reissue |
+| `mustChangePassword` | Edge-safe middleware check for `user_metadata.must_change_password` |
 | `provisionTeacherAccount` | Create/update Auth user, set `role=teacher`, `must_change_password` |
 | `syncTeacherAuthEmail` | Update Auth email when admin edits person email |
 | `clearMustChangePassword` | Service-role metadata cleanup after password change |

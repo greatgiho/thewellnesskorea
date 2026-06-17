@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { createServerClient } from "@supabase/ssr"
 import { completeAuthFromUrl } from "@/lib/supabase/complete-auth-from-url"
-import { mustChangePassword } from "@/lib/auth/teacher-account"
+import { mustChangePassword } from "@/lib/auth/must-change-password"
 
 function authRole(user: { app_metadata?: Record<string, unknown> } | null) {
   const role = user?.app_metadata?.role

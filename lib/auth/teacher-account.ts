@@ -97,12 +97,6 @@ export async function maybeProvisionOnAdminSave(
   return true
 }
 
-export function mustChangePassword(
-  user: { user_metadata?: Record<string, unknown> } | null,
-): boolean {
-  return user?.user_metadata?.must_change_password === true
-}
-
 export async function getTeacherPersonByUserId(userId: string) {
   const admin = createServiceClient()
   const { data, error } = await admin
