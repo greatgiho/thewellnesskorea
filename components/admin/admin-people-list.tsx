@@ -246,7 +246,7 @@ export function AdminPeopleList({ people, applyLink }: AdminPeopleListProps) {
                     <td className="px-4 py-3">
                       <p className="font-medium text-foreground">{p.name_en}</p>
                       <p className="text-xs text-muted-foreground">{p.name_ko}</p>
-                      {isSelfRegistered(p.registration_status) && (
+                      {isSelfRegistered(p.registration_status, p.user_id) && (
                         <p className="mt-0.5 text-[10px] text-muted-foreground">
                           Self-registered
                         </p>

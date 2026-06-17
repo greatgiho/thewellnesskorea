@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation"
 import { PersonForm } from "@/components/admin/person-form"
 import { PersonReviewPanel } from "@/components/admin/person-review-panel"
+import { PersonAccountPanel } from "@/components/admin/person-account-panel"
 import { DeletePersonButton } from "@/components/admin/delete-person-button"
 import { getPersonById } from "@/lib/people/queries"
 
@@ -23,6 +24,7 @@ export default async function EditPersonPage({ params }: Props) {
         <DeletePersonButton id={person.id} name={person.name_en} />
       </div>
       <PersonReviewPanel person={person} />
+      <PersonAccountPanel person={person} />
       <PersonForm person={person} />
     </div>
   )

@@ -38,9 +38,9 @@ flowchart LR
 | Service | Role |
 |---------|------|
 | **Vercel** | Hosting, Production deploy, custom domain |
-| **Supabase** | Postgres DB, Auth (admin password / teacher magic link), file storage |
+| **Supabase** | Postgres DB, Auth (admin password / teacher register magic link + portal password), file storage |
 | **Gabia DNS** | `thewellnesskorea.com` → Vercel |
-| **Resend** | Admin email on teacher profile submit |
+| **Resend** | Admin alerts on profile submit; teacher account credentials |
 | **Slack** | Optional webhook alert (same event) |
 
 ### Domains
@@ -60,28 +60,32 @@ Public links, magic links, notification URLs → `NEXT_PUBLIC_SITE_URL`.
 
 ## Active URL map
 
-모든 App Router 엔트리 (13 pages + 1 route handler).
+모든 App Router 엔트리.
 
 | URL | File | Auth | Description |
 |-----|------|------|-------------|
 | `/` | `app/page.tsx` | Public | Homepage |
 | `/apply` | `app/apply/page.tsx` | Public | Teacher invite + email |
 | `/apply/check-email` | `app/apply/check-email/page.tsx` | Public | Magic link sent confirmation |
-| `/apply/profile` | `app/apply/profile/page.tsx` | Teacher session | Profile create/edit |
+| `/apply/profile` | `app/apply/profile/page.tsx` | Teacher session | Profile create/edit (registration) |
 | `/apply/profile/submitted` | `app/apply/profile/submitted/page.tsx` | Teacher session | Submit success |
 | `/auth/callback` | `app/auth/callback/route.ts` | — | Magic-link: `token_hash` or `code` → session |
+| `/teacher/login` | `app/teacher/login/page.tsx` | Public | Teacher email + password |
+| `/teacher` | `app/teacher/(dashboard)/page.tsx` | Teacher | Upcoming schedule dashboard |
+| `/teacher/settings` | `app/teacher/(dashboard)/settings/page.tsx` | Teacher | Password change + reissue |
+| `/teacher/change-password` | `app/teacher/change-password/page.tsx` | Teacher | Forced password change after temp login |
 | `/admin/login` | `app/admin/login/page.tsx` | Public | Admin email + password |
 | `/admin` | `app/admin/(dashboard)/page.tsx` | Admin | → redirect `/admin/people` |
 | `/admin/people` | `app/admin/(dashboard)/people/page.tsx` | Admin | People list |
-| `/admin/people/new` | `app/admin/(dashboard)/people/new/page.tsx` | Admin | Manual person create |
-| `/admin/people/[id]/edit` | `app/admin/(dashboard)/people/[id]/edit/page.tsx` | Admin | Edit + review panel |
+| `/admin/people/new` | `app/admin/(dashboard)/people/new/page.tsx` | Admin | Manual person create (+ account if email) |
+| `/admin/people/[id]/edit` | `app/admin/(dashboard)/people/[id]/edit/page.tsx` | Admin | Edit + review + account panel |
 | `/admin/schedule` | `app/admin/(dashboard)/schedule/page.tsx` | Admin | Schedule admin |
 
 **Homepage anchors (same page):** `/#guides` · `/#artists` · `/#schedule`
 
 **Schedule admin query params:** `date` (YYYY-MM-DD) · `floor` (floor slug) · `view` (`week` \| `day` \| `month`)
 
-**Middleware matcher:** `/`, `/admin/*`, `/apply/profile/*`, `/auth/callback`. If Supabase lands on `/?code=...`, middleware forwards to `/auth/callback`.
+**Middleware matcher:** `/`, `/admin/*`, `/apply/profile/*`, `/auth/callback`, `/teacher/*`. If Supabase lands on `/?code=...`, middleware forwards to `/auth/callback`.
 
 ---
 
@@ -94,6 +98,11 @@ app/layout.tsx                    ← root: fonts, metadata, Analytics
 ├── /                             app/page.tsx
 ├── /apply/*                      (no nested layout)
 ├── /auth/callback                route handler
+├── /teacher/login                app/teacher/login/page.tsx
+├── /teacher/change-password      app/teacher/change-password/page.tsx
+├── /teacher/(dashboard)/*        app/teacher/(dashboard)/layout.tsx
+│   ├── /teacher                  upcoming schedule
+│   └── /teacher/settings         password + reissue
 └── /admin/login                  app/admin/login/page.tsx
     └── /admin/(dashboard)/*      app/admin/(dashboard)/layout.tsx
         ├── /admin/people
@@ -139,6 +148,16 @@ page.tsx
 | `/apply/profile` | `teacher-profile-form` (+ shared `program-list-editor`, `philosophy-path-picker`) |
 | `/apply/profile/submitted` | inline success UI |
 
+### Teacher portal (`/teacher`)
+
+| Screen | Components |
+|--------|------------|
+| `/teacher/login` | `teacher-login-form` |
+| `/teacher/change-password` | `change-password-form` (forced) |
+| Layout | greeting, nav: Settings · Sign out |
+| `/teacher` | `teacher-upcoming-schedule` → `teacher-session-card`, `teacher-session-detail` (dialog) |
+| `/teacher/settings` | `change-password-form`, `password-reissue-button` |
+
 ### Admin dashboard
 
 | Screen | Components |
@@ -146,7 +165,7 @@ page.tsx
 | Layout | nav: People · Schedule · View site · Sign out |
 | `/admin/people` | `admin-people-list` (search, status/path filters, apply link) |
 | `/admin/people/new` | `person-form`, `program-list-editor` |
-| `/admin/people/[id]/edit` | `person-form`, `person-review-panel`, `delete-person-button` |
+| `/admin/people/[id]/edit` | `person-form`, `person-review-panel`, `person-account-panel`, `delete-person-button` |
 | `/admin/schedule` | `schedule-admin-client` |
 | | → `schedule-floor-nav`, `schedule-week-grid` / `schedule-day-grid` / `schedule-month-calendar` |
 | | → `schedule-session-block`, `session-form-dialog`, `session-description-fields`, `session-image-upload`, `instructor-search-picker` |
@@ -166,7 +185,7 @@ page.tsx
 
 ```
 /admin/login → /admin/people → /admin/people/new
-  → Save (registration_status = admin)
+  → Save with email (registration_status = admin) → Auth account + temp password email
   → Publish optional (no approval required)
 ```
 
@@ -187,7 +206,18 @@ Post-approval re-edit → `submitted`, unpublish, re-notify admins.
 ```
 /admin/people (filter: Pending / Self-registered)
   → /admin/people/[id]/edit → 승인 | 반려
+  → 승인 시: Auth account + temp password email (email required)
   → Publish when admin or approved
+```
+
+### Flow F — Teacher portal (schedule)
+
+```
+/teacher/login (email + temp password from Resend)
+  → must_change_password ? /teacher/change-password : /teacher
+  → Upcoming: sessions where instructor = self, status = confirmed, is_published, starts_at >= now
+  → Card click → session detail dialog
+  → /teacher/settings: change password | reissue temp password email
 ```
 
 ### Flow E — Admin: schedule

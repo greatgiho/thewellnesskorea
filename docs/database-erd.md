@@ -183,6 +183,7 @@ flowchart TD
     PP -->|via published person| HP
     F -->|always readable| PS[Public schedule UI - not wired]
     S -->|published and confirmed| PS
+    S -->|own instructor plus RLS| TP[Teacher portal /teacher]
 ```
 
 | Entity | Public read condition | Wired to UI |
@@ -190,10 +191,10 @@ flowchart TD
 | `people` | published + `admin`\|`approved` | ✓ homepage |
 | `person_programs` | via published person | ✓ homepage cards |
 | `floors` | always | ✗ (future schedule) |
-| `sessions` | published + `confirmed` | ✗ (homepage uses mock) |
+| `sessions` | published + `confirmed` | ✓ teacher portal; ✗ homepage (mock) |
 | Storage objects | bucket public flag | ✓ photo URLs |
 
-**Teacher read:** own `people` + `person_programs` via `user_id = auth.uid()` (not public).
+**Teacher read:** own `people` + `person_programs` via `user_id = auth.uid()`; own `sessions` where confirmed + published (`/teacher` dashboard).
 
 **Admin read/write:** all rows via `is_admin_user()` or authenticated session policies on floors/sessions.
 

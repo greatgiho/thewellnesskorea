@@ -9,6 +9,10 @@ import {
   resolvePersonSlug,
   savePersonPrograms,
 } from "@/lib/people/persist"
+import {
+  maybeProvisionOnAdminSave,
+  provisionAndEmailTeacherAccount,
+} from "@/lib/auth/teacher-account"
 import { canPublishPerson } from "@/lib/people/registration-status"
 import { validatePersonInput } from "@/lib/people/validate"
 
@@ -50,11 +54,15 @@ export async function savePerson(
   let sortOrder = 0
   let existingPhotoPath: string | null = null
   let registrationStatus: PersonRegistrationStatus = "admin"
+  let existingEmail: string | null = null
+  let existingUserId: string | null = null
 
   if (personId) {
     const { data: existing } = await supabase
       .from("people")
-      .select("sort_order, photo_path, registration_status, is_published")
+      .select(
+        "sort_order, photo_path, registration_status, is_published, email, user_id",
+      )
       .eq("id", personId)
       .maybeSingle()
 
@@ -62,6 +70,8 @@ export async function savePerson(
     existingPhotoPath = existing?.photo_path ?? null
     registrationStatus = (existing?.registration_status ??
       "admin") as PersonRegistrationStatus
+    existingEmail = existing?.email ?? null
+    existingUserId = existing?.user_id ?? null
 
     if (
       input.is_published &&
@@ -112,6 +122,13 @@ export async function savePerson(
     await savePersonPrograms(supabase, personId, input)
   }
 
+  await maybeProvisionOnAdminSave(supabase, personId, {
+    email: input.email,
+    previousEmail: existingEmail,
+    previousUserId: existingUserId,
+    registrationStatus,
+  })
+
   revalidatePersonCaches(input.is_published, personId)
   return personId
 }
@@ -152,6 +169,17 @@ export async function approvePerson(personId: string) {
   const { supabase, user } = await requireAuth()
   const now = new Date().toISOString()
 
+  const { data: person, error: loadError } = await supabase
+    .from("people")
+    .select("email")
+    .eq("id", personId)
+    .maybeSingle()
+
+  if (loadError) throw new Error(loadError.message)
+  if (!person?.email?.trim()) {
+    throw new Error("Email is required before approval.")
+  }
+
   const { error } = await supabase
     .from("people")
     .update({
@@ -163,7 +191,16 @@ export async function approvePerson(personId: string) {
     .eq("id", personId)
 
   if (error) throw new Error(error.message)
+
+  await provisionAndEmailTeacherAccount(supabase, personId)
   revalidatePersonCaches(false, personId)
+}
+
+export async function reissueTeacherPassword(personId: string) {
+  const { supabase } = await requireAuth()
+  await provisionAndEmailTeacherAccount(supabase, personId, {
+    isReissue: true,
+  })
 }
 
 export async function rejectPerson(personId: string, reason: string) {

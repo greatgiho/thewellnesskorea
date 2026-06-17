@@ -8,7 +8,7 @@ Companion: [ERD](./database-erd.md) · [Backend logic](./backend-architecture.md
 
 > 목적: 데이터베이스 물리/논리 스키마 명세
 
-**Apply order:** `001` → `002` → `003` → `004` → `005` → `007`  
+**Apply order:** `001` → `002` → `003` → `004` → `005` → `007` → `008`  
 (`007_fix_duplicate_emails.sql` = idempotent superset of `006`; use `007` if emails may duplicate)
 
 ---
@@ -168,7 +168,8 @@ RLS **enabled** on all four app tables.
 | Policy | Op | Rule |
 |--------|-----|------|
 | public read published sessions | SELECT | `is_published AND status = 'confirmed'` |
-| admin all on sessions | ALL | authenticated |
+| admin all on sessions | ALL | `is_admin_user()` |
+| teacher read own published sessions | SELECT | not admin; `status = confirmed`; `is_published`; `instructor_id` linked to `people.user_id = auth.uid()` |
 
 ---
 
@@ -207,6 +208,7 @@ Referenced by FK (not created in app migrations):
 | `005_session_status.sql` | `session_status`, slot workflow, public session policy |
 | `006_teacher_self_registration.sql` | registration columns, teacher RLS (may fail on dup email) |
 | `007_fix_duplicate_emails.sql` | idempotent 006 + email dedupe + unique index |
+| `008_teacher_sessions_rls.sql` | admin sessions policy via `is_admin_user()`; teacher read own confirmed+published sessions |
 
 ---
 

@@ -1,6 +1,7 @@
-import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
+import { createServerClient } from "@supabase/ssr"
 import { completeAuthFromUrl } from "@/lib/supabase/complete-auth-from-url"
+import { mustChangePassword } from "@/lib/auth/teacher-account"
 
 function authRole(user: { app_metadata?: Record<string, unknown> } | null) {
   const role = user?.app_metadata?.role
@@ -75,8 +76,11 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   const isAdminRoute = pathname.startsWith("/admin")
-  const isLoginPage = pathname === "/admin/login"
+  const isAdminLoginPage = pathname === "/admin/login"
   const isApplyProfile = pathname.startsWith("/apply/profile")
+  const isTeacherRoute = pathname.startsWith("/teacher")
+  const isTeacherLoginPage = pathname === "/teacher/login"
+  const isTeacherChangePasswordPage = pathname === "/teacher/change-password"
   const role = authRole(user)
 
   if (isApplyProfile && !user) {
@@ -85,7 +89,36 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(redirectUrl)
   }
 
-  if (isAdminRoute && !isLoginPage) {
+  if (isTeacherRoute && !isTeacherLoginPage) {
+    if (!user) {
+      const redirectUrl = request.nextUrl.clone()
+      redirectUrl.pathname = "/teacher/login"
+      return NextResponse.redirect(redirectUrl)
+    }
+    if (role === "admin") {
+      const redirectUrl = request.nextUrl.clone()
+      redirectUrl.pathname = "/admin/people"
+      return NextResponse.redirect(redirectUrl)
+    }
+    if (
+      mustChangePassword(user) &&
+      !isTeacherChangePasswordPage
+    ) {
+      const redirectUrl = request.nextUrl.clone()
+      redirectUrl.pathname = "/teacher/change-password"
+      return NextResponse.redirect(redirectUrl)
+    }
+  }
+
+  if (isTeacherLoginPage && user && role === "teacher") {
+    const redirectUrl = request.nextUrl.clone()
+    redirectUrl.pathname = mustChangePassword(user)
+      ? "/teacher/change-password"
+      : "/teacher"
+    return NextResponse.redirect(redirectUrl)
+  }
+
+  if (isAdminRoute && !isAdminLoginPage) {
     if (!user) {
       const redirectUrl = request.nextUrl.clone()
       redirectUrl.pathname = "/admin/login"
@@ -93,15 +126,15 @@ export async function updateSession(request: NextRequest) {
     }
     if (role === "teacher") {
       const redirectUrl = request.nextUrl.clone()
-      redirectUrl.pathname = "/apply/profile"
+      redirectUrl.pathname = "/teacher"
       return NextResponse.redirect(redirectUrl)
     }
   }
 
-  if (isLoginPage && user) {
+  if (isAdminLoginPage && user) {
     const redirectUrl = request.nextUrl.clone()
     redirectUrl.pathname =
-      role === "teacher" ? "/apply/profile" : "/admin/people"
+      role === "teacher" ? "/teacher" : "/admin/people"
     return NextResponse.redirect(redirectUrl)
   }
 

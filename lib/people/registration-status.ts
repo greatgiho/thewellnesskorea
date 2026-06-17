@@ -33,6 +33,12 @@ export function canPublishPerson(status: PersonRegistrationStatus): boolean {
   return status === "admin" || status === "approved"
 }
 
-export function isSelfRegistered(status: PersonRegistrationStatus): boolean {
-  return status !== "admin"
+export function isSelfRegistered(
+  status: PersonRegistrationStatus,
+  userId?: string | null,
+): boolean {
+  if (status === "admin") return false
+  // Legacy rows: approved without auth link were admin/seed data (migration 007).
+  if (status === "approved" && !userId) return false
+  return true
 }

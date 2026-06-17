@@ -18,14 +18,14 @@ Companion docs: [Site map](./site-map-and-flows.md) · [DB schema](./database-sc
 | Styling | Tailwind CSS 4 | `cn()` via clsx + tailwind-merge |
 | UI primitives | shadcn, @base-ui/react, lucide-react | |
 | Database | Supabase Postgres | RLS on all app tables |
-| Auth | Supabase Auth | Admin: password · Teacher: magic link OTP |
+| Auth | Supabase Auth | Admin: password · Teacher register: magic link · Teacher portal: password |
 | File storage | Supabase Storage | `person-photos`, `session-photos` |
-| Email | Resend REST API | Admin alerts on profile submit |
+| Email | Resend REST API | Admin alerts; teacher credentials on provision/reissue |
 | Chat | Slack incoming webhook | Optional |
 | Analytics | @vercel/analytics | Production only |
 | Deploy | Vercel | |
 
-**Mutation pattern:** Server Actions (`"use server"`) in `app/admin/actions.ts`, `app/apply/actions.ts`, `app/admin/schedule/actions.ts`. No separate REST API layer for app CRUD.
+**Mutation pattern:** Server Actions (`"use server"`) in `app/admin/actions.ts`, `app/apply/actions.ts`, `app/admin/schedule/actions.ts`, `app/teacher/actions.ts`. No separate REST API layer for app CRUD.
 
 ---
 
@@ -48,11 +48,26 @@ Companion docs: [Site map](./site-map-and-flows.md) · [DB schema](./database-sc
 | Role | How set | Access |
 |------|---------|--------|
 | **Admin** | Default; or `app_metadata.role = "admin"` | `/admin/*`, full RLS via `is_admin_user()` |
-| **Teacher** | `ensureTeacherRole()` on first profile access | `/apply/profile/*`, own `people` + `person_programs` via RLS |
+| **Teacher** | `ensureTeacherRole()` on first profile access; `app_metadata.role = teacher` on account provision | `/apply/profile/*` (registration), `/teacher/*` (portal), own `people` + `person_programs` via RLS |
 
 DB helper `is_admin_user()`: JWT `app_metadata.role IS DISTINCT FROM 'teacher'` (unset = admin).
 
-### Teacher magic link (design)
+### Teacher portal password (design)
+
+**Registration** still uses magic link on `/apply` (see below). **Ongoing access** uses email + password at `/teacher/login`.
+
+| Trigger | Action |
+|---------|--------|
+| Admin saves person (`registration_status = admin`) with email, no `user_id` | `provisionTeacherAccount` + credentials email |
+| Admin approves self-registered profile | Same (email required) |
+| Admin “Reissue temporary password” | New random password + email |
+| Teacher “임시 비밀번호 이메일로 받기” | Same for logged-in teacher |
+
+Implementation: `lib/auth/provision-teacher-account.ts`, `lib/auth/teacher-account.ts`, `lib/notifications/teacher-credentials-email.ts`.
+
+`user_metadata.must_change_password = true` on provision → middleware forces `/teacher/change-password` until cleared.
+
+### Teacher magic link (registration only)
 
 **Product requirement:** Teachers must log in from any device/browser — no “same Chrome only” rule.
 
@@ -116,15 +131,17 @@ sequenceDiagram
 
 ### Middleware guards (`middleware.ts`)
 
-Matcher: `/`, `/admin/:path*`, `/apply/profile/:path*`, `/auth/callback`
+Matcher: `/`, `/admin/:path*`, `/apply/profile/:path*`, `/auth/callback`, `/teacher/:path*`
 
 On `code` or `token_hash`+`type` in query: complete auth in middleware → redirect to `next` (default `/apply/profile`).
 
 | Path | Unauthenticated | Teacher | Admin |
 |------|-----------------|---------|-------|
 | `/apply/profile/*` | → `/apply` | ✓ | ✓ |
-| `/admin/login` | ✓ | → `/apply/profile` | → `/admin/people` |
-| `/admin/*` (not login) | → `/admin/login` | → `/apply/profile` | ✓ |
+| `/teacher/login` | ✓ | → `/teacher` or `/teacher/change-password` | → `/admin/people` |
+| `/teacher/*` (not login) | → `/teacher/login` | ✓ (force change-password if flag) | → `/admin/people` |
+| `/admin/login` | ✓ | → `/teacher` | → `/admin/people` |
+| `/admin/*` (not login) | → `/admin/login` | → `/teacher` | ✓ |
 
 Middleware complements but does not replace RLS.
 
@@ -231,7 +248,8 @@ stateDiagram-v2
 | `signOut` | Admin session end |
 | `savePerson` / `createPerson` / `updatePerson` | Person + programs CRUD |
 | `updatePersonPhotoPath` | Photo path update + old file cleanup |
-| `approvePerson` | `registration_status → approved` |
+| `approvePerson` | `registration_status → approved`; provision Auth + temp password email |
+| `reissueTeacherPassword` | New random password + email |
 | `rejectPerson` | `→ rejected`, unpublish, reason required |
 | `deletePerson` | Delete if no sessions reference instructor |
 
@@ -245,6 +263,14 @@ stateDiagram-v2
 | `submitTeacherProfile` | `submitted` + notify |
 | `signOutTeacher` | Teacher session end |
 
+### `app/teacher/actions.ts`
+
+| Action | Purpose |
+|--------|---------|
+| `teacherSignOut` | Teacher portal session end |
+| `changeTeacherPassword` | Verify current + set new; clear `must_change_password` |
+| `requestTeacherPasswordReissue` | Random temp password + email to logged-in teacher |
+
 ### `app/admin/schedule/actions.ts`
 
 | Action | Purpose |
@@ -257,6 +283,17 @@ stateDiagram-v2
 ---
 
 ## lib/ function map
+
+### `lib/auth/`
+
+| Export | Role |
+|--------|------|
+| `generateTempPassword` | Random password for provision/reissue |
+| `provisionTeacherAccount` | Create/update Auth user, set `role=teacher`, `must_change_password` |
+| `syncTeacherAuthEmail` | Update Auth email when admin edits person email |
+| `clearMustChangePassword` | Service-role metadata cleanup after password change |
+| `provisionAndEmailTeacherAccount`, `maybeProvisionOnAdminSave`, `linkPersonToAuthUser` | Orchestrate people row + email |
+| `mustChangePassword`, `getTeacherPersonByUserId` | Middleware + layout helpers |
 
 ### `lib/apply/`
 
@@ -273,7 +310,7 @@ stateDiagram-v2
 | `getPublishedPeople`, `getAllPeopleAdmin`, `getPersonById` | Queries |
 | `validatePersonInput` | Form validation |
 | `personRowFromInput`, `savePersonPrograms`, `resolvePersonSlug`, `uniqueSlug` | Persist |
-| `canPublishPerson`, `isSelfRegistered`, status labels/badges | Registration helpers |
+| `isSelfRegistered(status, userId?)` | Registration helpers; legacy `approved` without `user_id` excluded |
 | `slugify`, `getPersonPhotoUrl`, `toPersonCard`, `isValidEmail`, … | Display/utils |
 
 ### `lib/schedule/`
@@ -281,6 +318,8 @@ stateDiagram-v2
 | Export | Role |
 |--------|------|
 | `getFloors`, `getSessionsForDay`, `getSessionsForRange` | Queries |
+| `getUpcomingSessionsForTeacher` | Teacher portal: own confirmed+published future sessions |
+| `toSessionWithRelations` | Normalize Supabase relation arrays |
 | `toKstIso`, `sessionsOverlap`, `isWithinOperatingHours`, week/month helpers | KST time math |
 | `layoutWidthForSession`, `layoutLeftForSession` | Grid 50%/100% layout |
 | `sessionStatusLabel`, ribbon classes | UI status |
@@ -291,7 +330,8 @@ stateDiagram-v2
 | Export | Role |
 |--------|------|
 | `getAdminNotifyEmails` | Paginate Auth users, filter admins |
-| `notifyAdminProfileSubmitted`, `applyLinkForTeachers` | Alert dispatch |
+| `notifyAdminProfileSubmitted`, `applyLinkForTeachers` | Admin alert dispatch |
+| `sendTeacherCredentialsEmail` | Welcome / reissue temp password to teacher |
 
 ### `lib/paths/`
 
@@ -313,7 +353,7 @@ stateDiagram-v2
 
 - RLS on `people`, `person_programs`, `floors`, `sessions`
 - Service role never exposed to browser
-- Teacher RLS: own row only; cannot set `is_published`
+- Teacher RLS: own `people` + `person_programs`; read own `sessions` (confirmed + published only); cannot set `is_published`
 - Admin RLS: `is_admin_user()` on people/programs
 - Storage: public read; authenticated write per bucket policy
 
@@ -325,3 +365,5 @@ stateDiagram-v2
 - `booked_count` increment / booking flow
 - Notify processing-session creators on auto-cancel
 - Resend domain verification for production
+- Teacher forgot-password page (unauthenticated)
+- Teacher profile edit in `/teacher` (still via `/apply/profile` when needed)

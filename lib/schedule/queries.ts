@@ -10,7 +10,7 @@ function normalizeRelation<T>(value: T | T[] | null | undefined): T | undefined 
   return value
 }
 
-function toSessionWithRelations(
+export function toSessionWithRelations(
   row: SessionRow & {
     floor?: FloorRow | FloorRow[] | null
     instructor?: SessionWithRelations["instructor"] | SessionWithRelations["instructor"][] | null
