@@ -1,0 +1,40 @@
+---
+description: 커밋 전 4종 핵심 문서 동기화 (화면·백엔드·스키마·ERD)
+alwaysApply: true
+---
+
+# 문서 동기화 (커밋 전 필수)
+
+코드 변경 후 **git commit을 만들기 전**, 아래 4개 문서를 **전체 기준**으로 대조하고 불일치가 있으면 먼저 업데이트한다.
+
+| # | 문서 | 갱신 트리거 |
+|---|------|-------------|
+| 1 | `docs/site-map-and-flows.md` | 라우트·화면·유저 플로우·env·인프라 |
+| 2 | `docs/backend-architecture.md` | Server Actions·auth·비즈니스 규칙·lib |
+| 3 | `docs/database-schema.md` | migration·테이블·enum·RLS·storage |
+| 4 | `docs/database-erd.md` | FK·관계·엔티티 구조 변경 |
+
+## 체크리스트
+
+변경 영역에 맞는 문서를 열고 다음을 확인:
+
+- [ ] 새/삭제된 URL·페이지·레이아웃이 site-map에 반영됐는가
+- [ ] auth·상태 전이·검증·알림 규칙이 backend-architecture와 일치하는가
+- [ ] migration·컬럼·enum·policy가 database-schema와 일치하는가
+- [ ] ERD 관계·카디널리티가 database-erd와 일치하는가
+- [ ] 각 문서 상단 `Last updated` 날짜 갱신
+
+## 커밋 시 동작
+
+사용자가 커밋을 요청하면:
+
+1. `git diff`로 변경 범위 파악
+2. 위 4문서 중 해당 항목 검토·수정
+3. 문서 변경을 **같은 커밋**에 포함 (별도 커밋으로 쪼개지 않음)
+4. 문서만 바뀐 경우에도 4문서 전체를 빠르게 훑어 누락 없는지 확인
+
+## 원칙
+
+- 문서는 **현재 코드·DB 기준**의 단일 진실 공급원(single source of truth)
+- `supabase/migrations/`가 스키마의 원천; schema 문서는 migration을 요약
+- 미구현 항목은 각 문서 하단 **Not yet implemented**에만 기록
