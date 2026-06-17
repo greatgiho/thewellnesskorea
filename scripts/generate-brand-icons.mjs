@@ -1,75 +1,31 @@
-import fs from "node:fs"
 import path from "node:path"
 import sharp from "sharp"
 
 const root = path.resolve(import.meta.dirname, "..")
 const brandDir = path.join(root, "public/brand")
 const appDir = path.join(root, "app")
+const appIconSource = path.join(brandDir, "logo-app-icon.jpg")
 
-const APP_BG = "#1C2821"
-const FAVICON_BG = "#F9F6F0"
-
-async function squareIcon({
-  source,
-  size,
-  output,
-  background,
-  inset = 0.12,
-}) {
-  const inner = Math.round(size * (1 - inset * 2))
-  const logo = await sharp(source)
-    .flatten({ background })
-    .resize(inner, inner, {
-      fit: "inside",
-      withoutEnlargement: false,
-    })
-    .png()
-    .toBuffer()
-
-  await sharp({
-    create: {
-      width: size,
-      height: size,
-      channels: 3,
-      background,
-    },
-  })
-    .composite([{ input: logo, gravity: "center" }])
+async function resizeIcon(source, size, output) {
+  await sharp(source)
+    .resize(size, size, { fit: "cover", position: "center" })
     .png()
     .toFile(output)
 }
 
 async function main() {
-  const vertical = path.join(brandDir, "logo-vertical.jpg")
-  const emblem = path.join(brandDir, "logo-emblem.jpg")
-
-  await squareIcon({
-    source: emblem,
-    size: 180,
-    output: path.join(appDir, "apple-icon.png"),
-    background: FAVICON_BG,
-    inset: 0.05,
-  })
-
-  await squareIcon({
-    source: emblem,
-    size: 32,
-    output: path.join(appDir, "icon.png"),
-    background: FAVICON_BG,
-    inset: 0.06,
-  })
+  await resizeIcon(appIconSource, 180, path.join(appDir, "apple-icon.png"))
+  await resizeIcon(appIconSource, 32, path.join(appDir, "icon.png"))
 
   for (const size of [192, 512]) {
-    await squareIcon({
-      source: emblem,
+    await resizeIcon(
+      appIconSource,
       size,
-      output: path.join(brandDir, `app-icon-${size}.png`),
-      background: FAVICON_BG,
-      inset: 0.05,
-    })
+      path.join(brandDir, `app-icon-${size}.png`),
+    )
   }
 
-  console.log("Generated app icons in app/ and public/brand/")
+  console.log("Generated app icons from logo-app-icon.jpg")
 }
 
 main().catch((error) => {

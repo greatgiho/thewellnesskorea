@@ -4,6 +4,7 @@ export const BRAND_ASSETS = {
   logoHorizontalAlt: "/brand/logo-horizontal-alt.jpg",
   logoVertical: "/brand/logo-vertical.jpg",
   logoEmblem: "/brand/logo-emblem.jpg",
+  logoAppIcon: "/brand/logo-app-icon.jpg",
   appIcon192: "/brand/app-icon-192.png",
   appIcon512: "/brand/app-icon-512.png",
 } as const

@@ -1,9 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import Image from "next/image"
 import { Menu, X } from "lucide-react"
-import { BRAND_ASSETS } from "@/lib/brand/assets"
 
 const navLinks = [
   { label: "Philosophy", href: "#philosophy" },
@@ -37,15 +35,11 @@ export function Navbar() {
             >
               <Menu className="size-6" />
             </button>
-            <a href="#" className="flex min-w-0 items-center">
-              <Image
-                src={BRAND_ASSETS.logoHorizontal}
-                alt="The Wellness Korea"
-                width={220}
-                height={48}
-                priority
-                className="h-8 w-auto max-w-[min(100%,220px)] object-contain object-left sm:h-9"
-              />
+            <a
+              href="#"
+              className="truncate font-serif text-xl font-medium tracking-tight text-foreground sm:text-2xl"
+            >
+              The Wellness Korea
             </a>
           </div>
 
@@ -88,13 +82,9 @@ export function Navbar() {
           />
           <div className="absolute inset-0 flex flex-col bg-background">
             <div className="flex items-center justify-between border-b border-border/60 px-6 py-5">
-              <Image
-                src={BRAND_ASSETS.logoHorizontal}
-                alt="The Wellness Korea"
-                width={200}
-                height={44}
-                className="h-8 w-auto object-contain"
-              />
+              <span className="font-serif text-xl font-medium text-foreground">
+                Menu
+              </span>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
