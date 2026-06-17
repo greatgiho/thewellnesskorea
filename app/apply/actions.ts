@@ -29,6 +29,12 @@ async function requireTeacherAuth() {
   return { supabase, user }
 }
 
+export async function validateTeacherInviteCode(inviteCode: string): Promise<void> {
+  if (inviteCode.trim().toLowerCase() !== teacherApplyCode().toLowerCase()) {
+    throw new Error("Invalid invite code.")
+  }
+}
+
 export async function requestTeacherMagicLink(
   inviteCode: string,
   email: string,

@@ -36,7 +36,8 @@ Companion docs: [Site map](./site-map-and-flows.md) · [DB schema](./database-sc
 | `lib/supabase/client.ts` | Browser components |
 | `lib/supabase/server.ts` | Server Components, Actions, Route Handlers (cookie session) |
 | `lib/supabase/service.ts` | Service role — `auth.admin.*`, bypass RLS (server only) |
-| `lib/supabase/middleware.ts` | Session refresh + route redirects |
+| `lib/supabase/middleware.ts` | Session refresh, auth callback completion, route redirects |
+| `lib/supabase/complete-auth-from-url.ts` | `verifyOtp` (token_hash) or `exchangeCodeForSession` (code) |
 
 ---
 
@@ -51,36 +52,73 @@ Companion docs: [Site map](./site-map-and-flows.md) · [DB schema](./database-sc
 
 DB helper `is_admin_user()`: JWT `app_metadata.role IS DISTINCT FROM 'teacher'` (unset = admin).
 
-### Auth flows
+### Teacher magic link (design)
+
+**Product requirement:** Teachers must log in from any device/browser — no “same Chrome only” rule.
+
+Supabase supports two callback shapes; the app handles **both** in `lib/supabase/complete-auth-from-url.ts`:
+
+| Callback | Example | Device | Server action |
+|----------|---------|--------|---------------|
+| **token_hash** (preferred) | `/auth/callback?token_hash=…&type=magiclink` | Any device | `verifyOtp()` — no PKCE cookie |
+| **code** (PKCE fallback) | `/?code=…` or `/auth/callback?code=…` | Same browser that requested link | `exchangeCodeForSession()` |
+
+**Request flow:** Browser client `signInWithOtp` on `/apply` (not Server Action) — PKCE cookies stored correctly when PKCE path is used.
+
+**Complete flow:** Middleware or `/auth/callback` → session cookies → `/apply/profile` → `linkTeacherPerson` + `ensureTeacherRole`.
+
+#### Supabase email template (required for any-device links)
+
+Dashboard → **Authentication → Email Templates → Magic Link**
+
+Replace the button/link `href` from default `{{ .ConfirmationURL }}` to:
+
+```html
+<a href="{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=magiclink">
+  로그인하기
+</a>
+```
+
+- **Site URL** must be `https://www.thewellnesskorea.com`
+- **Redirect URLs** must include `https://www.thewellnesskorea.com/auth/callback` (and localhost for dev)
+- **SMTP:** Resend (`smtp.resend.com`, user `resend`, API key as password)
+
+Until this template is updated, emails still use PKCE `code` links → same-browser limitation remains.
+
+#### Known operational risks (industry-wide, not app-specific)
+
+| Risk | Mitigation |
+|------|------------|
+| Corporate email scanners pre-click links | token_hash link consumed once; user requests fresh link; consider 6-digit OTP UI later |
+| Link expired / clicked twice | Clear error + re-request on `/apply` |
+| `www` vs apex cookie split | Use `www` consistently in Site URL + `NEXT_PUBLIC_SITE_URL` |
+
+### Auth flows (diagram)
 
 ```mermaid
 sequenceDiagram
-    participant A as Admin
     participant T as Teacher
     participant App as Next.js
     participant SB as Supabase Auth
 
-    A->>App: POST /admin/login (email+password)
-    App->>SB: signInWithPassword
-    SB-->>App: session cookie
-    App-->>A: redirect /admin/people
-
-    T->>App: POST /apply (code+email)
+    T->>App: /apply — invite code + email (browser OTP)
     App->>SB: signInWithOtp
     SB-->>T: magic link email
-    T->>App: GET /auth/callback?code=
+  alt token_hash link (preferred)
+    T->>App: GET /auth/callback?token_hash&type=magiclink
+    App->>SB: verifyOtp
+  else PKCE code link (legacy template)
+    T->>App: GET /?code= or /auth/callback?code=
     App->>SB: exchangeCodeForSession
-    App-->>T: redirect /apply/profile
-    App->>App: ensureTeacherRole + linkTeacherPerson
+  end
+    App-->>T: /apply/profile
 ```
 
 ### Middleware guards (`middleware.ts`)
 
 Matcher: `/`, `/admin/:path*`, `/apply/profile/:path*`, `/auth/callback`
 
-If magic link lands on `/?code=…` (Supabase Site URL fallback), middleware redirects to `/auth/callback` with `next=/apply/profile`.
-
-Magic link `emailRedirectTo`: `{NEXT_PUBLIC_SITE_URL}/auth/callback` (no query string; `/auth/callback` defaults `next` to `/apply/profile`).
+On `code` or `token_hash`+`type` in query: complete auth in middleware → redirect to `next` (default `/apply/profile`).
 
 | Path | Unauthenticated | Teacher | Admin |
 |------|-----------------|---------|-------|

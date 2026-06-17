@@ -2,7 +2,9 @@
 
 import { useState } from "react"
 import { useSearchParams } from "next/navigation"
-import { requestTeacherMagicLink } from "@/app/apply/actions"
+import { validateTeacherInviteCode } from "@/app/apply/actions"
+import { createClient } from "@/lib/supabase/client"
+import { isValidEmail } from "@/lib/people/utils"
 
 export function ApplyLoginForm() {
   const searchParams = useSearchParams()
@@ -10,7 +12,7 @@ export function ApplyLoginForm() {
   const [email, setEmail] = useState("")
   const [error, setError] = useState<string | null>(
     searchParams.get("error") === "auth"
-      ? "Login link expired or invalid. Please try again."
+      ? "로그인 링크가 만료되었거나 이미 사용되었습니다. 새 링크를 요청해 주세요."
       : null,
   )
   const [pending, setPending] = useState(false)
@@ -20,7 +22,24 @@ export function ApplyLoginForm() {
     setError(null)
     setPending(true)
     try {
-      await requestTeacherMagicLink(inviteCode, email)
+      await validateTeacherInviteCode(inviteCode)
+      if (!isValidEmail(email)) {
+        throw new Error("Invalid email format.")
+      }
+
+      const supabase = createClient()
+      const redirectTo = `${window.location.origin}/auth/callback`
+
+      const { error: otpError } = await supabase.auth.signInWithOtp({
+        email: email.trim().toLowerCase(),
+        options: {
+          emailRedirectTo: redirectTo,
+          shouldCreateUser: true,
+        },
+      })
+
+      if (otpError) throw new Error(otpError.message)
+
       const params = new URLSearchParams({ email })
       window.location.href = `/apply/check-email?${params.toString()}`
     } catch (err) {

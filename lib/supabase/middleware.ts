@@ -1,9 +1,24 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
+import { completeAuthFromUrl } from "@/lib/supabase/complete-auth-from-url"
 
 function authRole(user: { app_metadata?: Record<string, unknown> } | null) {
   const role = user?.app_metadata?.role
   return typeof role === "string" ? role : null
+}
+
+function redirectWithSessionCookies(
+  url: URL,
+  supabaseResponse: NextResponse,
+): NextResponse {
+  return NextResponse.redirect(url, { headers: supabaseResponse.headers })
+}
+
+function authCallbackParams(params: URLSearchParams): boolean {
+  return (
+    params.has("code") ||
+    (params.has("token_hash") && params.has("type"))
+  )
 }
 
 export async function updateSession(request: NextRequest) {
@@ -36,22 +51,28 @@ export async function updateSession(request: NextRequest) {
     },
   )
 
+  const pathname = request.nextUrl.pathname
+  const params = request.nextUrl.searchParams
+
+  if (authCallbackParams(params)) {
+    const { ok } = await completeAuthFromUrl(supabase, params)
+    const next = params.get("next") ?? "/apply/profile"
+    const redirectUrl = request.nextUrl.clone()
+    redirectUrl.pathname = next
+    redirectUrl.search = ""
+
+    if (ok) {
+      return redirectWithSessionCookies(redirectUrl, supabaseResponse)
+    }
+
+    redirectUrl.pathname = "/apply"
+    redirectUrl.search = "error=auth"
+    return NextResponse.redirect(redirectUrl)
+  }
+
   const {
     data: { user },
   } = await supabase.auth.getUser()
-
-  const pathname = request.nextUrl.pathname
-  const authCode = request.nextUrl.searchParams.get("code")
-
-  // Supabase may redirect to Site URL (/) when callback URL is not allowlisted.
-  if (authCode && pathname !== "/auth/callback") {
-    const redirectUrl = request.nextUrl.clone()
-    redirectUrl.pathname = "/auth/callback"
-    if (!redirectUrl.searchParams.has("next")) {
-      redirectUrl.searchParams.set("next", "/apply/profile")
-    }
-    return NextResponse.redirect(redirectUrl)
-  }
 
   const isAdminRoute = pathname.startsWith("/admin")
   const isLoginPage = pathname === "/admin/login"

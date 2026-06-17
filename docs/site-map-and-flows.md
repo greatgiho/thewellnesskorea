@@ -69,7 +69,7 @@ Public links, magic links, notification URLs → `NEXT_PUBLIC_SITE_URL`.
 | `/apply/check-email` | `app/apply/check-email/page.tsx` | Public | Magic link sent confirmation |
 | `/apply/profile` | `app/apply/profile/page.tsx` | Teacher session | Profile create/edit |
 | `/apply/profile/submitted` | `app/apply/profile/submitted/page.tsx` | Teacher session | Submit success |
-| `/auth/callback` | `app/auth/callback/route.ts` | — | OAuth/magic-link code exchange |
+| `/auth/callback` | `app/auth/callback/route.ts` | — | Magic-link: `token_hash` or `code` → session |
 | `/admin/login` | `app/admin/login/page.tsx` | Public | Admin email + password |
 | `/admin` | `app/admin/(dashboard)/page.tsx` | Admin | → redirect `/admin/people` |
 | `/admin/people` | `app/admin/(dashboard)/people/page.tsx` | Admin | People list |
@@ -174,7 +174,7 @@ page.tsx
 
 ```
 /apply → code + email → /apply/check-email
-  → magic link → `/auth/callback` (or `/?code=…` → middleware → callback) → `/apply/profile`
+  → magic link → `/auth/callback?token_hash=…` (any device) or `?code=…` → `/apply/profile`
   → /apply/profile (linkTeacherPerson by email if exists)
   → [임시 저장] draft | [제출하기] submitted + admin notify
   → /apply/profile/submitted
