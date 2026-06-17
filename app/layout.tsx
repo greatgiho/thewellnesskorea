@@ -21,23 +21,9 @@ export const metadata: Metadata = {
   title: 'The Wellness Korea — Live Your Time Fully',
   description:
     'A premium K-Wellness brand reinterpreting Korean meditation, tea, hospitality, and refined space into a contemporary way of living one\u2019s time well. The first stage: Brickwell, Seochon.',
-  generator: 'v0.app',
-  icons: {
-    icon: [
-      {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
-      },
-    ],
-    apple: '/apple-icon.png',
+  applicationName: 'The Wellness Korea',
+  appleWebApp: {
+    title: 'Wellness Korea',
   },
 }
 
