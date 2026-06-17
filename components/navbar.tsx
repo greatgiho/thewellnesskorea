@@ -11,15 +11,7 @@ const navLinks = [
 ]
 
 export function Navbar() {
-  const [scrolled, setScrolled] = useState(false)
   const [open, setOpen] = useState(false)
-
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 24)
-    onScroll()
-    window.addEventListener("scroll", onScroll)
-    return () => window.removeEventListener("scroll", onScroll)
-  }, [])
 
   useEffect(() => {
     if (!open) return
@@ -32,13 +24,7 @@ export function Navbar() {
 
   return (
     <>
-      <header
-        className={`fixed inset-x-0 top-0 z-50 transition-all duration-500 ${
-          scrolled
-            ? "bg-background/80 backdrop-blur-md border-b border-border/60"
-            : "bg-transparent"
-        }`}
-      >
+      <header className="fixed inset-x-0 top-0 z-50 border-b border-border/60 bg-background">
         <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5 lg:px-10">
           <div className="flex min-w-0 flex-1 items-center gap-3 md:flex-none">
             <button

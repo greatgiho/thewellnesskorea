@@ -17,7 +17,7 @@ export default async function Page() {
   ])
 
   return (
-    <main className="min-h-screen bg-background">
+    <main className="snap-y snap-mandatory bg-background">
       <Navbar />
       <Hero />
       <Philosophy />
