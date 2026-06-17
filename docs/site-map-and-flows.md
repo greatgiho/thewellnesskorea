@@ -227,6 +227,7 @@ Post-approval re-edit → `submitted`, unpublish, re-notify admins.
 /admin/schedule → click slot → create (processing, 50% width)
   → max 2 processing per floor+overlap bucket
   → Confirm → confirmed (100%), competitors cancelled
+  → Revert to processing → unpublish, 50% width; cancelled competitors not restored
   → Publish when confirmed → revalidate /
 ```
 

@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import { X } from "lucide-react"
 import { type PathKey } from "@/lib/paths/paths-data"
 import type { PersonWithPrograms } from "@/lib/people/types"
 import { EMPTY_SESSION_DESCRIPTION } from "@/lib/schedule/images"
@@ -15,8 +16,9 @@ import {
   duplicateSession,
   confirmSession,
   saveSession,
+  unconfirmSession,
 } from "@/app/admin/schedule/actions"
-import { sessionStatusLabel } from "@/lib/schedule/session-status"
+import { sessionStatusLabel, SESSION_STATUS_RIBBON_CLASS } from "@/lib/schedule/session-status"
 import { PhilosophyPathPicker } from "@/components/admin/philosophy-path-picker"
 import { InstructorSearchPicker } from "@/components/admin/instructor-search-picker"
 import { SessionDescriptionFields } from "@/components/admin/session-description-fields"
@@ -89,12 +91,25 @@ export function SessionFormDialog({
   const [duplicateEnd, setDuplicateEnd] = useState(defaultEndTime("09:00", 60))
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+
+  useEffect(() => {
+    if (!open) return
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+    return () => {
+      document.body.style.overflow = previousOverflow
+    }
+  }, [open])
 
   useEffect(() => {
     if (!open) {
       setPending(false)
+      setIsEditing(false)
       return
     }
+
+    setIsEditing(!session)
 
     if (session) {
       setInput({
@@ -202,12 +217,21 @@ export function SessionFormDialog({
     }
   }
 
-  const onConfirm = async () => {
-    if (!session) return
+  const onConfirmStatus = async () => {
+    if (!session || session.status !== "processing") return
+    if (
+      !confirm(
+        "Confirm this session? Competing sessions in the same slot will be cancelled.",
+      )
+    ) {
+      return
+    }
     setError(null)
     setPending(true)
     try {
-      await persistSession()
+      if (isEditing) {
+        await persistSession()
+      }
       await confirmSession(session.id)
       onSaved()
       onClose()
@@ -216,6 +240,37 @@ export function SessionFormDialog({
     } finally {
       setPending(false)
     }
+  }
+
+  const onRevertStatus = async () => {
+    if (!session) return
+    const lines = [
+      "Revert this session to processing?",
+      "Sessions cancelled during confirmation will not be restored.",
+    ]
+    if (session.is_published) {
+      lines.splice(1, 0, "This will remove it from the public site.")
+    }
+    if (!confirm(lines.join("\n\n"))) return
+    setError(null)
+    setPending(true)
+    try {
+      await unconfirmSession(session.id)
+      onSaved()
+      onClose()
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to revert session.",
+      )
+    } finally {
+      setPending(false)
+    }
+  }
+
+  const onStatusClick = () => {
+    if (!session || pending) return
+    if (session.status === "confirmed") void onRevertStatus()
+    else if (session.status === "processing") void onConfirmStatus()
   }
 
   const onDelete = async () => {
@@ -239,18 +294,33 @@ export function SessionFormDialog({
     "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring/50"
 
   const isProcessing = input.status === "processing"
-  const isConfirmed = input.status === "confirmed"
+  const readOnly = Boolean(session) && !isEditing
+
+  const onRequestClose = () => {
+    if (isEditing && session) {
+      if (!confirm("Discard unsaved changes and close?")) return
+    }
+    onClose()
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <button
         type="button"
         className="absolute inset-0 bg-foreground/40"
-        onClick={onClose}
+        onClick={onRequestClose}
         aria-label="Close dialog"
       />
-      <div className="relative z-10 flex w-full max-w-2xl flex-col rounded-2xl border border-border bg-background shadow-xl max-h-[92vh]">
-        <div className="border-b border-border px-6 py-5">
+      <div className="relative z-10 flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-xl">
+        <div className="relative shrink-0 border-b border-border px-6 py-5 pr-14">
+          <button
+            type="button"
+            onClick={onRequestClose}
+            className="absolute right-4 top-4 inline-flex size-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground"
+            aria-label="Close"
+          >
+            <X className="size-5" />
+          </button>
           <h2 className="font-serif text-xl text-foreground">
             {session ? "Edit session" : "New session"}
           </h2>
@@ -260,9 +330,26 @@ export function SessionFormDialog({
               <>
                 {" "}
                 ·{" "}
-                <span className="font-medium text-foreground">
-                  {sessionStatusLabel(session.status)}
-                </span>
+                {session.status === "processing" ||
+                session.status === "confirmed" ? (
+                  <button
+                    type="button"
+                    onClick={onStatusClick}
+                    disabled={pending}
+                    title={
+                      session.status === "confirmed"
+                        ? "Click to revert to processing"
+                        : "Click to confirm session"
+                    }
+                    className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold transition-opacity hover:opacity-90 disabled:opacity-50 ${SESSION_STATUS_RIBBON_CLASS[session.status]}`}
+                  >
+                    {sessionStatusLabel(session.status)}
+                  </button>
+                ) : (
+                  <span className="font-medium text-foreground">
+                    {sessionStatusLabel(session.status)}
+                  </span>
+                )}
               </>
             )}
           </p>
@@ -273,8 +360,12 @@ export function SessionFormDialog({
           )}
         </div>
 
-        <form onSubmit={onSubmit} className="flex flex-col overflow-hidden">
-          <div className="space-y-6 overflow-y-auto px-6 py-5">
+        <form onSubmit={onSubmit} className="flex min-h-0 flex-1 flex-col">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-5">
+            <fieldset
+              disabled={readOnly || pending}
+              className="min-w-0 space-y-6 border-0 p-0 disabled:opacity-100"
+            >
             {error && (
               <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
                 {error}
@@ -352,7 +443,7 @@ export function SessionFormDialog({
               key={session?.id ?? "new-session"}
               instructors={instructors}
               value={input.instructor_id}
-              disabled={pending}
+              disabled={readOnly || pending}
               onChange={(instructorId) =>
                 setInput((v) => ({
                   ...v,
@@ -409,7 +500,7 @@ export function SessionFormDialog({
             <SessionImageUpload
               slots={imageSlots}
               onChange={setImageSlots}
-              disabled={pending}
+              disabled={readOnly || pending}
             />
 
             <SessionDescriptionFields
@@ -436,7 +527,7 @@ export function SessionFormDialog({
               <input
                 type="checkbox"
                 checked={input.is_published}
-                disabled={isProcessing || pending}
+                disabled={isProcessing || readOnly || pending}
                 onChange={(e) =>
                   setInput((v) => ({ ...v, is_published: e.target.checked }))
                 }
@@ -451,12 +542,6 @@ export function SessionFormDialog({
                 )}
               </span>
             </label>
-
-            {isConfirmed && session && (
-              <p className="text-xs text-muted-foreground">
-                Confirmed sessions cannot revert to processing.
-              </p>
-            )}
 
             {session && (
               <div className="rounded-xl border border-border bg-secondary/20 p-4 space-y-4">
@@ -532,39 +617,33 @@ export function SessionFormDialog({
                 </button>
               </div>
             )}
+            </fieldset>
           </div>
 
-          <div className="flex flex-wrap gap-3 border-t border-border px-6 py-4">
-            <button
-              type="submit"
-              disabled={pending}
-              className="inline-flex h-9 items-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-            >
-              {pending ? "Saving…" : session ? "Save" : "Create"}
-            </button>
-            {session && isProcessing && (
+          <div className="flex shrink-0 flex-wrap gap-3 border-t border-border bg-background px-6 py-4">
+            {session && readOnly && (
               <button
                 type="button"
                 disabled={pending}
-                onClick={onConfirm}
-                className="inline-flex h-9 items-center rounded-lg bg-blue-600 px-4 text-sm font-medium text-white hover:bg-blue-600/90 disabled:opacity-50"
+                onClick={() => setIsEditing(true)}
+                className="inline-flex h-9 items-center rounded-lg border border-border px-4 text-sm font-medium hover:bg-muted disabled:opacity-50"
               >
-                {pending ? "Confirming…" : "Confirm session"}
+                Edit
               </button>
             )}
             <button
-              type="button"
-              onClick={onClose}
-              className="inline-flex h-9 items-center rounded-lg border border-border px-4 text-sm hover:bg-muted"
+              type="submit"
+              disabled={pending || readOnly}
+              className="inline-flex h-9 items-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
             >
-              Cancel
+              {pending ? "Saving…" : session ? "Save" : "Create"}
             </button>
             {session && (
               <button
                 type="button"
                 onClick={onDelete}
                 disabled={pending}
-                className="inline-flex h-9 items-center rounded-lg border border-destructive/40 px-4 text-sm text-destructive hover:bg-destructive/10"
+                className="inline-flex h-9 items-center rounded-lg border border-destructive/40 px-4 text-sm text-destructive hover:bg-destructive/10 disabled:opacity-50"
               >
                 Delete
               </button>

@@ -178,9 +178,10 @@ stateDiagram-v2
 stateDiagram-v2
     [*] --> processing: create
     processing --> confirmed: confirm
+    confirmed --> processing: unconfirm
     processing --> cancelled: delete / competitor confirmed
     confirmed --> cancelled: delete
-    confirmed --> confirmed: edit (not revert to processing)
+    confirmed --> confirmed: edit
 ```
 
 | Status | Grid | Publish |
@@ -188,6 +189,11 @@ stateDiagram-v2
 | `processing` | 50%, `slot_lane` 0\|1, max 2/bucket | ✗ |
 | `confirmed` | 100%, `slot_lane` 0 | ✓ if `is_published` |
 | `cancelled` | hidden | ✗ |
+
+| Transition | Side effects |
+|------------|--------------|
+| Confirm | `slot_lane → 0`, `confirmed_at/by` set; competing `processing` → `cancelled` (`competition_lost`) |
+| Unconfirm | `is_published → false`, `confirmed_at/by` cleared, `slot_lane` reassigned; cancelled competitors **not** restored |
 
 ---
 
@@ -221,6 +227,7 @@ stateDiagram-v2
 | Slot competition | max 2 `processing` per floor + overlapping time |
 | Instructor overlap | blocked across non-cancelled sessions |
 | Confirm | auto-cancel competing `processing` on same floor+time |
+| Unconfirm | unpublish, clear `confirmed_*`, reassign `slot_lane`; does not restore cancelled competitors |
 | Public read | RLS: `is_published AND status = 'confirmed'` |
 
 ### Notifications (`notifyAdminProfileSubmitted`)
@@ -277,6 +284,7 @@ stateDiagram-v2
 |--------|---------|
 | `saveSession` | Create/update; slot lane assignment; image cleanup |
 | `confirmSession` | Confirm + cancel competitors |
+| `unconfirmSession` | Revert to processing + unpublish |
 | `duplicateSession` | Copy to new slot as `processing` |
 | `deleteSession` | Soft cancel |
 

@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Search } from "lucide-react"
 import type { PathKey } from "@/lib/paths/paths-data"
 import { PATH_OPTIONS } from "@/lib/paths/paths-data"
@@ -52,6 +53,7 @@ function personMatchesSearch(person: PersonWithPrograms, query: string) {
 }
 
 export function AdminPeopleList({ people, applyLink }: AdminPeopleListProps) {
+  const router = useRouter()
   const [search, setSearch] = useState("")
   const [philosophyFilters, setPhilosophyFilters] = useState<PathKey[]>([])
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all")
@@ -232,7 +234,11 @@ export function AdminPeopleList({ people, applyLink }: AdminPeopleListProps) {
                   ),
                 ]
                 return (
-                  <tr key={p.id} className="bg-card">
+                  <tr
+                    key={p.id}
+                    className="cursor-pointer bg-card transition-colors hover:bg-muted/40"
+                    onClick={() => router.push(`/admin/people/${p.id}`)}
+                  >
                     <td className="px-4 py-3">
                       <div className="relative size-10 overflow-hidden rounded-lg bg-secondary">
                         <Image
@@ -294,6 +300,7 @@ export function AdminPeopleList({ people, applyLink }: AdminPeopleListProps) {
                     <td className="px-4 py-3 text-right">
                       <Link
                         href={`/admin/people/${p.id}/edit`}
+                        onClick={(e) => e.stopPropagation()}
                         className="text-primary underline-offset-4 hover:underline"
                       >
                         Edit

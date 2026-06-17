@@ -437,6 +437,73 @@ export async function confirmSession(
   return { sessionId, cancelledCount }
 }
 
+export type UnconfirmSessionResult = {
+  sessionId: string
+}
+
+export async function unconfirmSession(
+  sessionId: string,
+): Promise<UnconfirmSessionResult> {
+  const { supabase } = await requireAuth()
+
+  const { data: session, error: fetchError } = await supabase
+    .from("sessions")
+    .select("*")
+    .eq("id", sessionId)
+    .maybeSingle()
+
+  if (fetchError) throw new Error(fetchError.message)
+  if (!session) throw new Error("Session not found.")
+  if (session.status === "cancelled") {
+    throw new Error("Cancelled sessions cannot be reverted.")
+  }
+  if (session.status === "processing") {
+    return { sessionId }
+  }
+
+  const input: SessionFormInput = {
+    floor_id: session.floor_id,
+    instructor_id: session.instructor_id,
+    person_program_id: session.person_program_id,
+    title: session.title,
+    path_keys: session.path_keys ?? [],
+    date: session.starts_at.slice(0, 10),
+    start_time: formatTimeInKst(session.starts_at),
+    end_time: formatTimeInKst(session.ends_at),
+    capacity: session.capacity,
+    is_published: false,
+    status: "processing",
+    image_paths: session.image_paths ?? [],
+    description_blocks: session.description_blocks as SessionDescriptionBlocks,
+  }
+
+  const { starts_at, ends_at } = validateSessionInput(input)
+  const { slot_lane } = await resolveSessionSlot(
+    supabase,
+    input,
+    starts_at,
+    ends_at,
+    sessionId,
+  )
+
+  const wasPublished = session.is_published
+  const { error: updateError } = await supabase
+    .from("sessions")
+    .update({
+      status: "processing",
+      slot_lane,
+      is_published: false,
+      confirmed_at: null,
+      confirmed_by: null,
+    })
+    .eq("id", sessionId)
+
+  if (updateError) throw new Error(updateError.message)
+
+  revalidateSessionCaches(wasPublished)
+  return { sessionId }
+}
+
 export type DuplicateSessionInput = {
   date: string
   start_time: string
