@@ -287,3 +287,50 @@ export function monthCalendarRange(
 }
 
 export const WEEKDAY_LABELS_KO = ["월", "화", "수", "목", "금", "토", "일"] as const
+
+export type WeekRange = {
+  start: string
+  end: string
+}
+
+/** Weeks (Mon–Sun) that overlap the given calendar month. */
+export function listWeeksOverlappingMonth(
+  year: number,
+  month: number,
+): WeekRange[] {
+  const first = startOfMonthDateKey(year, month)
+  const last = endOfMonthDateKey(year, month)
+  const weeks: WeekRange[] = []
+  let weekStart = startOfWeekDateKey(first)
+  const stopAfter = addWeeksToDateKey(startOfWeekDateKey(last), 1)
+
+  while (weekStart < stopAfter) {
+    const weekEnd = endOfWeekDateKey(weekStart)
+    if (weekEnd >= first && weekStart <= last) {
+      weeks.push({ start: weekStart, end: weekEnd })
+    }
+    weekStart = addWeeksToDateKey(weekStart, 1)
+  }
+
+  return weeks
+}
+
+export function isSameWeek(dateKey: string, weekStart: string): boolean {
+  return startOfWeekDateKey(dateKey) === weekStart
+}
+
+export function formatCompactWeekRange(startKey: string, endKey: string): string {
+  const start = dateKeyToUtcDate(startKey)
+  const end = dateKeyToUtcDate(endKey)
+  const fmt = new Intl.DateTimeFormat("ko-KR", {
+    timeZone: KST_TIMEZONE,
+    month: "numeric",
+    day: "numeric",
+  })
+  const startYear = monthFromDateKey(startKey).year
+  const endYear = monthFromDateKey(endKey).year
+  if (startYear !== endYear) {
+    return `${formatWeekRangeLabel(startKey, endKey)}`
+  }
+  return `${fmt.format(start)} – ${fmt.format(end)}`
+}

@@ -4,7 +4,7 @@ import { useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import type { PersonWithPrograms } from "@/lib/people/types"
-import type { FloorRow, SessionWithRelations } from "@/lib/schedule/types"
+import type { FloorRow, SessionWithRelations, ScheduleViewMode } from "@/lib/schedule/types"
 import {
   addMonthsToDateKey,
   addWeeksToDateKey,
@@ -16,12 +16,13 @@ import {
   startOfWeekDateKey,
   todayDateKeyInKst,
 } from "@/lib/schedule/utils"
+import { SchedulePeriodPicker } from "@/components/admin/schedule-period-picker"
 import { ScheduleFloorNav } from "@/components/admin/schedule-floor-nav"
 import { ScheduleMonthCalendar } from "@/components/admin/schedule-month-calendar"
 import { ScheduleWeekGrid } from "@/components/admin/schedule-week-grid"
 import { SessionFormDialog } from "@/components/admin/session-form-dialog"
 
-export type ScheduleViewMode = "week" | "month"
+export type { ScheduleViewMode } from "@/lib/schedule/types"
 
 type ScheduleAdminClientProps = {
   dateKey: string
@@ -160,13 +161,17 @@ export function ScheduleAdminClient({
             >
               <ChevronLeft className="size-4" />
             </button>
-            <div className="min-w-[180px] text-center">
-              <p className="font-serif text-lg text-foreground">
-                {view === "week"
+            <SchedulePeriodPicker
+              label={
+                view === "week"
                   ? formatWeekRangeLabel(weekStart, weekEnd)
-                  : formatMonthLabel(year, month)}
-              </p>
-            </div>
+                  : formatMonthLabel(year, month)
+              }
+              view={view}
+              dateKey={dateKey}
+              weekStart={weekStart}
+              onNavigate={(nextDate, nextView) => navigate(nextDate, nextView)}
+            />
             <button
               type="button"
               onClick={() =>

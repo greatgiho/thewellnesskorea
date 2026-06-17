@@ -2,6 +2,8 @@ import type { PathKey } from "@/lib/paths/paths-data"
 
 export type SessionStatus = "processing" | "confirmed" | "cancelled"
 
+export type ScheduleViewMode = "week" | "month"
+
 export type SessionDescriptionBlocks = {
   intro: string
   progress: string

@@ -321,6 +321,7 @@ stateDiagram-v2
 | `getFloors`, `getSessionsForDay`, `getSessionsForRange` | Queries |
 | `getUpcomingSessionsForTeacher` | Teacher portal: own confirmed+published future sessions |
 | `toSessionWithRelations` | Normalize Supabase relation arrays |
+| `formatWeekRangeLabel`, `formatCompactWeekRange`, `listWeeksOverlappingMonth` | Period labels + week picker |
 | `toKstIso`, `sessionsOverlap`, `isWithinOperatingHours`, week/month helpers | KST time math |
 | `layoutWidthForSession`, `layoutLeftForSession` | Grid 50%/100% layout |
 | `sessionStatusLabel`, ribbon classes | UI status |

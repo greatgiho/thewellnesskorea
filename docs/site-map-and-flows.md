@@ -167,6 +167,7 @@ page.tsx
 | `/admin/people/new` | `person-form`, `program-list-editor` |
 | `/admin/people/[id]/edit` | `person-form`, `person-review-panel`, `person-account-panel`, `delete-person-button` |
 | `/admin/schedule` | `schedule-admin-client` |
+| | → `schedule-period-picker` (month/week jump popover) |
 | | → `schedule-floor-nav`, `schedule-week-grid` / `schedule-day-grid` / `schedule-month-calendar` |
 | | → `schedule-session-block`, `session-form-dialog`, `session-description-fields`, `session-image-upload`, `instructor-search-picker` |
 
