@@ -4,67 +4,152 @@ Last updated: 2026-06-16
 
 Companion docs: [Backend](./backend-architecture.md) · [DB schema](./database-schema.md) · [ERD](./database-erd.md)
 
-## Domains
-
-| URL | Role | Notes |
-|-----|------|-------|
-| `https://thewellnesskorea.com` | **Primary (production)** | Redirects to `www` (308) per Vercel |
-| `https://www.thewellnesskorea.com` | **Production site** | Vercel Production target |
-| `https://thewellnesskorea-tk77.vercel.app` | Vercel default | Stays valid; same deployment, backup URL |
-| `http://localhost:3000` | Local dev | `.env.local` |
-
-**After Gabia DNS propagates and Vercel Domains show Valid:**
-
-- The **same app** is served on custom domain and `.vercel.app`.
-- Public links, magic links, and admin notification emails should use `NEXT_PUBLIC_SITE_URL` (`https://thewellnesskorea.com`).
-- The Vercel URL does not disappear; both work until you remove the default domain.
-
-**DNS (Gabia):**
-
-| Type | Host | Value |
-|------|------|-------|
-| A | `@` | `76.76.21.21` |
-| CNAME | `www` | `cname.vercel-dns.com.` |
+> 목적: 전체 서비스의 지도 및 흐름 파악 (신규 개발자 온보딩용)
 
 ---
 
-## URL structure (current build)
+## Infrastructure overview
 
-### Public site
+```mermaid
+flowchart LR
+    subgraph client [Clients]
+        B[Browser]
+    end
+    subgraph vercel [Vercel]
+        N[Next.js 16 App]
+    end
+    subgraph supabase [Supabase]
+        PG[(Postgres + RLS)]
+        AU[Auth]
+        ST[Storage]
+    end
+    subgraph external [External]
+        R[Resend]
+        S[Slack Webhook]
+    end
+    B --> N
+    N --> PG
+    N --> AU
+    N --> ST
+    N --> R
+    N --> S
+```
 
-| Path | Description |
-|------|-------------|
-| `/` | Homepage: Hero, Philosophy, Paths, Guides, Artists, Schedule (mock data), Footer |
-| `/#guides` | Guides section (anchor) |
-| `/#artists` | Artists section (anchor) |
-| `/#schedule` | Schedule section (anchor; public schedule still mock) |
+| Service | Role |
+|---------|------|
+| **Vercel** | Hosting, Production deploy, custom domain |
+| **Supabase** | Postgres DB, Auth (admin password / teacher magic link), file storage |
+| **Gabia DNS** | `thewellnesskorea.com` → Vercel |
+| **Resend** | Admin email on teacher profile submit |
+| **Slack** | Optional webhook alert (same event) |
 
-Published people only: `is_published = true` and `registration_status` in (`admin`, `approved`).
+### Domains
 
-### Teacher self-registration (`/apply`)
+| URL | Role |
+|-----|------|
+| `https://thewellnesskorea.com` | Primary; 308 redirect to `www` (Vercel) |
+| `https://www.thewellnesskorea.com` | Production site |
+| `https://thewellnesskorea-tk77.vercel.app` | Vercel default (backup) |
+| `http://localhost:3000` | Local dev |
 
-| Path | Auth | Description |
-|------|------|-------------|
-| `/apply` | No | Invite code + email → request magic link |
-| `/apply/check-email` | No | “Check your email” confirmation |
-| `/auth/callback` | — | Supabase magic-link callback → redirects to profile |
-| `/apply/profile` | Yes (magic link) | Full profile form (same fields as admin person form) |
-| `/apply/profile/submitted` | Yes | Submission success message |
+**DNS (Gabia):** A `@` → `76.76.21.21` · CNAME `www` → `cname.vercel-dns.com.`
 
-**Invite code:** `TEACHER_APPLY_CODE` env (default `twk2026`).
+Public links, magic links, notification URLs → `NEXT_PUBLIC_SITE_URL`.
 
-### Admin
+---
 
-| Path | Auth | Description |
-|------|------|-------------|
-| `/admin/login` | No | Email + password (Supabase Auth) |
-| `/admin` | Admin | Redirects to `/admin/people` |
-| `/admin/people` | Admin | People list, filters, copy apply link |
-| `/admin/people/new` | Admin | Create person manually (`registration_status = admin`) |
-| `/admin/people/[id]/edit` | Admin | Edit person; review panel for self-registered profiles |
-| `/admin/schedule` | Admin | Week / day / month schedule; session processing/confirmed workflow |
+## Active URL map
 
-Teachers (`app_metadata.role = teacher`) are redirected to `/apply/profile` if they hit `/admin/*`.
+모든 App Router 엔트리 (13 pages + 1 route handler).
+
+| URL | File | Auth | Description |
+|-----|------|------|-------------|
+| `/` | `app/page.tsx` | Public | Homepage |
+| `/apply` | `app/apply/page.tsx` | Public | Teacher invite + email |
+| `/apply/check-email` | `app/apply/check-email/page.tsx` | Public | Magic link sent confirmation |
+| `/apply/profile` | `app/apply/profile/page.tsx` | Teacher session | Profile create/edit |
+| `/apply/profile/submitted` | `app/apply/profile/submitted/page.tsx` | Teacher session | Submit success |
+| `/auth/callback` | `app/auth/callback/route.ts` | — | OAuth/magic-link code exchange |
+| `/admin/login` | `app/admin/login/page.tsx` | Public | Admin email + password |
+| `/admin` | `app/admin/(dashboard)/page.tsx` | Admin | → redirect `/admin/people` |
+| `/admin/people` | `app/admin/(dashboard)/people/page.tsx` | Admin | People list |
+| `/admin/people/new` | `app/admin/(dashboard)/people/new/page.tsx` | Admin | Manual person create |
+| `/admin/people/[id]/edit` | `app/admin/(dashboard)/people/[id]/edit/page.tsx` | Admin | Edit + review panel |
+| `/admin/schedule` | `app/admin/(dashboard)/schedule/page.tsx` | Admin | Schedule admin |
+
+**Homepage anchors (same page):** `/#guides` · `/#artists` · `/#schedule`
+
+**Schedule admin query params:** `date` (YYYY-MM-DD) · `floor` (floor slug) · `view` (`week` \| `day` \| `month`)
+
+**Middleware matcher:** `/admin/*`, `/apply/profile/*`, `/auth/callback` only. `/` and `/apply` are unguarded.
+
+---
+
+## Screen & component hierarchy
+
+### Layout tree
+
+```
+app/layout.tsx                    ← root: fonts, metadata, Analytics
+├── /                             app/page.tsx
+├── /apply/*                      (no nested layout)
+├── /auth/callback                route handler
+└── /admin/login                  app/admin/login/page.tsx
+    └── /admin/(dashboard)/*      app/admin/(dashboard)/layout.tsx
+        ├── /admin/people
+        ├── /admin/people/new
+        ├── /admin/people/[id]/edit
+        └── /admin/schedule
+```
+
+### Public homepage (`/`)
+
+```
+page.tsx
+├── Navbar
+├── Hero
+├── Philosophy
+├── WhyKorea
+├── Paths
+│   ├── path-section
+│   └── path-card
+├── Guides          ← getPublishedPeople("guide")
+│   ├── person-section
+│   └── person-card
+├── Artists         ← getPublishedPeople("artist")
+├── Schedule        ← mock data (components/schedule/*)
+│   ├── schedule-section
+│   ├── week-date-strip
+│   ├── category-filters
+│   └── class-list / class-card
+├── ClosingCta
+└── Footer
+    ├── footer-brand-column
+    ├── footer-link-columns
+    ├── footer-social-links
+    └── footer-bottom-bar
+```
+
+### Teacher apply (`/apply`)
+
+| Screen | Components |
+|--------|------------|
+| `/apply` | `apply-login-form` |
+| `/apply/check-email` | inline confirmation UI |
+| `/apply/profile` | `teacher-profile-form` (+ shared `program-list-editor`, `philosophy-path-picker`) |
+| `/apply/profile/submitted` | inline success UI |
+
+### Admin dashboard
+
+| Screen | Components |
+|--------|------------|
+| Layout | nav: People · Schedule · View site · Sign out |
+| `/admin/people` | `admin-people-list` (search, status/path filters, apply link) |
+| `/admin/people/new` | `person-form`, `program-list-editor` |
+| `/admin/people/[id]/edit` | `person-form`, `person-review-panel`, `delete-person-button` |
+| `/admin/schedule` | `schedule-admin-client` |
+| | → `schedule-floor-nav`, `schedule-week-grid` / `schedule-day-grid` / `schedule-month-calendar` |
+| | → `schedule-session-block`, `session-form-dialog`, `session-description-fields`, `session-image-upload`, `instructor-search-picker` |
 
 ---
 
@@ -73,104 +158,91 @@ Teachers (`app_metadata.role = teacher`) are redirected to `/apply/profile` if t
 ### Flow A — Visitor (public)
 
 ```
-https://www.thewellnesskorea.com/
-  → Browse guides / artists (published only)
-  → Schedule section (mock data until public schedule API wired)
+/ → Guides / Artists (DB: published + approved/admin only)
+  → #schedule (mock; live sessions not wired)
 ```
 
 ### Flow B — Admin: manual person
 
 ```
-/admin/login
-  → /admin/people
-  → /admin/people/new
+/admin/login → /admin/people → /admin/people/new
   → Save (registration_status = admin)
-  → Optional: Publish on site (no approval required)
+  → Publish optional (no approval required)
 ```
 
-### Flow C — Teacher: self-registration
+### Flow C — Teacher self-registration
 
 ```
-/apply
-  → Enter code (twk2026) + email
-  → /apply/check-email
-  → Click magic link in email
-  → /auth/callback → /apply/profile
-  → Fill profile + programs
-  → [임시 저장] → draft
-  → [제출하기] → submitted + email/Slack to all admin Auth users
+/apply → code + email → /apply/check-email
+  → magic link → /auth/callback?next=/apply/profile
+  → /apply/profile (linkTeacherPerson by email if exists)
+  → [임시 저장] draft | [제출하기] submitted + admin notify
   → /apply/profile/submitted
 ```
 
-**Email link:** If `people.email` already exists, profile links to that row on first login.
+Post-approval re-edit → `submitted`, unpublish, re-notify admins.
 
-**After approval:** Admin opens `/admin/people/[id]/edit` → 승인 → Publish when ready.
-
-**Re-edit after approval:** Teacher saves → `submitted` again, `is_published = false`, admins notified again.
-
-### Flow D — Admin: review self-registered teacher
+### Flow D — Admin: review teacher
 
 ```
-/admin/people (filter: Pending review / Self-registered)
-  → Edit
-  → Review panel: 승인 / 반려
-  → Publish checkbox (only when status is admin or approved)
+/admin/people (filter: Pending / Self-registered)
+  → /admin/people/[id]/edit → 승인 | 반려
+  → Publish when admin or approved
 ```
 
-### Flow E — Admin: schedule session
+### Flow E — Admin: schedule
 
 ```
-/admin/schedule
-  → Click slot → create session (status: processing)
-  → Up to 2 processing sessions per floor+time slot (50% width each)
-  → Confirm session → confirmed; competitors auto-cancelled
-  → Publish when confirmed (public site revalidate)
+/admin/schedule → click slot → create (processing, 50% width)
+  → max 2 processing per floor+overlap bucket
+  → Confirm → confirmed (100%), competitors cancelled
+  → Publish when confirmed → revalidate /
 ```
 
 ---
 
-## Person `registration_status`
+## Domain enums (UI reference)
 
-| Status | Meaning | Visible on homepage |
-|--------|---------|---------------------|
-| `admin` | Created by admin | Only if `is_published` |
-| `draft` | Teacher writing | No |
-| `submitted` | Awaiting review | No |
-| `approved` | Admin approved | Only if `is_published` |
-| `rejected` | Returned to teacher | No |
+### Person `registration_status`
 
-## Session `status` (schedule)
+| Status | Homepage visible |
+|--------|------------------|
+| `admin` | Only if `is_published` |
+| `draft` | No |
+| `submitted` | No |
+| `approved` | Only if `is_published` |
+| `rejected` | No |
 
-| Status | UI |
-|--------|-----|
-| `processing` | Half width, amber, “Processing” ribbon |
-| `confirmed` | Full width, blue ribbon; publishable |
-| `cancelled` | Hidden from admin grid |
+### Session `status`
+
+| Status | Admin grid |
+|--------|------------|
+| `processing` | 50% width, amber ribbon |
+| `confirmed` | 100% width, blue ribbon; publishable |
+| `cancelled` | Hidden |
 
 ---
 
 ## Environment variables
 
-### Local (`.env.local`)
+기준: `.env.local.example`. **시크릿 값은 문서·커밋에 포함하지 않음.**
 
-| Variable | Example |
-|----------|---------|
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Anon key |
-| `SUPABASE_SERVICE_ROLE_KEY` | Service role (server only) |
-| `NEXT_PUBLIC_SITE_URL` | `http://localhost:3000` |
-| `TEACHER_APPLY_CODE` | `twk2026` |
-| `RESEND_API_KEY` | Resend API key |
-| `NOTIFY_FROM_EMAIL` | `onboarding@resend.dev` (test) or verified domain |
-| `SLACK_WEBHOOK_URL` | Optional |
+| Variable | Scope | Purpose |
+|----------|-------|---------|
+| `NEXT_PUBLIC_SUPABASE_URL` | client + server | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | client + server | Anon key (RLS-bound) |
+| `SUPABASE_SERVICE_ROLE_KEY` | server only | Auth admin API, admin email discovery |
+| `NEXT_PUBLIC_SITE_URL` | client + server | Magic link redirect, notification links |
+| `TEACHER_APPLY_CODE` | server | Teacher invite gate (default `twk2026`) |
+| `RESEND_API_KEY` | server | Profile submit email |
+| `NOTIFY_FROM_EMAIL` | server | Resend from address |
+| `SLACK_WEBHOOK_URL` | server | Optional Slack alert |
 
-### Vercel (Production)
+**Production:** same keys; `NEXT_PUBLIC_SITE_URL` = `https://thewellnesskorea.com`.
 
-Same keys; `NEXT_PUBLIC_SITE_URL` = `https://thewellnesskorea.com`.
+Admin notify recipients: all Supabase Auth users where `app_metadata.role !== "teacher"` (no fixed env email).
 
-Admin notification emails go to **all Supabase Auth users** where `role !== teacher` (not a fixed env email).
-
-### Supabase Auth redirect URLs
+**Supabase Auth redirect URLs:**
 
 ```
 https://thewellnesskorea.com/auth/callback
@@ -178,49 +250,37 @@ https://www.thewellnesskorea.com/auth/callback
 http://localhost:3000/auth/callback
 ```
 
----
-
-## Infrastructure checklist
-
-- [ ] Gabia DNS: A + CNAME (see above)
-- [ ] Vercel Domains: Valid for `thewellnesskorea.com` and `www`
-- [ ] Vercel env + Redeploy
-- [ ] Supabase migrations `001`–`007` applied
-- [ ] Supabase redirect URLs configured
+**Scripts (optional, not in .env.example):** `ADMIN_EMAIL`, `ADMIN_PASSWORD` for `npm run create-admin`.
 
 ---
 
-## Layouts & components (screen structure)
+## Deployment checklist
 
-| Area | Routes | Layout | Key components |
-|------|--------|--------|----------------|
-| Public | `/` | `app/layout.tsx` | `navbar`, `hero`, `philosophy`, `paths`, `guides`, `artists`, `schedule/*`, `footer/*` |
-| Apply | `/apply/*` | root | `apply-login-form`, `teacher-profile-form` |
-| Admin | `/admin/*` (except login) | `admin/(dashboard)/layout.tsx` | `admin-people-list`, `person-form`, `person-review-panel`, `schedule-admin-client`, grids |
-| Auth | `/auth/callback` | — | route handler only |
-
-**Admin dashboard nav:** People · Schedule · View site · Sign out
-
-**Schedule admin views:** week grid (default), day grid, month calendar — query params `date`, `floor`, `view`
+- [ ] Gabia DNS: A + CNAME
+- [ ] Vercel Domains: Valid (`thewellnesskorea.com`, `www`)
+- [ ] Vercel env vars + Redeploy
+- [ ] Supabase migrations `001`–`007` applied (`007` preferred over `006`)
+- [ ] Supabase redirect URLs
+- [ ] Resend: verify domain for multi-admin production email
 
 ---
 
-## Related files
+## Source index
 
 | Area | Path |
 |------|------|
 | Teacher apply | `app/apply/`, `components/apply/` |
 | Auth callback | `app/auth/callback/route.ts` |
-| Admin people | `app/admin/(dashboard)/people/` |
-| Admin schedule | `app/admin/(dashboard)/schedule/` |
+| Middleware | `middleware.ts`, `lib/supabase/middleware.ts` |
+| Admin people | `app/admin/(dashboard)/people/`, `app/admin/actions.ts` |
+| Admin schedule | `app/admin/(dashboard)/schedule/`, `app/admin/schedule/actions.ts` |
 | Notifications | `lib/notifications/` |
 | Migrations | `supabase/migrations/` |
-| Backend logic doc | `docs/backend-architecture.md` |
 
 ---
 
-## Not yet implemented (reference)
+## Not yet implemented
 
-- Public schedule from live `sessions` data (homepage `#schedule` still mock)
+- Public `#schedule` from live `sessions` (still `components/schedule/schedule-data.ts` mock)
 - Participant booking
-- Resend custom domain (`notify@thewellnesskorea.com`) for multi-admin email delivery in production
+- Resend verified domain for production multi-recipient delivery

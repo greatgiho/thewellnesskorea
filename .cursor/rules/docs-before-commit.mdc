@@ -1,40 +1,61 @@
 ---
-description: 커밋 전 4종 핵심 문서 동기화 (화면·백엔드·스키마·ERD)
+description: 커밋·배포 전 docs/ 4종 문서 동기화 (리드 아키텍트 역할)
 alwaysApply: true
 ---
 
-# 문서 동기화 (커밋 전 필수)
+# 문서 동기화 (커밋·배포 전 필수)
 
-코드 변경 후 **git commit을 만들기 전**, 아래 4개 문서를 **전체 기준**으로 대조하고 불일치가 있으면 먼저 업데이트한다.
+이 프로젝트에서 AI는 **리드 소프트웨어 아키텍트 + 테크니컬 라이터** 역할을 수행한다.
+코드 변경 후 **git commit 또는 배포 전**, `docs/` 하위 4문서를 **전체 기준**으로 대조·최신화한다.
 
-| # | 문서 | 갱신 트리거 |
-|---|------|-------------|
-| 1 | `docs/site-map-and-flows.md` | 라우트·화면·유저 플로우·env·인프라 |
-| 2 | `docs/backend-architecture.md` | Server Actions·auth·비즈니스 규칙·lib |
-| 3 | `docs/database-schema.md` | migration·테이블·enum·RLS·storage |
-| 4 | `docs/database-erd.md` | FK·관계·엔티티 구조 변경 |
+## 대상 문서
 
-## 체크리스트
+| 문서 | 목적 |
+|------|------|
+| `docs/site-map-and-flows.md` | 서비스 지도·흐름·화면 구조·env·인프라 |
+| `docs/backend-architecture.md` | 백엔드·비즈니스 로직·auth·lib 맵 |
+| `docs/database-schema.md` | DB 스키마·enum·RLS·storage·migration |
+| `docs/database-erd.md` | Mermaid ERD·관계표·public read 경로 |
 
-변경 영역에 맞는 문서를 열고 다음을 확인:
+## 문서별 필수 포함 내용
 
-- [ ] 새/삭제된 URL·페이지·레이아웃이 site-map에 반영됐는가
-- [ ] auth·상태 전이·검증·알림 규칙이 backend-architecture와 일치하는가
-- [ ] migration·컬럼·enum·policy가 database-schema와 일치하는가
-- [ ] ERD 관계·카디널리티가 database-erd와 일치하는가
-- [ ] 각 문서 상단 `Last updated` 날짜 갱신
+### 1. site-map-and-flows.md
+- 활성화된 **모든 URL** (page, route handler, anchor)
+- 주요 **사용자 플로우** (Visitor, Admin, Teacher, Schedule)
+- **화면/컴포넌트 계층** (layout → page → components)
+- **환경변수** 목록 (`.env.local.example` 기준, 시크릿 값 제외)
+- **인프라** 구성 (Vercel, Supabase, DNS, Resend, Slack)
+
+### 2. backend-architecture.md
+- **기술 스택** (framework, 주요 라이브러리)
+- **인증/인가** 흐름 (middleware + RLS + role)
+- **상태 전이** (Person `registration_status`, Session `status`)
+- **핵심 비즈니스 규칙** (publish guard, slot competition, notifications 등)
+- **lib/ 및 Server Actions** 함수 맵 (구조·역할 위주, 코드 붙여넣기 금지)
+
+### 3. database-schema.md
+- **Custom enum** 전체 목록
+- **테이블** 정의 (컬럼·타입·제약·인덱스)
+- **RLS** 정책 현황
+- **Storage** 버킷
+- **Migration** 이력 (`supabase/migrations/` 원천)
+
+### 4. database-erd.md
+- **Mermaid erDiagram** (문법 오류 없이, FK·카디널리티 명확)
+- **관계표** + **도메인 그룹**
+- **Public read** 가능 데이터 경로
+
+## 작성 가이드
+
+- 기존 문서 **포맷·톤** 유지; 변경·누락만 정확히 반영
+- 코드 블록 대신 **구조·규칙** 위주로 요약
+- `supabase/migrations/` = 스키마 원천; 미구현은 각 문서 **Not yet implemented**에만
+- 상단 `Last updated: YYYY-MM-DD` 갱신
+- 문서 간 **Companion docs** 상호 링크 유지
 
 ## 커밋 시 동작
 
-사용자가 커밋을 요청하면:
-
-1. `git diff`로 변경 범위 파악
-2. 위 4문서 중 해당 항목 검토·수정
-3. 문서 변경을 **같은 커밋**에 포함 (별도 커밋으로 쪼개지 않음)
-4. 문서만 바뀐 경우에도 4문서 전체를 빠르게 훑어 누락 없는지 확인
-
-## 원칙
-
-- 문서는 **현재 코드·DB 기준**의 단일 진실 공급원(single source of truth)
-- `supabase/migrations/`가 스키마의 원천; schema 문서는 migration을 요약
-- 미구현 항목은 각 문서 하단 **Not yet implemented**에만 기록
+1. `git diff` + 코드베이스 스캔으로 변경 범위 파악
+2. 4문서 전체 검토·수정 (해당 영역만이 아니라 누락 방지)
+3. 문서 변경을 **같은 커밋**에 포함
+4. 완료 후 수정 파일 목록·주요 변경 요약을 사용자에게 보고

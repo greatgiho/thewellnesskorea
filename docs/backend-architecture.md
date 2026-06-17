@@ -4,227 +4,282 @@ Last updated: 2026-06-16
 
 Companion docs: [Site map](./site-map-and-flows.md) · [DB schema](./database-schema.md) · [ERD](./database-erd.md)
 
----
-
-## Stack
-
-| Layer | Technology |
-|-------|------------|
-| Framework | Next.js 16 App Router |
-| DB / Auth / Storage | Supabase (Postgres + Auth + Storage) |
-| Server mutations | Server Actions (`"use server"`) |
-| Email | Resend API |
-| Chat alerts | Slack incoming webhook (optional) |
-| Deploy | Vercel |
-
-All DB access uses Supabase clients in `lib/supabase/`:
-
-| Client | Use |
-|--------|-----|
-| `client.ts` | Browser |
-| `server.ts` | Server Components, Actions, Route Handlers (cookie session) |
-| `service.ts` | Service role — Auth admin API, bypass RLS |
-| `middleware.ts` | Session refresh + route guards |
+> 목적: 백엔드 및 비즈니스 로직 설계 추적 (신규 개발자 온보딩용)
 
 ---
 
-## Authentication & roles
+## Technology stack
 
-### Admin
+| Layer | Choice | Notes |
+|-------|--------|-------|
+| Framework | Next.js 16 App Router | RSC + Server Actions |
+| Runtime | React 19 | |
+| Language | TypeScript 5.7 | |
+| Styling | Tailwind CSS 4 | `cn()` via clsx + tailwind-merge |
+| UI primitives | shadcn, @base-ui/react, lucide-react | |
+| Database | Supabase Postgres | RLS on all app tables |
+| Auth | Supabase Auth | Admin: password · Teacher: magic link OTP |
+| File storage | Supabase Storage | `person-photos`, `session-photos` |
+| Email | Resend REST API | Admin alerts on profile submit |
+| Chat | Slack incoming webhook | Optional |
+| Analytics | @vercel/analytics | Production only |
+| Deploy | Vercel | |
 
-- **Login:** `/admin/login` — email + password (`supabase.auth.signInWithPassword`)
-- **Guard:** middleware on `/admin/*` (except login) requires authenticated user
-- **Role:** `app_metadata.role !== "teacher"` → treated as admin (`is_admin_user()` in DB)
+**Mutation pattern:** Server Actions (`"use server"`) in `app/admin/actions.ts`, `app/apply/actions.ts`, `app/admin/schedule/actions.ts`. No separate REST API layer for app CRUD.
 
-### Teacher (self-registration)
+---
 
-- **Login:** magic link OTP — no password (`signInWithOtp`, `shouldCreateUser: true`)
-- **Invite gate:** `TEACHER_APPLY_CODE` env must match before OTP is sent
-- **Callback:** `/auth/callback` exchanges `code` → session, redirects to `next` (default `/apply/profile`)
-- **Role:** on first profile access, `ensureTeacherRole()` sets `app_metadata.role = "teacher"` via service client
-- **Guard:** middleware on `/apply/profile/*` requires auth; teachers hitting `/admin/*` redirect to `/apply/profile`
+## Supabase clients
 
-### Auth redirect matrix (middleware)
+| Module | When to use |
+|--------|-------------|
+| `lib/supabase/client.ts` | Browser components |
+| `lib/supabase/server.ts` | Server Components, Actions, Route Handlers (cookie session) |
+| `lib/supabase/service.ts` | Service role — `auth.admin.*`, bypass RLS (server only) |
+| `lib/supabase/middleware.ts` | Session refresh + route redirects |
+
+---
+
+## Authentication & authorization
+
+### Role model
+
+| Role | How set | Access |
+|------|---------|--------|
+| **Admin** | Default; or `app_metadata.role = "admin"` | `/admin/*`, full RLS via `is_admin_user()` |
+| **Teacher** | `ensureTeacherRole()` on first profile access | `/apply/profile/*`, own `people` + `person_programs` via RLS |
+
+DB helper `is_admin_user()`: JWT `app_metadata.role IS DISTINCT FROM 'teacher'` (unset = admin).
+
+### Auth flows
+
+```mermaid
+sequenceDiagram
+    participant A as Admin
+    participant T as Teacher
+    participant App as Next.js
+    participant SB as Supabase Auth
+
+    A->>App: POST /admin/login (email+password)
+    App->>SB: signInWithPassword
+    SB-->>App: session cookie
+    App-->>A: redirect /admin/people
+
+    T->>App: POST /apply (code+email)
+    App->>SB: signInWithOtp
+    SB-->>T: magic link email
+    T->>App: GET /auth/callback?code=
+    App->>SB: exchangeCodeForSession
+    App-->>T: redirect /apply/profile
+    App->>App: ensureTeacherRole + linkTeacherPerson
+```
+
+### Middleware guards (`middleware.ts`)
+
+Matcher: `/admin/:path*`, `/apply/profile/:path*`, `/auth/callback`
 
 | Path | Unauthenticated | Teacher | Admin |
 |------|-----------------|---------|-------|
-| `/apply/profile/*` | → `/apply` | allow | allow |
-| `/admin/login` | allow | → `/apply/profile` | → `/admin/people` |
-| `/admin/*` (not login) | → `/admin/login` | → `/apply/profile` | allow |
+| `/apply/profile/*` | → `/apply` | ✓ | ✓ |
+| `/admin/login` | ✓ | → `/apply/profile` | → `/admin/people` |
+| `/admin/*` (not login) | → `/admin/login` | → `/apply/profile` | ✓ |
+
+Middleware complements but does not replace RLS.
 
 ---
 
-## Module map (`lib/`)
+## State transitions
 
+### Person `registration_status`
+
+```mermaid
+stateDiagram-v2
+    [*] --> admin: admin creates
+    [*] --> draft: teacher first save
+    draft --> draft: save draft
+    draft --> submitted: submit
+    submitted --> approved: admin approve
+    submitted --> rejected: admin reject
+    rejected --> submitted: teacher re-submit
+    approved --> submitted: teacher re-edit (unpublish)
+    admin --> admin: admin edit
+    approved --> approved: admin edit
 ```
-lib/
-├── apply/          Teacher invite config, account ↔ people linking
-├── notifications/  Admin email/Slack on profile submit
-├── paths/          Static K-wellness philosophy path metadata
-├── people/         Person types, queries, persist, validate, registration status
-├── schedule/       Session types, KST grid math, layout, images
-├── supabase/       Clients + middleware session helper
-└── utils.ts        cn() for Tailwind
+
+| Transition | Side effects |
+|------------|--------------|
+| Teacher submit | `submitted_at` set; admins notified (email + Slack) |
+| Admin approve | `reviewed_at/by` set; publish allowed |
+| Admin reject | `is_published = false`, `rejection_reason` required |
+| Approved → re-edit | `is_published = false`, status → `submitted`, re-notify |
+
+### Session `status`
+
+```mermaid
+stateDiagram-v2
+    [*] --> processing: create
+    processing --> confirmed: confirm
+    processing --> cancelled: delete / competitor confirmed
+    confirmed --> cancelled: delete
+    confirmed --> confirmed: edit (not revert to processing)
 ```
 
-Server Actions live next to routes:
-
-| File | Responsibility |
-|------|----------------|
-| `app/admin/actions.ts` | Person CRUD, approve/reject, delete, sign-out |
-| `app/apply/actions.ts` | Magic link, teacher draft/submit profile |
-| `app/admin/schedule/actions.ts` | Session CRUD, confirm, duplicate, delete, photo upload |
+| Status | Grid | Publish |
+|--------|------|---------|
+| `processing` | 50%, `slot_lane` 0\|1, max 2/bucket | ✗ |
+| `confirmed` | 100%, `slot_lane` 0 | ✓ if `is_published` |
+| `cancelled` | hidden | ✗ |
 
 ---
 
-## Person lifecycle
+## Core business rules
 
-### Registration status state machine
-
-```
-admin ──(admin creates)────────────────────────────────────────► published OK
-draft ──(teacher saves draft)──► draft
-draft ──(teacher submits)──────► submitted ──(admin approve)──► approved
-submitted ──(admin reject)──────► rejected
-approved ──(teacher re-saves)──► submitted (unpublish, re-notify)
-rejected ──(teacher re-submits)► submitted
-```
-
-### Core rules
-
-| Rule | Where enforced |
-|------|----------------|
-| Homepage visibility | RLS + `getPublishedPeople()`: `is_published` AND `registration_status IN ('admin','approved')` |
-| Publish guard | `canPublishPerson()` — only `admin` or `approved` |
-| Admin-created person | `registration_status = 'admin'` on insert |
-| Teacher always unpublished on save | `is_published = false` in `persistTeacherProfile` |
-| Approved teacher re-edit | status → `submitted`, `is_published = false`, admins notified |
-| Email uniqueness | DB unique index on `lower(email)`; link-by-email on login |
-| One person per auth user | unique partial index on `people.user_id` |
-| Delete person | blocked if any `sessions.instructor_id` references them |
-
-### Teacher account linking (`linkTeacherPerson`)
-
-1. If `people.user_id = auth.uid()` → return row
-2. Else if `people.email` matches (case-insensitive) → attach `user_id` (error if already linked to another user)
-3. Else → `null` (teacher creates new row on first save)
-
-### Validation (`validatePersonInput`)
-
-Required: kind, names, roles, email format, phone, instagram normalize. Programs optional (0 allowed). Each program needs title; path_keys validated against enum.
-
-### Admin notifications (`notifyAdminProfileSubmitted`)
-
-- Fires on **new submit** or **re-submit** (including post-approval edit)
-- Recipients: all Auth users where `role !== 'teacher'` (`getAdminNotifyEmails`)
-- Channels: Resend email + optional Slack; failures are silent (`Promise.allSettled`)
-- Requires `RESEND_API_KEY`, `NOTIFY_FROM_EMAIL`, `SUPABASE_SERVICE_ROLE_KEY`
-
----
-
-## Schedule session lifecycle
-
-### Status state machine
-
-```
-(new) ──► processing ──(confirm)──► confirmed ──(publish)──► public
-              │                         │
-              └──(competitor confirm)──► cancelled
-processing / confirmed ──(admin delete)──► cancelled (soft)
-```
-
-### Slot competition (same floor + overlapping time)
-
-| Status | Grid width | Max per bucket | Publishable |
-|--------|------------|----------------|-------------|
-| `processing` | 50% (`slot_lane` 0 or 1) | 2 | No |
-| `confirmed` | 100% (`slot_lane` 0) | 1 per floor+time | Yes (if `is_published`) |
-| `cancelled` | hidden | — | No |
-
-### Core rules
+### People
 
 | Rule | Enforcement |
 |------|-------------|
-| Operating hours | 06:00–24:00 KST |
-| Path required | ≥1 `path_key` on session |
-| Images | max 3 paths; bucket `session-photos` |
-| Processing cannot publish | `validateSessionInput` |
-| Confirmed cannot revert to processing | `saveSession` |
-| Cancelled cannot edit | `saveSession` |
-| Confirm | sets `confirmed_at/by`, `slot_lane=0`, auto-cancels overlapping `processing` on same floor+time |
-| Instructor conflict | same instructor cannot overlap any non-cancelled session |
+| Public homepage | `getPublishedPeople()`: `is_published` + status `admin`\|`approved` |
+| Publish guard | `canPublishPerson()` — only `admin` or `approved` |
+| Teacher cannot publish | `persistTeacherProfile` forces `is_published = false` |
+| Email unique | DB index `lower(email)`; link-by-email on login |
+| One person per auth user | partial unique on `user_id` |
+| Delete blocked | if `sessions.instructor_id` references person |
+| Programs optional | 0 programs allowed on submit |
+
+### Teacher account linking (`linkTeacherPerson`)
+
+1. Match `user_id` → return row
+2. Match `email` (case-insensitive) → attach `user_id` (error if linked to another user)
+3. No match → `null` (new row on first save)
+
+### Schedule
+
+| Rule | Enforcement |
+|------|-------------|
+| Hours | 06:00–24:00 KST |
+| Paths | ≥1 `path_key` required |
+| Images | max 3; bucket `session-photos` |
+| Slot competition | max 2 `processing` per floor + overlapping time |
+| Instructor overlap | blocked across non-cancelled sessions |
+| Confirm | auto-cancel competing `processing` on same floor+time |
 | Public read | RLS: `is_published AND status = 'confirmed'` |
 
-### Time handling
+### Notifications (`notifyAdminProfileSubmitted`)
 
-- All schedule grid math in **KST** (`lib/schedule/utils.ts`)
-- DB stores `timestamptz` via `toKstIso()`
+- Trigger: new submit or re-submit (incl. post-approval edit)
+- Recipients: `getAdminNotifyEmails()` — all Auth users where `role !== "teacher"`
+- Channels: Resend + optional Slack; failures silent
+- Requires: `RESEND_API_KEY`, `NOTIFY_FROM_EMAIL`, `SUPABASE_SERVICE_ROLE_KEY`
 
 ### Cache revalidation
 
-| Action | Paths revalidated |
-|--------|-------------------|
+| Action | `revalidatePath` |
+|--------|------------------|
 | Person save/publish | `/admin/people`, edit page, `/` if published |
 | Session save/publish | `/admin/schedule`, `/` if published |
 
 ---
 
-## Storage buckets
+## Server Actions map
 
-| Bucket | Public read | Max size | MIME |
-|--------|-------------|----------|------|
-| `person-photos` | yes | 5 MB | jpeg, png, webp |
-| `session-photos` | yes | 5 MB | jpeg, png, webp |
+### `app/admin/actions.ts`
 
-Old files removed on photo replace (person + session actions).
+| Action | Purpose |
+|--------|---------|
+| `signOut` | Admin session end |
+| `savePerson` / `createPerson` / `updatePerson` | Person + programs CRUD |
+| `updatePersonPhotoPath` | Photo path update + old file cleanup |
+| `approvePerson` | `registration_status → approved` |
+| `rejectPerson` | `→ rejected`, unpublish, reason required |
+| `deletePerson` | Delete if no sessions reference instructor |
 
----
+### `app/apply/actions.ts`
 
-## Environment variables (server-side)
+| Action | Purpose |
+|--------|---------|
+| `requestTeacherMagicLink` | Validate invite code + send OTP |
+| `getTeacherPerson` | Auth + `linkTeacherPerson` |
+| `saveTeacherProfileDraft` | `draft` status |
+| `submitTeacherProfile` | `submitted` + notify |
+| `signOutTeacher` | Teacher session end |
 
-| Variable | Purpose |
-|----------|---------|
-| `SUPABASE_SERVICE_ROLE_KEY` | Auth admin, list admin emails |
-| `TEACHER_APPLY_CODE` | Teacher invite gate |
-| `NEXT_PUBLIC_SITE_URL` | Magic link redirect, notification links |
-| `RESEND_API_KEY` | Admin alert email |
-| `NOTIFY_FROM_EMAIL` | From address |
-| `SLACK_WEBHOOK_URL` | Optional Slack |
+### `app/admin/schedule/actions.ts`
 
-See [site-map-and-flows.md](./site-map-and-flows.md) for full env + infra checklist.
-
----
-
-## Security model summary
-
-- **RLS enabled** on all app tables; public policies are read-only for published data
-- **Admin** = JWT `app_metadata.role` is not `teacher` (default unset counts as admin)
-- **Teacher** = own `people` row + own `person_programs` only; cannot publish
-- **Service role** used only server-side for role assignment and admin email discovery
-- Middleware is **not** a substitute for RLS — both apply
+| Action | Purpose |
+|--------|---------|
+| `saveSession` | Create/update; slot lane assignment; image cleanup |
+| `confirmSession` | Confirm + cancel competitors |
+| `duplicateSession` | Copy to new slot as `processing` |
+| `deleteSession` | Soft cancel |
 
 ---
 
-## Related source files
+## lib/ function map
 
-| Area | Path |
-|------|------|
-| Admin person actions | `app/admin/actions.ts` |
-| Teacher apply actions | `app/apply/actions.ts` |
-| Schedule actions | `app/admin/schedule/actions.ts` |
-| Auth callback | `app/auth/callback/route.ts` |
-| Middleware entry | `middleware.ts`, `lib/supabase/middleware.ts` |
-| Person persist/validate | `lib/people/persist.ts`, `validate.ts` |
-| Registration helpers | `lib/people/registration-status.ts` |
-| Teacher linking | `lib/apply/teacher-person.ts` |
-| Notifications | `lib/notifications/` |
-| Schedule layout/status | `lib/schedule/layout.ts`, `session-status.ts` |
+### `lib/apply/`
+
+| Export | Role |
+|--------|------|
+| `teacherApplyCode`, `siteOrigin`, `applyProfileUrl` | Env-based config |
+| `ensureTeacherRole` | Set `app_metadata.role = teacher` |
+| `linkTeacherPerson` | Auth user ↔ `people` row |
+
+### `lib/people/`
+
+| Export | Role |
+|--------|------|
+| `getPublishedPeople`, `getAllPeopleAdmin`, `getPersonById` | Queries |
+| `validatePersonInput` | Form validation |
+| `personRowFromInput`, `savePersonPrograms`, `resolvePersonSlug`, `uniqueSlug` | Persist |
+| `canPublishPerson`, `isSelfRegistered`, status labels/badges | Registration helpers |
+| `slugify`, `getPersonPhotoUrl`, `toPersonCard`, `isValidEmail`, … | Display/utils |
+
+### `lib/schedule/`
+
+| Export | Role |
+|--------|------|
+| `getFloors`, `getSessionsForDay`, `getSessionsForRange` | Queries |
+| `toKstIso`, `sessionsOverlap`, `isWithinOperatingHours`, week/month helpers | KST time math |
+| `layoutWidthForSession`, `layoutLeftForSession` | Grid 50%/100% layout |
+| `sessionStatusLabel`, ribbon classes | UI status |
+| `getSessionPhotoUrl`, `normalizeDescriptionBlocks`, storage path helpers | Images/content |
+
+### `lib/notifications/`
+
+| Export | Role |
+|--------|------|
+| `getAdminNotifyEmails` | Paginate Auth users, filter admins |
+| `notifyAdminProfileSubmitted`, `applyLinkForTeachers` | Alert dispatch |
+
+### `lib/paths/`
+
+| Export | Role |
+|--------|------|
+| `PATHS`, `PATH_OPTIONS`, `pathLabelKo` | Static philosophy path metadata |
+
+### `lib/supabase/`
+
+| Export | Role |
+|--------|------|
+| `createClient` (client/server/service) | Supabase instances |
+| `updateSession` | Middleware auth |
+| `isSupabaseConfigured` | Env guard |
+
+---
+
+## Security summary
+
+- RLS on `people`, `person_programs`, `floors`, `sessions`
+- Service role never exposed to browser
+- Teacher RLS: own row only; cannot set `is_published`
+- Admin RLS: `is_admin_user()` on people/programs
+- Storage: public read; authenticated write per bucket policy
 
 ---
 
 ## Not yet implemented
 
-- Public homepage schedule from live `sessions` (still mock in `components/schedule/`)
-- Participant booking / `booked_count` increment
-- Notify creators when their processing session is auto-cancelled on confirm
-- Resend verified domain for production multi-admin delivery
+- Public homepage schedule from live `sessions`
+- `booked_count` increment / booking flow
+- Notify processing-session creators on auto-cancel
+- Resend domain verification for production

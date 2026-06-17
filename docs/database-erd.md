@@ -2,7 +2,9 @@
 
 Last updated: 2026-06-16
 
-Companion: [Schema reference](./database-schema.md) · [Backend logic](./backend-architecture.md)
+Companion: [Schema reference](./database-schema.md) · [Backend logic](./backend-architecture.md) · [Site map](./site-map-and-flows.md)
+
+> 목적: 데이터 간 관계 시각화
 
 ---
 
@@ -10,12 +12,12 @@ Companion: [Schema reference](./database-schema.md) · [Backend logic](./backend
 
 ```mermaid
 erDiagram
-    AUTH_USERS ||--o| PEOPLE : "user_id (optional)"
-    AUTH_USERS ||--o{ PEOPLE : "reviewed_by"
+    AUTH_USERS ||--o| PEOPLE : "owns via user_id"
+    AUTH_USERS ||--o{ PEOPLE : "reviews via reviewed_by"
     PEOPLE ||--|{ PERSON_PROGRAMS : "has"
     PEOPLE ||--o{ SESSIONS : "instructs"
     FLOORS ||--|{ SESSIONS : "hosts"
-    PERSON_PROGRAMS ||--o{ SESSIONS : "optional program"
+    PERSON_PROGRAMS ||--o{ SESSIONS : "linked_program"
     AUTH_USERS ||--o{ SESSIONS : "created_by"
     AUTH_USERS ||--o{ SESSIONS : "confirmed_by"
     AUTH_USERS ||--o{ SESSIONS : "cancelled_by"
@@ -23,7 +25,7 @@ erDiagram
     AUTH_USERS {
         uuid id PK
         text email
-        jsonb app_metadata "role: teacher|admin"
+        jsonb app_metadata
     }
 
     PEOPLE {
@@ -32,10 +34,11 @@ erDiagram
         person_kind kind
         text name_ko
         text name_en
-        text email "UK lower when set"
-        uuid user_id FK "UK when set"
+        text email
+        uuid user_id FK
         person_registration_status registration_status
         boolean is_published
+        text photo_path
         timestamptz submitted_at
         timestamptz reviewed_at
         uuid reviewed_by FK
@@ -45,14 +48,14 @@ erDiagram
         uuid id PK
         uuid person_id FK
         text title
-        path_key_array path_keys
+        text description
         int sort_order
     }
 
     FLOORS {
         uuid id PK
         text slug UK
-        smallint level UK "1-4"
+        smallint level
         text name_ko
         text name_en
     }
@@ -61,17 +64,15 @@ erDiagram
         uuid id PK
         uuid floor_id FK
         uuid instructor_id FK
-        uuid person_program_id FK "nullable"
+        uuid person_program_id FK
         text title
-        path_key_array path_keys
         timestamptz starts_at
         timestamptz ends_at
         int capacity
         int booked_count
         session_status status
-        smallint slot_lane "0 or 1"
+        smallint slot_lane
         boolean is_published
-        text_array image_paths "max 3"
         jsonb description_blocks
         uuid created_by FK
         uuid confirmed_by FK
@@ -79,21 +80,23 @@ erDiagram
     }
 ```
 
+> `path_keys` (enum array) on `PERSON_PROGRAMS` and `SESSIONS` omitted from diagram for readability. See [database-schema.md](./database-schema.md).
+
 ---
 
-## Relationship summary
+## Relationship table
 
 | From | To | Cardinality | ON DELETE | Notes |
 |------|-----|-------------|-----------|-------|
-| `people.user_id` | `auth.users` | 0..1 : 1 | SET NULL | One auth user → at most one person |
-| `people.reviewed_by` | `auth.users` | N : 1 | — | Admin who approved/rejected |
-| `person_programs.person_id` | `people` | N : 1 | CASCADE | Programs deleted with person |
-| `sessions.instructor_id` | `people` | N : 1 | RESTRICT | Cannot delete person with sessions |
+| `people.user_id` | `auth.users` | 0..1 : 1 | SET NULL | At most one person per auth user |
+| `people.reviewed_by` | `auth.users` | N : 1 | — | Reviewing admin |
+| `person_programs.person_id` | `people` | N : 1 | CASCADE | |
+| `sessions.instructor_id` | `people` | N : 1 | RESTRICT | Blocks person delete |
 | `sessions.floor_id` | `floors` | N : 1 | RESTRICT | |
-| `sessions.person_program_id` | `person_programs` | N : 0..1 | SET NULL | Optional link to specific program |
-| `sessions.created_by` | `auth.users` | N : 1 | — | Admin who created |
-| `sessions.confirmed_by` | `auth.users` | N : 1 | — | Admin who confirmed |
-| `sessions.cancelled_by` | `auth.users` | N : 1 | — | Admin or system cancel |
+| `sessions.person_program_id` | `person_programs` | N : 0..1 | SET NULL | Optional |
+| `sessions.created_by` | `auth.users` | N : 1 | — | |
+| `sessions.confirmed_by` | `auth.users` | N : 1 | — | |
+| `sessions.cancelled_by` | `auth.users` | N : 1 | — | |
 
 ---
 
@@ -101,78 +104,106 @@ erDiagram
 
 ```mermaid
 flowchart TB
-    subgraph auth [Supabase Auth]
+    subgraph auth_domain [Auth]
         AU[auth.users]
     end
 
-    subgraph people_domain [People domain]
+    subgraph people_domain [People]
         P[people]
         PP[person_programs]
         P --> PP
     end
 
-    subgraph schedule_domain [Schedule domain]
+    subgraph schedule_domain [Schedule]
         F[floors]
         S[sessions]
         F --> S
     end
 
-    subgraph storage [Storage buckets]
+    subgraph storage_domain [Storage]
         BP[person-photos]
         BS[session-photos]
     end
 
     AU -->|user_id| P
+    AU -->|reviewed_by| P
     P -->|instructor_id| S
     PP -.->|person_program_id| S
     P -.->|photo_path| BP
     S -.->|image_paths| BS
 ```
 
+| Domain | Tables | Storage |
+|--------|--------|---------|
+| People | `people`, `person_programs` | `person-photos` |
+| Schedule | `floors`, `sessions` | `session-photos` |
+| Auth | `auth.users` (managed) | — |
+
 ---
 
-## Enum usage map
+## Enum usage
 
-| Enum | Used in |
+| Enum | Columns |
 |------|---------|
 | `person_kind` | `people.kind` |
-| `path_key` | `person_programs.path_keys`, `sessions.path_keys` |
+| `path_key` | `person_programs.path_keys[]`, `sessions.path_keys[]` |
 | `person_registration_status` | `people.registration_status` |
 | `session_status` | `sessions.status` |
 
 ---
 
-## Key business constraints (not FK)
+## Constraints (non-FK)
 
-| Constraint | Tables | Rule |
-|------------|--------|------|
-| Email uniqueness | `people` | `UNIQUE (lower(email))` where email not empty |
-| Auth link uniqueness | `people` | `UNIQUE (user_id)` where not null |
-| Session time | `sessions` | `ends_at > starts_at` |
-| Session images | `sessions` | `cardinality(image_paths) <= 3` |
-| Slot lane | `sessions` | `slot_lane BETWEEN 0 AND 1` |
-| Floor level | `floors` | `level BETWEEN 1 AND 4` |
-| Capacity | `sessions` | `capacity > 0`, `booked_count >= 0` |
+| Rule | Target |
+|------|--------|
+| `UNIQUE (lower(email))` where set | `people` |
+| `UNIQUE (user_id)` where set | `people` |
+| `ends_at > starts_at` | `sessions` |
+| `cardinality(image_paths) <= 3` | `sessions` |
+| `slot_lane BETWEEN 0 AND 1` | `sessions` |
+| `level BETWEEN 1 AND 4` | `floors` |
+| `capacity > 0`, `booked_count >= 0` | `sessions` |
 
 ---
 
-## Public visibility (read path)
+## Public read paths
+
+Anonymous (`anon`) and authenticated users can **SELECT** only through RLS policies below. Writes require admin session (or teacher own-row policies).
 
 ```mermaid
-flowchart LR
-    P[people] -->|is_published AND status in admin,approved| HP[Homepage guides/artists]
-    PP[person_programs] -->|via published person| HP
-    S[sessions] -->|is_published AND status confirmed| PS[Public schedule - not wired yet]
-    F[floors] -->|always readable| PS
+flowchart TD
+    subgraph public_read [Public SELECT allowed]
+        P[people]
+        PP[person_programs]
+        F[floors]
+        S[sessions]
+    end
+
+    P -->|published plus approved or admin| HP[Homepage Guides / Artists]
+    PP -->|via published person| HP
+    F -->|always readable| PS[Public schedule UI - not wired]
+    S -->|published and confirmed| PS
 ```
+
+| Entity | Public read condition | Wired to UI |
+|--------|----------------------|-------------|
+| `people` | published + `admin`\|`approved` | ✓ homepage |
+| `person_programs` | via published person | ✓ homepage cards |
+| `floors` | always | ✗ (future schedule) |
+| `sessions` | published + `confirmed` | ✗ (homepage uses mock) |
+| Storage objects | bucket public flag | ✓ photo URLs |
+
+**Teacher read:** own `people` + `person_programs` via `user_id = auth.uid()` (not public).
+
+**Admin read/write:** all rows via `is_admin_user()` or authenticated session policies on floors/sessions.
 
 ---
 
-## Storage (logical, not relational FK)
+## Storage (logical links)
 
-| Entity | Column | Bucket |
-|--------|--------|--------|
-| Person | `photo_path` | `person-photos` |
-| Session | `image_paths[]` | `session-photos` |
+| DB column | Bucket | Cardinality |
+|-----------|--------|-------------|
+| `people.photo_path` | `person-photos` | 0..1 |
+| `sessions.image_paths` | `session-photos` | 0..3 |
 
-Paths are opaque strings; no DB FK to `storage.objects`.
+No relational FK to `storage.objects`.
