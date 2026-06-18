@@ -2,6 +2,7 @@ import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { linkTeacherPerson } from "@/lib/apply/teacher-person"
 import { getPersonById } from "@/lib/people/queries"
+import { getRegionsForForms } from "@/lib/regions/queries"
 import { TeacherProfileForm } from "@/components/apply/teacher-profile-form"
 
 export default async function ApplyProfilePage() {
@@ -21,6 +22,7 @@ export default async function ApplyProfilePage() {
   }
 
   const person = personRow ? await getPersonById(personRow.id) : null
+  const regions = await getRegionsForForms()
 
   return (
     <div className="min-h-screen bg-background px-4 py-10">
@@ -45,6 +47,7 @@ export default async function ApplyProfilePage() {
           <TeacherProfileForm
             person={person}
             loginEmail={user.email ?? ""}
+            regions={regions}
           />
         )}
       </div>

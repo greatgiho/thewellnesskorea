@@ -1,6 +1,6 @@
 # The Wellness Korea — Site Map & Flows
 
-Last updated: 2026-06-16
+Last updated: 2026-06-17
 
 Companion docs: [Backend](./backend-architecture.md) · [DB schema](./database-schema.md) · [ERD](./database-erd.md)
 
@@ -65,6 +65,9 @@ Public links, magic links, notification URLs → `NEXT_PUBLIC_SITE_URL`.
 | URL | File | Auth | Description |
 |-----|------|------|-------------|
 | `/` | `app/page.tsx` | Public | Homepage |
+| `/people/[slug]` | `app/people/[slug]/page.tsx` | Public | Published guide/artist profile + upcoming classes |
+| `/privacy` | `app/privacy/page.tsx` | Public | Privacy policy |
+| `/terms` | `app/terms/page.tsx` | Public | Terms of service |
 | `/apply` | `app/apply/page.tsx` | Public | Teacher invite + email |
 | `/apply/check-email` | `app/apply/check-email/page.tsx` | Public | Magic link sent confirmation |
 | `/apply/profile` | `app/apply/profile/page.tsx` | Teacher session | Profile create/edit (registration) |
@@ -78,6 +81,7 @@ Public links, magic links, notification URLs → `NEXT_PUBLIC_SITE_URL`.
 | `/admin` | `app/admin/(dashboard)/page.tsx` | Admin | → redirect `/admin/people` |
 | `/admin/people` | `app/admin/(dashboard)/people/page.tsx` | Admin | People list |
 | `/admin/people/new` | `app/admin/(dashboard)/people/new/page.tsx` | Admin | Manual person create (+ account if email) |
+| `/admin/people/[id]` | `app/admin/(dashboard)/people/[id]/page.tsx` | Admin | Read-only profile (incl. activity regions) |
 | `/admin/people/[id]/edit` | `app/admin/(dashboard)/people/[id]/edit/page.tsx` | Admin | Edit + review + account panel |
 | `/admin/schedule` | `app/admin/(dashboard)/schedule/page.tsx` | Admin | Schedule admin |
 
@@ -98,6 +102,8 @@ app/layout.tsx                    ← root: fonts, metadata, Analytics
 ├── /                             app/page.tsx
 ├── /apply/*                      (no nested layout)
 ├── /auth/callback                route handler
+├── /people/[slug]                public profile + upcoming sessions
+├── /privacy · /terms             legal pages
 ├── /teacher/login                app/teacher/login/page.tsx
 ├── /teacher/change-password      app/teacher/change-password/page.tsx
 ├── /teacher/(dashboard)/*        app/teacher/(dashboard)/layout.tsx
@@ -124,8 +130,9 @@ page.tsx
 │   └── path-card
 ├── Guides          ← getPublishedPeople("guide")
 │   ├── person-section
-│   └── person-card
+│   └── person-card → /people/[slug]
 ├── Artists         ← getPublishedPeople("artist")
+│   └── person-card → /people/[slug]
 ├── Schedule        ← mock data (components/schedule/*)
 │   ├── schedule-section
 │   ├── week-date-strip
@@ -145,7 +152,7 @@ page.tsx
 |--------|------------|
 | `/apply` | `apply-login-form` |
 | `/apply/check-email` | inline confirmation UI |
-| `/apply/profile` | `teacher-profile-form` (+ shared `program-list-editor`, `philosophy-path-picker`) |
+| `/apply/profile` | `teacher-profile-form` (+ `activity-region-fields`, `program-list-editor`, `philosophy-path-picker`) |
 | `/apply/profile/submitted` | inline success UI |
 
 ### Teacher portal (`/teacher`)
@@ -164,8 +171,9 @@ page.tsx
 |--------|------------|
 | Layout | nav: People · Schedule · View site · Sign out |
 | `/admin/people` | `admin-people-list` (search, status/path filters, apply link) |
-| `/admin/people/new` | `person-form`, `program-list-editor` |
-| `/admin/people/[id]/edit` | `person-form`, `person-review-panel`, `person-account-panel`, `delete-person-button` |
+| `/admin/people/new` | `person-form`, `activity-region-fields`, `program-list-editor` |
+| `/admin/people/[id]` | `person-detail-view` (activity regions) |
+| `/admin/people/[id]/edit` | `person-form`, `activity-region-fields`, `person-review-panel`, `person-account-panel`, `delete-person-button` |
 | `/admin/schedule` | `schedule-admin-client` |
 | | → `schedule-period-picker` (month/week jump popover) |
 | | → `schedule-floor-nav`, `schedule-week-grid` / `schedule-day-grid` / `schedule-month-calendar` |
@@ -291,7 +299,7 @@ http://localhost:3000/auth/callback
 - [ ] Gabia DNS: A + CNAME
 - [ ] Vercel Domains: Valid (`thewellnesskorea.com`, `www`)
 - [ ] Vercel env vars + Redeploy
-- [ ] Supabase migrations `001`–`007` applied (`007` preferred over `006`)
+- [ ] Supabase migrations `001`–`010` applied (`007` preferred over `006`; `010` seeds nationwide regions)
 - [ ] Supabase redirect URLs
 - [ ] Resend: verify domain for multi-admin production email
 

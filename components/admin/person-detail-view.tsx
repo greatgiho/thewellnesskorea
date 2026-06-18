@@ -1,6 +1,8 @@
 import Image from "next/image"
 import Link from "next/link"
+import { ActivityRegionDisplay } from "@/components/people/activity-region-display"
 import { pathLabelKo } from "@/lib/paths/paths-data"
+import type { RegionRow } from "@/lib/regions/types"
 import {
   isSelfRegistered,
   REGISTRATION_STATUS_BADGE_CLASS,
@@ -11,6 +13,7 @@ import { getPersonPhotoUrl, instagramHandle } from "@/lib/people/utils"
 
 type PersonDetailViewProps = {
   person: PersonWithPrograms
+  sido: RegionRow[]
 }
 
 function DetailField({
@@ -30,7 +33,7 @@ function DetailField({
   )
 }
 
-export function PersonDetailView({ person }: PersonDetailViewProps) {
+export function PersonDetailView({ person, sido }: PersonDetailViewProps) {
   const instagram = instagramHandle(person.instagram)
 
   return (
@@ -123,6 +126,18 @@ export function PersonDetailView({ person }: PersonDetailViewProps) {
             {person.user_id ? "Yes" : "No"}
           </DetailField>
         </dl>
+      </section>
+
+      <section className="rounded-2xl border border-border bg-card/40 p-6">
+        <h3 className="font-medium text-foreground">Activity regions</h3>
+        <div className="mt-4">
+          <ActivityRegionDisplay
+            regions={person.activity_regions}
+            sido={sido}
+            locale="ko"
+            emptyLabel="Not set"
+          />
+        </div>
       </section>
 
       <section className="space-y-4">

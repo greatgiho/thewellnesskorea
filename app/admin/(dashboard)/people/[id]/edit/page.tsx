@@ -4,6 +4,7 @@ import { PersonReviewPanel } from "@/components/admin/person-review-panel"
 import { PersonAccountPanel } from "@/components/admin/person-account-panel"
 import { DeletePersonButton } from "@/components/admin/delete-person-button"
 import { getPersonById } from "@/lib/people/queries"
+import { getRegionsForForms } from "@/lib/regions/queries"
 
 type Props = {
   params: Promise<{ id: string }>
@@ -11,7 +12,10 @@ type Props = {
 
 export default async function EditPersonPage({ params }: Props) {
   const { id } = await params
-  const person = await getPersonById(id)
+  const [person, regions] = await Promise.all([
+    getPersonById(id),
+    getRegionsForForms(),
+  ])
   if (!person) notFound()
 
   return (
@@ -25,7 +29,7 @@ export default async function EditPersonPage({ params }: Props) {
       </div>
       <PersonReviewPanel person={person} />
       <PersonAccountPanel person={person} />
-      <PersonForm person={person} />
+      <PersonForm person={person} regions={regions} />
     </div>
   )
 }

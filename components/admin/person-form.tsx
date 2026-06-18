@@ -6,6 +6,9 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import type { PersonFormInput, PersonWithPrograms } from "@/lib/people/types"
+import { activityRegionCodesFromRows } from "@/lib/regions/utils"
+import type { RegionsForForms } from "@/lib/regions/types"
+import { ActivityRegionFields } from "@/components/people/activity-region-fields"
 import { savePerson } from "@/app/admin/actions"
 import { canPublishPerson } from "@/lib/people/registration-status"
 import {
@@ -19,6 +22,7 @@ import { ProgramListEditor } from "@/components/admin/program-list-editor"
 
 type PersonFormProps = {
   person?: PersonWithPrograms
+  regions: RegionsForForms
 }
 
 const defaultInput: PersonFormInput = {
@@ -32,10 +36,13 @@ const defaultInput: PersonFormInput = {
   email: "",
   instagram: "",
   is_published: false,
+  primary_region_code: "",
+  secondary_region_code: "",
   programs: [],
 }
 
 function formFromPerson(person: PersonWithPrograms): PersonFormInput {
+  const { primary, secondary } = activityRegionCodesFromRows(person.activity_regions)
   return {
     kind: person.kind,
     name_ko: person.name_ko,
@@ -47,6 +54,8 @@ function formFromPerson(person: PersonWithPrograms): PersonFormInput {
     email: person.email ?? "",
     instagram: instagramHandle(person.instagram) ?? person.instagram ?? "",
     is_published: person.is_published,
+    primary_region_code: primary,
+    secondary_region_code: secondary,
     programs: person.programs.map((p) => ({
       title: p.title,
       description: p.description ?? "",
@@ -55,7 +64,7 @@ function formFromPerson(person: PersonWithPrograms): PersonFormInput {
   }
 }
 
-export function PersonForm({ person }: PersonFormProps) {
+export function PersonForm({ person, regions }: PersonFormProps) {
   const router = useRouter()
   const isEdit = Boolean(person)
   const [input, setInput] = useState<PersonFormInput>(
@@ -237,6 +246,18 @@ export function PersonForm({ person }: PersonFormProps) {
           </label>
         </div>
       </section>
+
+      <ActivityRegionFields
+        regions={regions}
+        primaryCode={input.primary_region_code}
+        secondaryCode={input.secondary_region_code}
+        onPrimaryChange={(code) =>
+          setInput((value) => ({ ...value, primary_region_code: code }))
+        }
+        onSecondaryChange={(code) =>
+          setInput((value) => ({ ...value, secondary_region_code: code }))
+        }
+      />
 
       <section className="space-y-6">
         <h2 className="font-serif text-xl text-foreground">Public profile</h2>

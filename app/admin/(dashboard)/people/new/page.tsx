@@ -1,6 +1,9 @@
 import { PersonForm } from "@/components/admin/person-form"
+import { getRegionsForForms } from "@/lib/regions/queries"
 
-export default function NewPersonPage() {
+export default async function NewPersonPage() {
+  const regions = await getRegionsForForms()
+
   return (
     <div className="space-y-8">
       <div>
@@ -9,7 +12,7 @@ export default function NewPersonPage() {
           Add a wellness guide or artist profile
         </p>
       </div>
-      <PersonForm />
+      <PersonForm regions={regions} />
     </div>
   )
 }

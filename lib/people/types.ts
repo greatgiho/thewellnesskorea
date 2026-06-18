@@ -1,4 +1,5 @@
 import type { PathKey } from "@/lib/paths/paths-data"
+import type { PersonActivityRegionRow } from "@/lib/regions/types"
 
 export type PersonKind = "guide" | "artist" | "both"
 
@@ -47,6 +48,7 @@ export type PersonProgramRow = {
 
 export type PersonWithPrograms = PersonRow & {
   programs: PersonProgramRow[]
+  activity_regions?: PersonActivityRegionRow[]
 }
 
 export type PersonProgramFormInput = {
@@ -66,6 +68,8 @@ export type PersonFormInput = {
   email: string
   instagram: string
   is_published: boolean
+  primary_region_code: string
+  secondary_region_code: string
   programs: PersonProgramFormInput[]
 }
 
@@ -77,13 +81,23 @@ export type PersonProgramCard = {
 
 export type PersonCardData = {
   id: string
+  slug: string
   name: string
   role: string
   image: string
   programs: PersonProgramCard[]
   instagramUrl: string | null
   quote: string | null
+  primaryRegionLabel: string | null
 }
+
+export const PERSON_ACTIVITY_REGIONS_SELECT = `
+  person_activity_regions (
+    priority,
+    region_code,
+    region:regions (code, parent_code, level, name_ko, name_en, sort_order)
+  )
+`
 
 /** Columns safe for public site — excludes phone and email */
 export const PERSON_PUBLIC_COLUMNS =

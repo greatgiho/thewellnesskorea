@@ -18,6 +18,8 @@ import type {
 } from "@/lib/people/types"
 import { validatePersonInput } from "@/lib/people/validate"
 import { isValidEmail } from "@/lib/people/utils"
+import { getRegionsForForms } from "@/lib/regions/queries"
+import { savePersonActivityRegions } from "@/lib/regions/persist"
 
 async function requireTeacherAuth() {
   const supabase = await createClient()
@@ -94,7 +96,8 @@ async function persistTeacherProfile(
   person: PersonRow | null,
   options: SaveTeacherOptions,
 ): Promise<string> {
-  validatePersonInput(input)
+  const regions = await getRegionsForForms()
+  validatePersonInput(input, regions)
   const { supabase, user } = await requireTeacherAuth()
   await ensureTeacherRole(user.id)
 
@@ -146,6 +149,12 @@ async function persistTeacherProfile(
   }
 
   await savePersonPrograms(supabase, personId, input)
+  await savePersonActivityRegions(
+    supabase,
+    personId,
+    input.primary_region_code,
+    input.secondary_region_code,
+  )
 
   if (notify) {
     await notifyAdminProfileSubmitted({

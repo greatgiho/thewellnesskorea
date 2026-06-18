@@ -1,4 +1,9 @@
 import { pathLabelKo, type PathKey } from "@/lib/paths/paths-data"
+import {
+  formatActivityRegionLabel,
+  primaryActivityRegion,
+} from "@/lib/regions/utils"
+import type { PersonActivityRegionRow, RegionRow } from "@/lib/regions/types"
 import type {
   PersonCardData,
   PersonProgramRow,
@@ -56,16 +61,25 @@ export function programToCard(program: PersonProgramRow) {
 export function toPersonCard(
   row: PersonRow,
   programs: PersonProgramRow[] = [],
+  activityRegions: PersonActivityRegionRow[] = [],
+  sidoByCode: Map<string, RegionRow> = new Map(),
 ): PersonCardData {
   const sorted = [...programs].sort((a, b) => a.sort_order - b.sort_order)
+  const primary = primaryActivityRegion(activityRegions)
+  const primaryRegionLabel = primary
+    ? formatActivityRegionLabel(primary, sidoByCode, "ko")
+    : null
+
   return {
     id: row.id,
+    slug: row.slug,
     name: row.name_en,
     role: row.role_en,
     image: getPersonPhotoUrl(row.photo_path),
     programs: sorted.map(programToCard),
     instagramUrl: normalizeInstagram(row.instagram ?? ""),
     quote: row.quote,
+    primaryRegionLabel,
   }
 }
 

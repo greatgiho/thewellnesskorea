@@ -15,6 +15,8 @@ import {
 } from "@/lib/auth/teacher-account"
 import { canPublishPerson } from "@/lib/people/registration-status"
 import { validatePersonInput } from "@/lib/people/validate"
+import { getRegionsForForms } from "@/lib/regions/queries"
+import { savePersonActivityRegions } from "@/lib/regions/persist"
 
 async function requireAuth() {
   const supabase = await createClient()
@@ -25,10 +27,11 @@ async function requireAuth() {
   return { supabase, user }
 }
 
-function revalidatePersonCaches(isPublished: boolean, personId?: string) {
+function revalidatePersonCaches(isPublished: boolean, personId?: string, slug?: string) {
   revalidatePath("/admin/people")
   if (personId) revalidatePath(`/admin/people/${personId}/edit`)
   if (isPublished) revalidatePath("/")
+  if (slug) revalidatePath(`/people/${slug}`)
 }
 
 export type SavePersonOptions = {
@@ -47,7 +50,8 @@ export async function savePerson(
   personId?: string,
   options?: SavePersonOptions,
 ) {
-  validatePersonInput(input)
+  const regions = await getRegionsForForms()
+  validatePersonInput(input, regions)
   const { supabase } = await requireAuth()
   const slug = await resolvePersonSlug(supabase, input, personId)
 
@@ -122,6 +126,13 @@ export async function savePerson(
     await savePersonPrograms(supabase, personId, input)
   }
 
+  await savePersonActivityRegions(
+    supabase,
+    personId,
+    input.primary_region_code,
+    input.secondary_region_code,
+  )
+
   await maybeProvisionOnAdminSave(supabase, personId, {
     email: input.email,
     previousEmail: existingEmail,
@@ -129,7 +140,7 @@ export async function savePerson(
     registrationStatus,
   })
 
-  revalidatePersonCaches(input.is_published, personId)
+  revalidatePersonCaches(input.is_published, personId, slug)
   return personId
 }
 

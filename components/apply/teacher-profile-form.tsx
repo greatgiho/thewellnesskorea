@@ -11,6 +11,12 @@ import {
 } from "@/app/apply/actions"
 import { ProgramListEditor } from "@/components/admin/program-list-editor"
 import type { PersonFormInput, PersonWithPrograms } from "@/lib/people/types"
+import { activityRegionCodesFromRows } from "@/lib/regions/utils"
+import type { RegionsForForms } from "@/lib/regions/types"
+import {
+  ActivityRegionFields,
+  teacherActivityRegionLabels,
+} from "@/components/people/activity-region-fields"
 import {
   REGISTRATION_STATUS_BADGE_CLASS,
   registrationStatusLabel,
@@ -26,6 +32,7 @@ import {
 type TeacherProfileFormProps = {
   person: PersonWithPrograms | null
   loginEmail: string
+  regions: RegionsForForms
 }
 
 const defaultInput = (loginEmail: string): PersonFormInput => ({
@@ -39,10 +46,13 @@ const defaultInput = (loginEmail: string): PersonFormInput => ({
   email: loginEmail,
   instagram: "",
   is_published: false,
+  primary_region_code: "",
+  secondary_region_code: "",
   programs: [],
 })
 
 function formFromPerson(person: PersonWithPrograms): PersonFormInput {
+  const { primary, secondary } = activityRegionCodesFromRows(person.activity_regions)
   return {
     kind: person.kind,
     name_ko: person.name_ko,
@@ -54,6 +64,8 @@ function formFromPerson(person: PersonWithPrograms): PersonFormInput {
     email: person.email ?? "",
     instagram: instagramHandle(person.instagram) ?? person.instagram ?? "",
     is_published: false,
+    primary_region_code: primary,
+    secondary_region_code: secondary,
     programs: person.programs.map((p) => ({
       title: p.title,
       description: p.description ?? "",
@@ -65,6 +77,7 @@ function formFromPerson(person: PersonWithPrograms): PersonFormInput {
 export function TeacherProfileForm({
   person,
   loginEmail,
+  regions,
 }: TeacherProfileFormProps) {
   const router = useRouter()
   const [input, setInput] = useState<PersonFormInput>(
@@ -270,6 +283,21 @@ export function TeacherProfileForm({
             />
           </label>
         </div>
+      </section>
+
+      <section className="space-y-4 rounded-2xl border border-border bg-card p-6">
+        <ActivityRegionFields
+          regions={regions}
+          primaryCode={input.primary_region_code}
+          secondaryCode={input.secondary_region_code}
+          onPrimaryChange={(code) =>
+            setInput((value) => ({ ...value, primary_region_code: code }))
+          }
+          onSecondaryChange={(code) =>
+            setInput((value) => ({ ...value, secondary_region_code: code }))
+          }
+          labels={teacherActivityRegionLabels}
+        />
       </section>
 
       <section className="space-y-6 rounded-2xl border border-border bg-card p-6">

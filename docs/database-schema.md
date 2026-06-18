@@ -1,14 +1,14 @@
 # The Wellness Korea — Database Schema
 
-Last updated: 2026-06-16
+Last updated: 2026-06-17
 
-Source of truth: `supabase/migrations/001`–`007`
+Source of truth: `supabase/migrations/001`–`010`
 
 Companion: [ERD](./database-erd.md) · [Backend logic](./backend-architecture.md) · [Site map](./site-map-and-flows.md)
 
 > 목적: 데이터베이스 물리/논리 스키마 명세
 
-**Apply order:** `001` → `002` → `003` → `004` → `005` → `007` → `008`  
+**Apply order:** `001` → `002` → `003` → `004` → `005` → `007` → `008` → `009` → `010`  
 (`007_fix_duplicate_emails.sql` = idempotent superset of `006`; use `007` if emails may duplicate)
 
 ---
@@ -78,6 +78,38 @@ Guide/Artist master profile.
 
 ---
 
+### `regions`
+
+Nationwide administrative districts (시·도 + 시·군·구). Seeded in `010_regions_seed.sql` (17 sido, 252 sigungu).
+
+| Column | Type | Constraints / default |
+|--------|------|----------------------|
+| `code` | text | PK (e.g. `11`, `11110`) |
+| `parent_code` | text | FK → `regions`, nullable (sido has null parent) |
+| `level` | smallint | CHECK 1–3 (1=sido, 2=sigungu) |
+| `name_ko`, `name_en` | text | NOT NULL |
+| `sort_order` | int | default 0 |
+
+**Index:** `regions_parent_level_idx` — `(parent_code, level, sort_order)`
+
+---
+
+### `person_activity_regions`
+
+Teacher primary/secondary activity areas (priority 1 required on save).
+
+| Column | Type | Constraints / default |
+|--------|------|----------------------|
+| `person_id` | uuid | FK → `people`, ON DELETE CASCADE |
+| `priority` | smallint | CHECK IN (1, 2); PK `(person_id, priority)` |
+| `region_code` | text | FK → `regions` |
+| `created_at` | timestamptz | default now() |
+
+**Indexes:** `person_activity_regions_region_idx` — `(region_code)`  
+**Unique:** `(person_id, region_code)` — same region cannot be both priorities
+
+---
+
 ### `floors`
 
 Seeded: 1F–4F (`slug` `1f`…`4f`, `level` 1–4).
@@ -136,7 +168,7 @@ Seeded: 1F–4F (`slug` `1f`…`4f`, `level` 1–4).
 
 ## Row Level Security
 
-RLS **enabled** on all four app tables.
+RLS **enabled** on all app tables (`people`, `person_programs`, `floors`, `sessions`, `regions`, `person_activity_regions`).
 
 ### `people`
 
@@ -170,6 +202,22 @@ RLS **enabled** on all four app tables.
 | public read published sessions | SELECT | `is_published AND status = 'confirmed'` |
 | admin all on sessions | ALL | `is_admin_user()` |
 | teacher read own published sessions | SELECT | not admin; `status = confirmed`; `is_published`; `instructor_id` linked to `people.user_id = auth.uid()` |
+
+### `regions`
+
+| Policy | Op | Rule |
+|--------|-----|------|
+| public read regions | SELECT | always true |
+| admin all on regions | ALL | `is_admin_user()` |
+
+### `person_activity_regions`
+
+| Policy | Op | Rule |
+|--------|-----|------|
+| public read activity regions of published people | SELECT | parent person published + approved/admin |
+| admin all on person_activity_regions | ALL | `is_admin_user()` |
+| teacher read own activity regions | SELECT | parent `people.user_id = auth.uid()` |
+| teacher manage own activity regions | ALL | parent `people.user_id = auth.uid()` |
 
 ---
 
@@ -209,6 +257,8 @@ Referenced by FK (not created in app migrations):
 | `006_teacher_self_registration.sql` | registration columns, teacher RLS (may fail on dup email) |
 | `007_fix_duplicate_emails.sql` | idempotent 006 + email dedupe + unique index |
 | `008_teacher_sessions_rls.sql` | admin sessions policy via `is_admin_user()`; teacher read own confirmed+published sessions |
+| `009_person_activity_regions.sql` | `regions`, `person_activity_regions`, RLS |
+| `010_regions_seed.sql` | nationwide sido + sigungu seed data |
 
 ---
 
@@ -217,3 +267,4 @@ Referenced by FK (not created in app migrations):
 - `bookings` / payments
 - Session waitlist
 - Audit log table
+- Street address + geocoding on activity regions (Phase B)

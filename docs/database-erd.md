@@ -1,6 +1,6 @@
 # The Wellness Korea — Database ERD
 
-Last updated: 2026-06-16
+Last updated: 2026-06-17
 
 Companion: [Schema reference](./database-schema.md) · [Backend logic](./backend-architecture.md) · [Site map](./site-map-and-flows.md)
 
@@ -15,6 +15,9 @@ erDiagram
     AUTH_USERS ||--o| PEOPLE : "owns via user_id"
     AUTH_USERS ||--o{ PEOPLE : "reviews via reviewed_by"
     PEOPLE ||--|{ PERSON_PROGRAMS : "has"
+    PEOPLE ||--o{ PERSON_ACTIVITY_REGIONS : "activity"
+    REGIONS ||--o{ REGIONS : "parent"
+    REGIONS ||--o{ PERSON_ACTIVITY_REGIONS : "codes"
     PEOPLE ||--o{ SESSIONS : "instructs"
     FLOORS ||--|{ SESSIONS : "hosts"
     PERSON_PROGRAMS ||--o{ SESSIONS : "linked_program"
@@ -50,6 +53,20 @@ erDiagram
         text title
         text description
         int sort_order
+    }
+
+    REGIONS {
+        text code PK
+        text parent_code FK
+        smallint level
+        text name_ko
+        text name_en
+    }
+
+    PERSON_ACTIVITY_REGIONS {
+        uuid person_id FK
+        smallint priority
+        text region_code FK
     }
 
     FLOORS {
@@ -91,6 +108,9 @@ erDiagram
 | `people.user_id` | `auth.users` | 0..1 : 1 | SET NULL | At most one person per auth user |
 | `people.reviewed_by` | `auth.users` | N : 1 | — | Reviewing admin |
 | `person_programs.person_id` | `people` | N : 1 | CASCADE | |
+| `person_activity_regions.person_id` | `people` | N : 1 | CASCADE | priority 1 or 2 per person |
+| `person_activity_regions.region_code` | `regions` | N : 1 | RESTRICT | sigungu-level code |
+| `regions.parent_code` | `regions` | N : 0..1 | RESTRICT | sido → null parent |
 | `sessions.instructor_id` | `people` | N : 1 | RESTRICT | Blocks person delete |
 | `sessions.floor_id` | `floors` | N : 1 | RESTRICT | |
 | `sessions.person_program_id` | `person_programs` | N : 0..1 | SET NULL | Optional |

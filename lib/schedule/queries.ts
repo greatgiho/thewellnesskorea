@@ -67,3 +67,39 @@ export async function getSessionsForRange(
     ),
   )
 }
+
+export async function getUpcomingSessionsForInstructor(
+  instructorId: string,
+  limit = 20,
+): Promise<SessionWithRelations[]> {
+  if (
+    !process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  ) {
+    return []
+  }
+
+  const supabase = await createClient()
+  const now = new Date().toISOString()
+
+  const { data, error } = await supabase
+    .from("sessions")
+    .select(SESSION_WITH_RELATIONS)
+    .eq("instructor_id", instructorId)
+    .eq("status", "confirmed")
+    .eq("is_published", true)
+    .gte("starts_at", now)
+    .order("starts_at", { ascending: true })
+    .limit(limit)
+
+  if (error || !data) return []
+
+  return data.map((row) =>
+    toSessionWithRelations(
+      row as SessionRow & {
+        floor?: FloorRow | FloorRow[] | null
+        instructor?: SessionWithRelations["instructor"] | SessionWithRelations["instructor"][] | null
+      },
+    ),
+  )
+}

@@ -2,6 +2,7 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 import { PersonDetailView } from "@/components/admin/person-detail-view"
 import { getPersonById } from "@/lib/people/queries"
+import { getRegionsForForms } from "@/lib/regions/queries"
 
 type Props = {
   params: Promise<{ id: string }>
@@ -9,7 +10,10 @@ type Props = {
 
 export default async function PersonDetailPage({ params }: Props) {
   const { id } = await params
-  const person = await getPersonById(id)
+  const [person, { sido }] = await Promise.all([
+    getPersonById(id),
+    getRegionsForForms(),
+  ])
   if (!person) notFound()
 
   return (
@@ -27,7 +31,7 @@ export default async function PersonDetailPage({ params }: Props) {
           </h1>
         </div>
       </div>
-      <PersonDetailView person={person} />
+      <PersonDetailView person={person} sido={sido} />
     </div>
   )
 }
