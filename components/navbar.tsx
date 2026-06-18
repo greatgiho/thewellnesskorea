@@ -4,10 +4,10 @@ import { useEffect, useState } from "react"
 import { Menu, X } from "lucide-react"
 
 const navLinks = [
-  { label: "Philosophy", href: "#philosophy" },
-  { label: "Wellness Guides", href: "#guides" },
-  { label: "Artist", href: "#arts" },
-  { label: "Schedule", href: "#schedule" },
+  { label: "Philosophy", href: "/#philosophy" },
+  { label: "Wellness Guides", href: "/#guides" },
+  { label: "Artist", href: "/#arts" },
+  { label: "Schedule", href: "/#schedule" },
 ]
 
 export function Navbar() {
@@ -36,7 +36,7 @@ export function Navbar() {
               <Menu className="size-6" />
             </button>
             <a
-              href="#"
+              href="/"
               className="truncate font-serif text-xl font-medium tracking-tight text-foreground sm:text-2xl"
             >
               The Wellness Korea
@@ -63,7 +63,7 @@ export function Navbar() {
               Admin
             </a>
             <a
-              href="#schedule"
+              href="/#schedule"
               className="inline-flex items-center rounded-full bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground transition-all duration-300 hover:scale-105 hover:bg-primary/90"
             >
               Book a Class
@@ -113,7 +113,7 @@ export function Navbar() {
                 Admin
               </a>
               <a
-                href="#schedule"
+                href="/#schedule"
                 onClick={() => setOpen(false)}
                 className="mt-4 inline-flex items-center justify-center rounded-full bg-primary px-6 py-3.5 text-sm font-medium text-primary-foreground"
               >

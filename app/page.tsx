@@ -12,6 +12,7 @@ import { Footer } from "@/components/footer"
 import { getPublishedPeople } from "@/lib/people/queries"
 import { getPublishedExperiences } from "@/lib/experiences/queries"
 import { FALLBACK_EXPERIENCES } from "@/lib/experiences/fallback"
+import { getPublicScheduleForExperiences } from "@/lib/schedule/public-queries"
 
 export default async function Page() {
   const [guides, artists, experiencesFromDb] = await Promise.all([
@@ -23,6 +24,15 @@ export default async function Page() {
   const experiences =
     experiencesFromDb.length > 0 ? experiencesFromDb : FALLBACK_EXPERIENCES
 
+  const scheduleExperienceIds = experiences
+    .filter((e) => e.schedule_enabled)
+    .map((e) => e.id)
+
+  const sessionsByExperience =
+    experiencesFromDb.length > 0
+      ? await getPublicScheduleForExperiences(scheduleExperienceIds)
+      : {}
+
   return (
     <main className="snap-y snap-mandatory bg-background">
       <Navbar />
@@ -33,7 +43,7 @@ export default async function Page() {
         <Paths />
         <Guides people={guides} />
         <Artists people={artists} />
-        <Schedule />
+        <Schedule sessionsByExperience={sessionsByExperience} />
       </ExperienceHomeProvider>
       <ClosingCta />
       <Footer />

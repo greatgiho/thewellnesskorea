@@ -21,6 +21,7 @@ export type FloorRow = {
 
 export type SessionRow = {
   id: string
+  experience_id: string
   floor_id: string
   instructor_id: string
   person_program_id: string | null

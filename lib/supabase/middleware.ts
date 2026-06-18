@@ -81,7 +81,16 @@ export async function updateSession(request: NextRequest) {
   const isTeacherRoute = pathname.startsWith("/teacher")
   const isTeacherLoginPage = pathname === "/teacher/login"
   const isTeacherChangePasswordPage = pathname === "/teacher/change-password"
+  const isAccountRoute = pathname.startsWith("/account")
+  const isMemberLoginPage = pathname === "/login"
+  const isMemberSignupPage = pathname === "/signup"
+  const isMemberCheckEmailPage = pathname === "/login/check-email"
   const role = authRole(user)
+  const signupIntent =
+    typeof user?.user_metadata?.signup_intent === "string"
+      ? user.user_metadata.signup_intent
+      : null
+  const isMemberIntent = signupIntent === "member" || role === "member"
 
   if (isApplyProfile && !user) {
     const redirectUrl = request.nextUrl.clone()
@@ -89,10 +98,27 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(redirectUrl)
   }
 
+  if (isAccountRoute && !user) {
+    const redirectUrl = request.nextUrl.clone()
+    redirectUrl.pathname = "/login"
+    return NextResponse.redirect(redirectUrl)
+  }
+
+  if ((isMemberLoginPage || isMemberSignupPage) && user && isMemberIntent) {
+    const redirectUrl = request.nextUrl.clone()
+    redirectUrl.pathname = "/account/bookings"
+    return NextResponse.redirect(redirectUrl)
+  }
+
   if (isTeacherRoute && !isTeacherLoginPage) {
     if (!user) {
       const redirectUrl = request.nextUrl.clone()
       redirectUrl.pathname = "/teacher/login"
+      return NextResponse.redirect(redirectUrl)
+    }
+    if (role === "member" || isMemberIntent) {
+      const redirectUrl = request.nextUrl.clone()
+      redirectUrl.pathname = "/account/bookings"
       return NextResponse.redirect(redirectUrl)
     }
     if (role === "admin") {
@@ -129,12 +155,27 @@ export async function updateSession(request: NextRequest) {
       redirectUrl.pathname = "/teacher"
       return NextResponse.redirect(redirectUrl)
     }
+    if (isMemberIntent) {
+      const redirectUrl = request.nextUrl.clone()
+      redirectUrl.pathname = "/account/bookings"
+      return NextResponse.redirect(redirectUrl)
+    }
   }
 
   if (isAdminLoginPage && user) {
     const redirectUrl = request.nextUrl.clone()
     redirectUrl.pathname =
-      role === "teacher" ? "/teacher" : "/admin/people"
+      role === "teacher"
+        ? "/teacher"
+        : isMemberIntent
+          ? "/account/bookings"
+          : "/admin/people"
+    return NextResponse.redirect(redirectUrl)
+  }
+
+  if (isMemberCheckEmailPage && user && isMemberIntent) {
+    const redirectUrl = request.nextUrl.clone()
+    redirectUrl.pathname = "/account/bookings"
     return NextResponse.redirect(redirectUrl)
   }
 

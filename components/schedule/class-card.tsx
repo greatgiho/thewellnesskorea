@@ -1,19 +1,13 @@
-import { Clock, Check } from "lucide-react"
+import Link from "next/link"
+import { Clock } from "lucide-react"
 import type { ClassItem } from "./types"
-import { categoryAccent } from "./schedule-data"
+import { pathAccentClass } from "./schedule-data"
 
 type ClassCardProps = {
   classItem: ClassItem
-  selectedDay: string
-  isBooked: boolean
-  onToggleBook: () => void
 }
 
-export function ClassCard({
-  classItem: c,
-  isBooked,
-  onToggleBook,
-}: ClassCardProps) {
+export function ClassCard({ classItem: c }: ClassCardProps) {
   const isFull = c.spots === 0
 
   return (
@@ -36,9 +30,9 @@ export function ClassCard({
       <div className="min-w-0 flex-1 border-border sm:border-l sm:pl-8">
         <div className="flex flex-wrap items-center gap-2.5">
           <span
-            className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${categoryAccent[c.category]}`}
+            className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${pathAccentClass(c.pathKey)}`}
           >
-            {c.category}
+            {c.categoryLabel}
           </span>
           <span className="text-xs uppercase tracking-wider text-muted-foreground">
             {c.level}
@@ -65,31 +59,22 @@ export function ClassCard({
                 : "text-primary"
           }`}
         >
-          {isFull ? "Waitlist only" : `${c.spots} spots left`}
+          {isFull ? "Full" : `${c.spots} spots left`}
         </span>
-        <button
-          type="button"
-          disabled={isFull && !isBooked}
-          onClick={onToggleBook}
-          className={`inline-flex items-center justify-center gap-1.5 rounded-full px-6 py-2.5 text-sm font-medium transition-all duration-300 ${
-            isBooked
-              ? "bg-secondary text-primary"
-              : isFull
-                ? "cursor-not-allowed border border-border text-muted-foreground"
-                : "bg-primary text-primary-foreground hover:scale-105 hover:bg-primary/90"
-          }`}
-        >
-          {isBooked ? (
-            <>
-              <Check className="size-4" />
-              Booked
-            </>
-          ) : isFull ? (
-            "Join waitlist"
-          ) : (
-            "Book"
-          )}
-        </button>
+        {isFull ? (
+          <span
+            className="inline-flex items-center justify-center rounded-full border border-border px-6 py-2.5 text-sm font-medium text-muted-foreground"
+          >
+            Full
+          </span>
+        ) : (
+          <Link
+            href={`/book/${c.id}`}
+            className="inline-flex items-center justify-center rounded-full bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground transition-all duration-300 hover:scale-105 hover:bg-primary/90"
+          >
+            Book
+          </Link>
+        )}
       </div>
     </article>
   )

@@ -24,7 +24,7 @@ export function ScheduleHeader({ experience }: ScheduleHeaderProps) {
         {comingSoon
           ? (experience.description_en ??
             "Our next Space will open with its own rhythm of classes and gatherings.")
-          : "Reserve your place across movement, stillness, and sound. Every session is held in a calm, unhurried space."}
+          : "Upcoming classes, in date order."}
       </p>
     </div>
   )

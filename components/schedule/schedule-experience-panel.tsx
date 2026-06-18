@@ -1,51 +1,43 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import type { Category } from "./types"
-import { buildWeek, getClassesForDay } from "./schedule-data"
+import type { ClassItem } from "./types"
 import { CategoryFilters } from "./category-filters"
-import { ClassList } from "./class-list"
-import { WeekDateStrip } from "./week-date-strip"
+import { ScheduleChronologicalList } from "./schedule-chronological-list"
 
-export function ScheduleExperiencePanel() {
-  const week = useMemo(buildWeek, [])
-  const [selectedDay, setSelectedDay] = useState(week[0].key)
-  const [activeCategory, setActiveCategory] = useState<"All" | Category>("All")
-  const [booked, setBooked] = useState<Record<string, boolean>>({})
+type ScheduleExperiencePanelProps = {
+  sessions: ClassItem[]
+}
 
-  const selected = week.find((d) => d.key === selectedDay) ?? week[0]
-  const dayIndex = new Date(selected.key).getDay()
+export function ScheduleExperiencePanel({ sessions }: ScheduleExperiencePanelProps) {
+  const [activeCategory, setActiveCategory] = useState("All")
 
-  const classes = useMemo(() => {
-    const all = getClassesForDay(dayIndex)
-    return activeCategory === "All"
-      ? all
-      : all.filter((c) => c.category === activeCategory)
-  }, [dayIndex, activeCategory])
+  const categories = useMemo(() => {
+    const labels = new Set(sessions.map((s) => s.categoryLabel))
+    return ["All", ...Array.from(labels).sort((a, b) => a.localeCompare(b, "ko"))]
+  }, [sessions])
 
-  const toggleBook = (classId: string) => {
-    const key = `${selectedDay}-${classId}`
-    setBooked((prev) => ({ ...prev, [key]: !prev[key] }))
-  }
+  const filteredSessions = useMemo(() => {
+    if (activeCategory === "All") return sessions
+    return sessions.filter((s) => s.categoryLabel === activeCategory)
+  }, [sessions, activeCategory])
 
   return (
     <>
-      <WeekDateStrip
-        week={week}
-        selectedDay={selectedDay}
-        onSelectDay={setSelectedDay}
-      />
-      <CategoryFilters
-        activeCategory={activeCategory}
-        onChange={setActiveCategory}
-      />
-      <div className="mt-10 flex flex-col gap-4">
-        <ClassList
-          classes={classes}
-          selectedDay={selectedDay}
+      <p className="mt-10 font-mono text-xs uppercase tracking-[0.25em] text-muted-foreground">
+        Upcoming
+      </p>
+      {categories.length > 1 ? (
+        <CategoryFilters
+          categories={categories}
           activeCategory={activeCategory}
-          booked={booked}
-          onToggleBook={toggleBook}
+          onChange={setActiveCategory}
+        />
+      ) : null}
+      <div className="mt-10">
+        <ScheduleChronologicalList
+          sessions={filteredSessions}
+          activeCategory={activeCategory}
         />
       </div>
     </>

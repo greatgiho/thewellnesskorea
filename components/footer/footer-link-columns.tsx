@@ -8,7 +8,6 @@ const footerLinks: Record<string, FooterLink[]> = {
     { label: "Philosophy", href: "#philosophy" },
     { label: "Why Korea", href: "#why-korea" },
     { label: "The Approach", href: "#paths" },
-    { label: "Journal", href: "#" },
   ],
   Place: [
     { label: "Brickwell", href: "#footer" },

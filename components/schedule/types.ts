@@ -1,19 +1,16 @@
-export type Level = "Beginner" | "Intermediate" | "All Levels"
+import type { PathKey } from "@/lib/paths/paths-data"
 
-export type Category =
-  | "Hatha"
-  | "Vinyasa"
-  | "Yin Yoga"
-  | "Sound Healing"
-  | "Meditation"
+export type Level = "Beginner" | "Intermediate" | "All Levels"
 
 export type ClassItem = {
   id: string
+  dateKey: string
   start: string
   end: string
   duration: string
   title: string
-  category: Category
+  categoryLabel: string
+  pathKey: PathKey | null
   level: Level
   teacher: string
   initials: string

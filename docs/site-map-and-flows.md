@@ -2,7 +2,7 @@
 
 Last updated: 2026-06-18
 
-Companion docs: [Backend](./backend-architecture.md) · [DB schema](./database-schema.md) · [ERD](./database-erd.md) · [Multi-experience requirements](./multi-venue-requirements.md)
+Companion docs: [Backend](./backend-architecture.md) · [DB schema](./database-schema.md) · [ERD](./database-erd.md) · [Multi-experience requirements](./multi-venue-requirements.md) · [Journal requirements](./journal-requirements.md) · [Booking requirements](./booking-requirements.md)
 
 > 목적: 전체 서비스의 지도 및 흐름 파악 (신규 개발자 온보딩용)
 
@@ -65,7 +65,8 @@ Public links, magic links, notification URLs → `NEXT_PUBLIC_SITE_URL`.
 | URL | File | Auth | Description |
 |-----|------|------|-------------|
 | `/` | `app/page.tsx` | Public | Homepage |
-| `/people/[slug]` | `app/people/[slug]/page.tsx` | Public | Published guide/artist profile + upcoming classes |
+| `/journal` | `app/journal/page.tsx` | Public | Journal index (posts list) |
+| `/journal/[slug]` | `app/journal/[slug]/page.tsx` | Public | Journal article |
 | `/privacy` | `app/privacy/page.tsx` | Public | Privacy policy |
 | `/terms` | `app/terms/page.tsx` | Public | Terms of service |
 | `/apply` | `app/apply/page.tsx` | Public | Teacher invite + email |
@@ -322,6 +323,6 @@ http://localhost:3000/auth/callback
 
 ## Not yet implemented
 
-- Public `#schedule` from live `sessions` (still `components/schedule/schedule-data.ts` mock)
-- Participant booking
+- Public `#schedule` from live `sessions` — **done** (B1)
+- Participant booking (hybrid guest + member Auth) — [booking-requirements](./booking-requirements.md)
 - Resend verified domain for production multi-recipient delivery

@@ -185,20 +185,62 @@ Per-experience building levels. Brickwell: 1F–4F (`slug` `1f`…`4f`).
 
 **Triggers:** `sessions_updated_at` → `set_updated_at()`
 
+**Constraint:** `booked_count <= capacity` (`sessions_booked_within_capacity`)
+
+---
+
+### `members`
+
+| Column | Type | Constraints / default |
+|--------|------|----------------------|
+| `id` | uuid | PK, FK → `auth.users`, ON DELETE CASCADE |
+| `name` | text | NOT NULL |
+| `phone` | text | nullable |
+| `locale` | text | nullable |
+| `created_at`, `updated_at` | timestamptz | trigger on update |
+
+Participant accounts (not `people` / teachers). Created on member signup (B4).
+
+---
+
+### `bookings`
+
+| Column | Type | Constraints / default |
+|--------|------|----------------------|
+| `id` | uuid | PK |
+| `session_id` | uuid | FK → `sessions`, ON DELETE RESTRICT |
+| `user_id` | uuid | FK → `auth.users`, nullable (NULL = guest) |
+| `guest_name` | text | NOT NULL |
+| `guest_email` | text | NOT NULL, normalized lowercase |
+| `guest_phone` | text | nullable |
+| `status` | booking_status | default `confirmed` |
+| `cancelled_at` | timestamptz | nullable |
+| `cancel_token` | text | NOT NULL, unique — guest cancel without login |
+| `created_at`, `updated_at` | timestamptz | trigger on update |
+
+**Indexes:** `(session_id)`, `(user_id)`, `(guest_email)`; unique active `(session_id, guest_email)` and `(session_id, user_id)` where `status = confirmed`
+
+**Enum `booking_status`:** `confirmed`, `cancelled`, `no_show`
+
 ---
 
 ## Database functions
 
 | Function | Purpose |
 |----------|---------|
-| `set_updated_at()` | Trigger: bump `updated_at` on `people`, `sessions`, `experiences` |
+| `set_updated_at()` | Trigger: bump `updated_at` on `people`, `sessions`, `experiences`, `members`, `bookings` |
 | `is_admin_user()` | RLS: `(jwt app_metadata.role) IS DISTINCT FROM 'teacher'` |
+| `normalize_email(text)` | Lowercase trim for booking emails |
+| `create_booking(...)` | Security definer: insert booking + increment `booked_count` (service role only) |
+| `cancel_booking_by_token(text)` | Guest cancel + decrement `booked_count` |
+| `cancel_booking_for_user(uuid, uuid)` | Member cancel own booking |
+| `admin_cancel_booking(uuid)` | Admin cancel (requires admin JWT) |
 
 ---
 
 ## Row Level Security
 
-RLS **enabled** on all app tables (`people`, `person_programs`, `floors`, `sessions`, `regions`, `person_activity_regions`, `experiences`).
+RLS **enabled** on all app tables (`people`, `person_programs`, `floors`, `sessions`, `regions`, `person_activity_regions`, `experiences`, `members`, `bookings`).
 
 ### `experiences`
 
@@ -256,6 +298,23 @@ RLS **enabled** on all app tables (`people`, `person_programs`, `floors`, `sessi
 | teacher read own activity regions | SELECT | parent `people.user_id = auth.uid()` |
 | teacher manage own activity regions | ALL | parent `people.user_id = auth.uid()` |
 
+### `members`
+
+| Policy | Op | Rule |
+|--------|-----|------|
+| member read own members | SELECT | `id = auth.uid()` |
+| member update own members | UPDATE | `id = auth.uid()` |
+| admin all on members | ALL | `is_admin_user()` |
+
+### `bookings`
+
+| Policy | Op | Rule |
+|--------|-----|------|
+| member read own bookings | SELECT | `user_id = auth.uid()` |
+| admin all on bookings | ALL | `is_admin_user()` |
+
+Guest insert via `create_booking` RPC (service role) — no direct anon INSERT policy.
+
 ---
 
 ## Storage buckets
@@ -277,8 +336,8 @@ Referenced by FK (not created in app migrations):
 
 | Column | Referenced from |
 |--------|-----------------|
-| `id` | `people.user_id`, `people.reviewed_by`, `sessions.created_by`, `confirmed_by`, `cancelled_by` |
-| `app_metadata.role` | `teacher` \| `admin` \| unset (admin) |
+| `id` | `people.user_id`, `people.reviewed_by`, `sessions.created_by`, `confirmed_by`, `cancelled_by`, `bookings.user_id`, `members.id` |
+| `app_metadata.role` | `teacher` \| `member` \| `admin` \| unset (admin) |
 
 ---
 
@@ -297,12 +356,14 @@ Referenced by FK (not created in app migrations):
 | `009_person_activity_regions.sql` | `regions`, `person_activity_regions`, RLS |
 | `010_regions_seed.sql` | nationwide sido + sigungu seed data |
 | `011_experiences.sql` | `experiences` (space/journey), `floors.experience_id`, `sessions.experience_id`, Brickwell + coming soon seed |
+| `012_publish_confirmed_sessions.sql` | Backfill `is_published` on confirmed sessions |
+| `013_bookings.sql` | `booking_status`, `bookings`, `members`, booking RPCs, `booked_count` sync |
 
 ---
 
 ## Not yet implemented (schema)
 
-- `bookings` / payments
+- Online payments
 - Session waitlist
 - Audit log table
 - Street address + geocoding on activity regions (Phase B)

@@ -28,6 +28,7 @@ import {
   uploadSessionImageSlots,
   type SessionImageSlot,
 } from "@/components/admin/session-image-upload"
+import { SessionBookingsPanel } from "@/components/admin/session-bookings-panel"
 
 type SessionFormDialogProps = {
   open: boolean
@@ -521,7 +522,22 @@ export function SessionFormDialog({
                   setInput((v) => ({ ...v, capacity: Number(e.target.value) }))
                 }
               />
+              {session ? (
+                <p className="text-xs text-muted-foreground">
+                  {session.booked_count} / {session.capacity} spots currently
+                  booked
+                </p>
+              ) : null}
             </label>
+
+            {session ? (
+              <SessionBookingsPanel
+                sessionId={session.id}
+                capacity={session.capacity}
+                bookedCount={session.booked_count}
+                onBookingChange={onSaved}
+              />
+            ) : null}
 
             <label className="flex items-center gap-3">
               <input

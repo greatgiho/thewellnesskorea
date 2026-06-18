@@ -409,6 +409,7 @@ export async function confirmSession(
       slot_lane: 0,
       confirmed_at: now,
       confirmed_by: userId,
+      is_published: true,
     })
     .eq("id", sessionId)
 
@@ -423,7 +424,7 @@ export async function confirmSession(
     userId,
   )
 
-  revalidateSessionCaches(session.is_published)
+  revalidateSessionCaches(true)
   return { sessionId, cancelledCount }
 }
 

@@ -1,18 +1,17 @@
-import type { Category } from "./types"
-import { CATEGORIES } from "./schedule-data"
-
-type CategoryFiltersProps = {
-  activeCategory: "All" | Category
-  onChange: (category: "All" | Category) => void
+type PathFiltersProps = {
+  categories: string[]
+  activeCategory: string
+  onChange: (category: string) => void
 }
 
 export function CategoryFilters({
+  categories,
   activeCategory,
   onChange,
-}: CategoryFiltersProps) {
+}: PathFiltersProps) {
   return (
     <div className="mt-8 flex flex-wrap gap-2.5">
-      {CATEGORIES.map((cat) => {
+      {categories.map((cat) => {
         const isActive = cat === activeCategory
         return (
           <button

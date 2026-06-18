@@ -1,11 +1,16 @@
 "use client"
 
 import { useExperienceHome } from "@/components/experiences/experience-home-context"
+import type { PublicScheduleByExperience } from "@/lib/schedule/public-queries"
 import { ScheduleEmptyState } from "./schedule-empty-state"
 import { ScheduleExperiencePanel } from "./schedule-experience-panel"
 import { ScheduleHeader } from "./schedule-header"
 
-export function Schedule() {
+type ScheduleProps = {
+  sessionsByExperience: PublicScheduleByExperience
+}
+
+export function Schedule({ sessionsByExperience }: ScheduleProps) {
   const { experiences, setScheduleTrackEl } = useExperienceHome()
 
   return (
@@ -23,7 +28,9 @@ export function Schedule() {
             <div className="mx-auto max-w-5xl px-6 lg:px-10">
               <ScheduleHeader experience={experience} />
               {experience.schedule_enabled ? (
-                <ScheduleExperiencePanel />
+                <ScheduleExperiencePanel
+                  sessions={sessionsByExperience[experience.id] ?? []}
+                />
               ) : (
                 <ScheduleEmptyState experience={experience} />
               )}

@@ -2,7 +2,7 @@
 
 Last updated: 2026-06-18
 
-Companion docs: [Site map](./site-map-and-flows.md) · [DB schema](./database-schema.md) · [ERD](./database-erd.md) · [Audit log](./architecture-audit-log.md) · [Refactoring plan](./refactoring-plan.md) · [Multi-experience requirements](./multi-venue-requirements.md)
+Companion docs: [Site map](./site-map-and-flows.md) · [DB schema](./database-schema.md) · [ERD](./database-erd.md) · [Audit log](./architecture-audit-log.md) · [Refactoring plan](./refactoring-plan.md) · [Multi-experience requirements](./multi-venue-requirements.md) · [Booking requirements](./booking-requirements.md)
 
 > 목적: 백엔드 및 비즈니스 로직 설계 추적 (신규 개발자 온보딩용)
 
@@ -412,8 +412,8 @@ Homepage: `ExperienceHomeProvider` syncs hero carousel + schedule horizontal ind
 
 ## Not yet implemented
 
-- Public homepage schedule from live `sessions`
-- `booked_count` increment / booking flow
+- Public homepage schedule from live `sessions` — done (see [booking-requirements § B1](./booking-requirements.md))
+- `bookings` schema + RPC — done (B2); guest UI + emails — done (B3); member auth + account — done (B4–B5)
 - Notify processing-session creators on auto-cancel
 - Resend domain verification for production
 - Teacher forgot-password page (unauthenticated)

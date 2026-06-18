@@ -157,7 +157,7 @@ erDiagram
 | **1** | DB: `experiences`, `floors.experience_id`, `sessions.experience_id`, seed | **Done** (`011` applied) |
 | **2** | Hero carousel + eyebrow constants + Coming soon slide + schedule horizontal sync | **Done** |
 | **3** | Admin experience picker + session `experience_id` wiring | Pending |
-| **4** | Public schedule from Supabase (replace mock) | Pending |
+| **4** | Public schedule from Supabase (replace mock) | **Done** (booking B1) |
 
 ---
 
