@@ -1,8 +1,8 @@
 # The Wellness Korea — Database ERD
 
-Last updated: 2026-06-16
+Last updated: 2026-06-18
 
-Companion: [Schema reference](./database-schema.md) · [Backend logic](./backend-architecture.md) · [Site map](./site-map-and-flows.md) · [Audit log](./architecture-audit-log.md)
+Companion: [Schema reference](./database-schema.md) · [Backend logic](./backend-architecture.md) · [Site map](./site-map-and-flows.md) · [Multi-experience requirements](./multi-venue-requirements.md) · [Audit log](./architecture-audit-log.md)
 
 > 목적: 데이터 간 관계 시각화
 
@@ -18,8 +18,10 @@ erDiagram
     PEOPLE ||--o{ PERSON_ACTIVITY_REGIONS : "activity"
     REGIONS ||--o{ REGIONS : "parent"
     REGIONS ||--o{ PERSON_ACTIVITY_REGIONS : "codes"
+    EXPERIENCES ||--|{ FLOORS : has
+    EXPERIENCES ||--o{ SESSIONS : hosts
     PEOPLE ||--o{ SESSIONS : "instructs"
-    FLOORS ||--|{ SESSIONS : "hosts"
+    FLOORS ||--|{ SESSIONS : "level"
     PERSON_PROGRAMS ||--o{ SESSIONS : "linked_program"
     AUTH_USERS ||--o{ SESSIONS : "created_by"
     AUTH_USERS ||--o{ SESSIONS : "confirmed_by"
@@ -69,9 +71,20 @@ erDiagram
         text region_code FK
     }
 
-    FLOORS {
+    EXPERIENCES {
         uuid id PK
         text slug UK
+        experience_kind kind
+        text name_en
+        boolean is_published
+        boolean schedule_enabled
+        int sort_order
+    }
+
+    FLOORS {
+        uuid id PK
+        uuid experience_id FK
+        text slug
         smallint level
         text name_ko
         text name_en
@@ -79,6 +92,7 @@ erDiagram
 
     SESSIONS {
         uuid id PK
+        uuid experience_id FK
         uuid floor_id FK
         uuid instructor_id FK
         uuid person_program_id FK
@@ -112,6 +126,9 @@ erDiagram
 | `person_activity_regions.person_id` | `people` | N : 1 | CASCADE | priority 1 or 2 per person |
 | `person_activity_regions.region_code` | `regions` | N : 1 | RESTRICT | sigungu-level code |
 | `regions.parent_code` | `regions` | N : 0..1 | RESTRICT | sido → null parent |
+| `experiences` | Space / Journey master; hero + schedule branch |
+| `sessions.experience_id` | `experiences` | N : 1 | RESTRICT | Denormalized; must match floor's experience |
+| `floors.experience_id` | `experiences` | N : 1 | RESTRICT | Unique (experience_id, slug/level) |
 | `sessions.instructor_id` | `people` | N : 1 | RESTRICT | Blocks person delete |
 | `sessions.floor_id` | `floors` | N : 1 | RESTRICT | |
 | `sessions.person_program_id` | `person_programs` | N : 0..1 | SET NULL | Optional |
@@ -144,9 +161,12 @@ flowchart TB
     end
 
     subgraph schedule_domain [Schedule]
+        E[experiences]
         F[floors]
         S[sessions]
+        E --> F
         F --> S
+        E --> S
     end
 
     subgraph storage_domain [Storage]
@@ -165,7 +185,7 @@ flowchart TB
 | Domain | Tables | Storage |
 |--------|--------|---------|
 | People | `people`, `person_programs` | `person-photos` |
-| Schedule | `floors`, `sessions` | `session-photos` |
+| Schedule | `experiences`, `floors`, `sessions` | `session-photos` |
 | Auth | `auth.users` (managed) | — |
 
 ---

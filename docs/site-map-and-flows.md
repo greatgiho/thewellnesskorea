@@ -1,8 +1,8 @@
 # The Wellness Korea — Site Map & Flows
 
-Last updated: 2026-06-17
+Last updated: 2026-06-18
 
-Companion docs: [Backend](./backend-architecture.md) · [DB schema](./database-schema.md) · [ERD](./database-erd.md)
+Companion docs: [Backend](./backend-architecture.md) · [DB schema](./database-schema.md) · [ERD](./database-erd.md) · [Multi-experience requirements](./multi-venue-requirements.md)
 
 > 목적: 전체 서비스의 지도 및 흐름 파악 (신규 개발자 온보딩용)
 
@@ -122,22 +122,22 @@ app/layout.tsx                    ← root: fonts, metadata, Analytics
 ```
 page.tsx
 ├── Navbar
-├── Hero
-├── Philosophy
-├── WhyKorea
-├── Paths
-│   ├── path-section
-│   └── path-card
-├── Guides          ← getPublishedPeople("guide")
-│   ├── person-section
-│   └── person-card → /people/[slug]
-├── Artists         ← getPublishedPeople("artist")
-│   └── person-card → /people/[slug]
-├── Schedule        ← mock data (components/schedule/*)
-│   ├── schedule-section
-│   ├── week-date-strip
-│   ├── category-filters
-│   └── class-list / class-card
+├── ExperienceHomeProvider     ← getPublishedExperiences() (+ FALLBACK_EXPERIENCES)
+│   ├── HeroCarousel           ← horizontal swipe per experience (components/experiences/*)
+│   ├── Philosophy
+│   ├── WhyKorea
+│   ├── Paths
+│   │   ├── path-section
+│   │   └── path-card
+│   ├── Guides                 ← getPublishedPeople("guide")
+│   │   ├── person-section
+│   │   └── person-card → /people/[slug]
+│   ├── Artists                ← getPublishedPeople("artist")
+│   │   └── person-card → /people/[slug]
+│   └── Schedule               ← synced horizontal swipe; mock classes for schedule_enabled
+│       ├── schedule-section
+│       ├── schedule-experience-panel (Brickwell)
+│       └── schedule-empty-state (Coming soon)
 ├── ClosingCta
 └── Footer
     ├── footer-brand-column
@@ -186,8 +186,9 @@ page.tsx
 ### Flow A — Visitor (public)
 
 ```
-/ → Guides / Artists (DB: published + approved/admin only)
-  → #schedule (mock; live sessions not wired)
+/ → Hero + Schedule (experiences from DB; horizontal sync)
+  → Guides / Artists (DB: published + approved/admin only)
+  → #schedule (mock for Brickwell; coming soon empty state for next-space)
 ```
 
 ### Flow B — Admin: manual person

@@ -1,14 +1,14 @@
 # The Wellness Korea — Database Schema
 
-Last updated: 2026-06-16
+Last updated: 2026-06-18
 
-Source of truth: `supabase/migrations/001`–`010`
+Source of truth: `supabase/migrations/001`–`011`
 
-Companion: [ERD](./database-erd.md) · [Backend logic](./backend-architecture.md) · [Site map](./site-map-and-flows.md) · [Audit log](./architecture-audit-log.md)
+Companion: [ERD](./database-erd.md) · [Backend logic](./backend-architecture.md) · [Site map](./site-map-and-flows.md) · [Multi-experience requirements](./multi-venue-requirements.md) · [Audit log](./architecture-audit-log.md)
 
 > 목적: 데이터베이스 물리/논리 스키마 명세
 
-**Apply order:** `001` → `002` → `003` → `004` → `005` → `007` → `008` → `009` → `010`  
+**Apply order:** `001` → `002` → `003` → `004` → `005` → `007` → `008` → `009` → `010` → `011`  
 (`007_fix_duplicate_emails.sql` = idempotent superset of `006`; use `007` if emails may duplicate)
 
 ---
@@ -21,6 +21,7 @@ Companion: [ERD](./database-erd.md) · [Backend logic](./backend-architecture.md
 | `path_key` | `bium`, `kkaeum`, `jieum`, `chaeum`, `nurim` | `person_programs.path_keys`, `sessions.path_keys` |
 | `session_status` | `processing`, `confirmed`, `cancelled` | `sessions.status` |
 | `person_registration_status` | `admin`, `draft`, `submitted`, `approved`, `rejected` | `people.registration_status` |
+| `experience_kind` | `space`, `journey` | `experiences.kind` |
 
 ---
 
@@ -110,17 +111,45 @@ Teacher primary/secondary activity areas (priority 1 required on save).
 
 ---
 
+### `experiences`
+
+Space (long-term venue) or Journey (time-bound program). Hero carousel + schedule branch.
+
+| Column | Type | Constraints / default |
+|--------|------|----------------------|
+| `id` | uuid | PK |
+| `slug` | text | UNIQUE, NOT NULL |
+| `kind` | experience_kind | NOT NULL |
+| `name_en` | text | NOT NULL |
+| `name_ko` | text | nullable |
+| `hero_image_path` | text | nullable |
+| `headline_en`, `description_en` | text | nullable |
+| `secondary_link_label_en`, `secondary_link_href` | text | nullable |
+| `sort_order` | int | default 0 |
+| `is_published` | boolean | default false |
+| `schedule_enabled` | boolean | default false |
+| `created_at`, `updated_at` | timestamptz | trigger on update |
+
+**Seed (`011`):** `brickwell` (space, schedule on), `next-space` (space, coming soon).
+
+Eyebrow copy is **frontend-fixed** — see `lib/experiences/copy.ts`.
+
+---
+
 ### `floors`
 
-Seeded: 1F–4F (`slug` `1f`…`4f`, `level` 1–4).
+Per-experience building levels. Brickwell: 1F–4F (`slug` `1f`…`4f`).
 
 | Column | Type | Constraints |
 |--------|------|-------------|
 | `id` | uuid | PK |
-| `slug` | text | UNIQUE |
-| `level` | smallint | UNIQUE, CHECK 1–4 |
+| `experience_id` | uuid | FK → `experiences`, NOT NULL |
+| `slug` | text | UNIQUE per experience |
+| `level` | smallint | UNIQUE per experience, CHECK 1–99 |
 | `name_ko`, `name_en` | text | NOT NULL |
 | `sort_order` | int | default 0 |
+
+**Unique:** `(experience_id, slug)`, `(experience_id, level)`
 
 ---
 
@@ -129,6 +158,7 @@ Seeded: 1F–4F (`slug` `1f`…`4f`, `level` 1–4).
 | Column | Type | Constraints / default |
 |--------|------|----------------------|
 | `id` | uuid | PK |
+| `experience_id` | uuid | FK → `experiences`, NOT NULL |
 | `floor_id` | uuid | FK → `floors`, ON DELETE RESTRICT |
 | `instructor_id` | uuid | FK → `people`, ON DELETE RESTRICT |
 | `person_program_id` | uuid | FK → `person_programs`, ON DELETE SET NULL |
@@ -151,7 +181,7 @@ Seeded: 1F–4F (`slug` `1f`…`4f`, `level` 1–4).
 | `description_blocks` | jsonb | `{ intro, progress, preparation }` |
 | `created_at`, `updated_at` | timestamptz | trigger on update |
 
-**Indexes:** `(floor_id, starts_at)`, `(instructor_id, starts_at)`, `(starts_at)`, `(status, starts_at)`
+**Indexes:** `(experience_id, starts_at)`, `(floor_id, starts_at)`, `(instructor_id, starts_at)`, `(starts_at)`, `(status, starts_at)`
 
 **Triggers:** `sessions_updated_at` → `set_updated_at()`
 
@@ -161,14 +191,21 @@ Seeded: 1F–4F (`slug` `1f`…`4f`, `level` 1–4).
 
 | Function | Purpose |
 |----------|---------|
-| `set_updated_at()` | Trigger: bump `updated_at` on `people`, `sessions` |
+| `set_updated_at()` | Trigger: bump `updated_at` on `people`, `sessions`, `experiences` |
 | `is_admin_user()` | RLS: `(jwt app_metadata.role) IS DISTINCT FROM 'teacher'` |
 
 ---
 
 ## Row Level Security
 
-RLS **enabled** on all app tables (`people`, `person_programs`, `floors`, `sessions`, `regions`, `person_activity_regions`).
+RLS **enabled** on all app tables (`people`, `person_programs`, `floors`, `sessions`, `regions`, `person_activity_regions`, `experiences`).
+
+### `experiences`
+
+| Policy | Op | Rule |
+|--------|-----|------|
+| public read published experiences | SELECT | `is_published = true` |
+| admin all on experiences | ALL | `is_admin_user()` |
 
 ### `people`
 
@@ -259,6 +296,7 @@ Referenced by FK (not created in app migrations):
 | `008_teacher_sessions_rls.sql` | admin sessions policy via `is_admin_user()`; teacher read own confirmed+published sessions |
 | `009_person_activity_regions.sql` | `regions`, `person_activity_regions`, RLS |
 | `010_regions_seed.sql` | nationwide sido + sigungu seed data |
+| `011_experiences.sql` | `experiences` (space/journey), `floors.experience_id`, `sessions.experience_id`, Brickwell + coming soon seed |
 
 ---
 

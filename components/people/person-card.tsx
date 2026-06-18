@@ -1,6 +1,7 @@
 "use client"
 
 import Image from "next/image"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { InstagramIcon } from "@/components/icons/social-icons"
 import type { PersonCardData } from "@/lib/people/types"
@@ -13,6 +14,11 @@ type PersonCardProps = {
 export function PersonCard({ person }: PersonCardProps) {
   const router = useRouter()
   const handle = instagramHandle(person.instagramUrl)
+  const [imageSrc, setImageSrc] = useState(person.image || "/placeholder.svg")
+
+  useEffect(() => {
+    setImageSrc(person.image || "/placeholder.svg")
+  }, [person.image])
 
   const openProfile = () => {
     router.push(`/people/${person.slug}`)
@@ -34,11 +40,12 @@ export function PersonCard({ person }: PersonCardProps) {
       <div className="flex h-full flex-col overflow-hidden rounded-3xl bg-card shadow-[0_20px_50px_-20px_rgba(28,40,33,0.25)] transition-opacity hover:opacity-95">
         <div className="relative aspect-[4/5] shrink-0 overflow-hidden">
           <Image
-            src={person.image || "/placeholder.svg"}
+            src={imageSrc}
             alt={`Portrait of ${person.name}, ${person.role}`}
             fill
             sizes="340px"
             className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+            onError={() => setImageSrc("/placeholder.svg")}
           />
         </div>
 

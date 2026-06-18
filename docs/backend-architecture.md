@@ -1,8 +1,8 @@
 # The Wellness Korea — Backend Architecture & Core Logic
 
-Last updated: 2026-06-16
+Last updated: 2026-06-18
 
-Companion docs: [Site map](./site-map-and-flows.md) · [DB schema](./database-schema.md) · [ERD](./database-erd.md) · [Audit log](./architecture-audit-log.md) · [Refactoring plan](./refactoring-plan.md)
+Companion docs: [Site map](./site-map-and-flows.md) · [DB schema](./database-schema.md) · [ERD](./database-erd.md) · [Audit log](./architecture-audit-log.md) · [Refactoring plan](./refactoring-plan.md) · [Multi-experience requirements](./multi-venue-requirements.md)
 
 > 목적: 백엔드 및 비즈니스 로직 설계 추적 (신규 개발자 온보딩용)
 
@@ -218,6 +218,7 @@ stateDiagram-v2
 | Rule | Enforcement |
 |------|-------------|
 | Public homepage | `getPublishedPeople()`: `is_published` + status `admin`\|`approved` |
+| Experiences (hero/schedule) | `getPublishedExperiences()`: `is_published = true`, ordered by `sort_order`; eyebrow via `lib/experiences/copy.ts` |
 | Publish guard | `canPublishPerson()` — only `admin` or `approved` |
 | Teacher cannot publish | `persistTeacherProfile` forces `is_published = false` |
 | Email unique | DB index `lower(email)`; link-by-email on login |
@@ -327,6 +328,17 @@ stateDiagram-v2
 | `teacherApplyCode`, `siteOrigin`, `applyProfileUrl` | Env-based config |
 | `ensureTeacherRole` | Set `app_metadata.role = teacher` |
 | `linkTeacherPerson` | Auth user ↔ `people` row |
+
+### `lib/experiences/`
+
+| Export | Role |
+|--------|------|
+| `getPublishedExperiences`, `getPublishedExperienceBySlug` | Public experience queries |
+| `ExperienceRow`, `EXPERIENCE_PUBLIC_COLUMNS` | Types |
+| `FALLBACK_EXPERIENCES` | Local dev fallback when DB empty |
+| `experienceEyebrow`, `EXPERIENCE_EYEBROW`, `experienceKindLabel` | Frontend-fixed copy (`copy.ts`) |
+
+Homepage: `ExperienceHomeProvider` syncs hero carousel + schedule horizontal index.
 
 ### `lib/people/`
 

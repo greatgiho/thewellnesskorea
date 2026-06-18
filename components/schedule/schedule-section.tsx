@@ -1,56 +1,35 @@
 "use client"
 
-import { useMemo, useState } from "react"
-import type { Category } from "./types"
-import { buildWeek, getClassesForDay } from "./schedule-data"
-import { CategoryFilters } from "./category-filters"
-import { ClassList } from "./class-list"
+import { useExperienceHome } from "@/components/experiences/experience-home-context"
+import { ScheduleEmptyState } from "./schedule-empty-state"
+import { ScheduleExperiencePanel } from "./schedule-experience-panel"
 import { ScheduleHeader } from "./schedule-header"
-import { WeekDateStrip } from "./week-date-strip"
 
 export function Schedule() {
-  const week = useMemo(buildWeek, [])
-  const [selectedDay, setSelectedDay] = useState(week[0].key)
-  const [activeCategory, setActiveCategory] = useState<"All" | Category>("All")
-  const [booked, setBooked] = useState<Record<string, boolean>>({})
-
-  const selected = week.find((d) => d.key === selectedDay) ?? week[0]
-  const dayIndex = new Date(selected.key).getDay()
-
-  const classes = useMemo(() => {
-    const all = getClassesForDay(dayIndex)
-    return activeCategory === "All"
-      ? all
-      : all.filter((c) => c.category === activeCategory)
-  }, [dayIndex, activeCategory])
-
-  const toggleBook = (classId: string) => {
-    const key = `${selectedDay}-${classId}`
-    setBooked((prev) => ({ ...prev, [key]: !prev[key] }))
-  }
+  const { experiences, setScheduleTrackEl } = useExperienceHome()
 
   return (
-    <section id="schedule" className="bg-background py-24 lg:py-32">
-      <div className="mx-auto max-w-5xl px-6 lg:px-10">
-        <ScheduleHeader />
-        <WeekDateStrip
-          week={week}
-          selectedDay={selectedDay}
-          onSelectDay={setSelectedDay}
-        />
-        <CategoryFilters
-          activeCategory={activeCategory}
-          onChange={setActiveCategory}
-        />
-        <div className="mt-10 flex flex-col gap-4">
-          <ClassList
-            classes={classes}
-            selectedDay={selectedDay}
-            activeCategory={activeCategory}
-            booked={booked}
-            onToggleBook={toggleBook}
-          />
-        </div>
+    <section id="schedule" className="overflow-hidden bg-background py-24 lg:py-32">
+      <div
+        ref={setScheduleTrackEl}
+        className="flex w-full snap-x snap-mandatory overflow-x-auto overscroll-x-contain [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+        style={{ touchAction: "pan-x pan-y" }}
+      >
+        {experiences.map((experience) => (
+          <div
+            key={experience.id}
+            className="min-w-full shrink-0 snap-center snap-always"
+          >
+            <div className="mx-auto max-w-5xl px-6 lg:px-10">
+              <ScheduleHeader experience={experience} />
+              {experience.schedule_enabled ? (
+                <ScheduleExperiencePanel />
+              ) : (
+                <ScheduleEmptyState experience={experience} />
+              )}
+            </div>
+          </div>
+        ))}
       </div>
     </section>
   )

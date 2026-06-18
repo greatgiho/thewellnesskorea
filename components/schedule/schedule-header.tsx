@@ -1,15 +1,30 @@
-export function ScheduleHeader() {
+import { experienceEyebrow } from "@/lib/experiences/copy"
+import type { ExperienceRow } from "@/lib/experiences/types"
+
+type ScheduleHeaderProps = {
+  experience: ExperienceRow
+}
+
+export function ScheduleHeader({ experience }: ScheduleHeaderProps) {
+  const comingSoon = !experience.schedule_enabled
+
   return (
     <div className="max-w-2xl">
       <p className="font-mono text-xs uppercase tracking-[0.35em] text-primary">
-        Daily Classes
+        {comingSoon
+          ? experienceEyebrow(experience.slug, experience.kind)
+          : "Daily Classes"}
       </p>
       <h2 className="mt-5 text-balance font-serif text-4xl font-light leading-tight text-foreground sm:text-5xl">
-        Find a moment in your week.
+        {comingSoon
+          ? `${experience.name_en} is on the way.`
+          : "Find a moment in your week."}
       </h2>
       <p className="mt-5 text-pretty leading-relaxed text-muted-foreground">
-        Reserve your place across movement, stillness, and sound. Every session
-        is held in a calm, unhurried space.
+        {comingSoon
+          ? (experience.description_en ??
+            "Our next Space will open with its own rhythm of classes and gatherings.")
+          : "Reserve your place across movement, stillness, and sound. Every session is held in a calm, unhurried space."}
       </p>
     </div>
   )
