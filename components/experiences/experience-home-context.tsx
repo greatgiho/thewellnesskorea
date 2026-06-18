@@ -29,8 +29,15 @@ function scrollTrackToIndex(
   index: number,
   behavior: ScrollBehavior = "smooth",
 ) {
-  const slide = track?.children[index] as HTMLElement | undefined
-  slide?.scrollIntoView({ behavior, inline: "start", block: "nearest" })
+  if (!track) return
+  const slide = track.children[index] as HTMLElement | undefined
+  if (!slide) return
+
+  // Scroll horizontally within the track only — never scroll the page vertically.
+  track.scrollTo({
+    left: slide.offsetLeft,
+    behavior,
+  })
 }
 
 function useScrollSnapObserver(

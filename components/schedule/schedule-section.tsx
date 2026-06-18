@@ -13,7 +13,7 @@ export function Schedule() {
       <div
         ref={setScheduleTrackEl}
         className="flex w-full snap-x snap-mandatory overflow-x-auto overscroll-x-contain [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
-        style={{ touchAction: "pan-x pan-y" }}
+        style={{ touchAction: "pan-x pinch-zoom" }}
       >
         {experiences.map((experience) => (
           <div

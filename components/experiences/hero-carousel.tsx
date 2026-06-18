@@ -15,7 +15,7 @@ export function HeroCarousel() {
       <div
         ref={setHeroTrackEl}
         className="flex h-full w-full snap-x snap-mandatory overflow-x-auto overflow-y-hidden overscroll-x-contain [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
-        style={{ touchAction: "pan-x pan-y" }}
+        style={{ touchAction: "pan-x pinch-zoom" }}
       >
         {experiences.map((experience) => (
           <HeroSlide key={experience.id} experience={experience} />
