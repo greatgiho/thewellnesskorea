@@ -1,14 +1,9 @@
 import { createClient } from "@/lib/supabase/server"
+import { normalizeRelation } from "@/lib/supabase/normalize-relation"
 import { normalizeDescriptionBlocks } from "./images"
 import { SESSION_WITH_RELATIONS } from "./constants"
 import type { FloorRow, SessionRow, SessionWithRelations } from "./types"
 import { kstDayRange, addDaysToDateKey } from "./utils"
-
-function normalizeRelation<T>(value: T | T[] | null | undefined): T | undefined {
-  if (!value) return undefined
-  if (Array.isArray(value)) return value[0]
-  return value
-}
 
 export function toSessionWithRelations(
   row: SessionRow & {
@@ -68,8 +63,8 @@ export async function getSessionsForRange(
   )
 }
 
-export async function getUpcomingSessionsForInstructor(
-  instructorId: string,
+export async function getUpcomingSessions(
+  filter: { instructorId: string } | { userId: string },
   limit = 20,
 ): Promise<SessionWithRelations[]> {
   if (
@@ -80,9 +75,25 @@ export async function getUpcomingSessionsForInstructor(
   }
 
   const supabase = await createClient()
+  let instructorId: string
+
+  if ("instructorId" in filter) {
+    instructorId = filter.instructorId
+  } else {
+    const { data: person, error: personError } = await supabase
+      .from("people")
+      .select("id")
+      .eq("user_id", filter.userId)
+      .maybeSingle()
+
+    if (personError) throw new Error(personError.message)
+    if (!person) return []
+    instructorId = person.id
+  }
+
   const now = new Date().toISOString()
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("sessions")
     .select(SESSION_WITH_RELATIONS)
     .eq("instructor_id", instructorId)
@@ -90,9 +101,15 @@ export async function getUpcomingSessionsForInstructor(
     .eq("is_published", true)
     .gte("starts_at", now)
     .order("starts_at", { ascending: true })
-    .limit(limit)
 
-  if (error || !data) return []
+  if (limit > 0) {
+    query = query.limit(limit)
+  }
+
+  const { data, error } = await query
+
+  if (error) throw new Error(error.message)
+  if (!data) return []
 
   return data.map((row) =>
     toSessionWithRelations(
@@ -102,4 +119,11 @@ export async function getUpcomingSessionsForInstructor(
       },
     ),
   )
+}
+
+export async function getUpcomingSessionsForInstructor(
+  instructorId: string,
+  limit = 20,
+): Promise<SessionWithRelations[]> {
+  return getUpcomingSessions({ instructorId }, limit)
 }

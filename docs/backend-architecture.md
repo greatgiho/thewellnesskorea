@@ -2,7 +2,7 @@
 
 Last updated: 2026-06-16
 
-Companion docs: [Site map](./site-map-and-flows.md) · [DB schema](./database-schema.md) · [ERD](./database-erd.md)
+Companion docs: [Site map](./site-map-and-flows.md) · [DB schema](./database-schema.md) · [ERD](./database-erd.md) · [Audit log](./architecture-audit-log.md) · [Refactoring plan](./refactoring-plan.md)
 
 > 목적: 백엔드 및 비즈니스 로직 설계 추적 (신규 개발자 온보딩용)
 
@@ -51,6 +51,20 @@ Companion docs: [Site map](./site-map-and-flows.md) · [DB schema](./database-sc
 | **Teacher** | `ensureTeacherRole()` on first profile access; `app_metadata.role = teacher` on account provision | `/apply/profile/*` (registration), `/teacher/*` (portal), own `people` + `person_programs` via RLS |
 
 DB helper `is_admin_user()`: JWT `app_metadata.role IS DISTINCT FROM 'teacher'` (unset = admin).
+
+### Email policy (Option A — Strict) ✅
+
+**확정일:** 2026-06-16 · 상세: [refactoring-plan.md § P0-B](./refactoring-plan.md)
+
+| Rule | Detail |
+|------|--------|
+| One email, one role | An address is either **admin** or **teacher**, not both |
+| `people.email` | Teacher **login + contact** (admin-only field on forms; not on public site) |
+| Admin email reuse | Must **not** set `people.email` to an address already used by an admin Auth user |
+| Typical setup | Personal email → `/admin/login` · Studio/teacher email → `/teacher/login` |
+| On conflict | Reject save with explicit message; do not rename teacher Auth to an admin-owned email |
+
+Provision path (`provisionTeacherAccount`) already blocks admin emails on **new** accounts; P0-B adds the same guard on **email change** via `maybeProvisionOnAdminSave`.
 
 ### Teacher portal password (design)
 
@@ -299,7 +313,9 @@ stateDiagram-v2
 | `generateTempPassword` | Random password for provision/reissue |
 | `mustChangePassword` | Edge-safe middleware check for `user_metadata.must_change_password` |
 | `provisionTeacherAccount` | Create/update Auth user, set `role=teacher`, `must_change_password` |
-| `syncTeacherAuthEmail` | Update Auth email when admin edits person email |
+| `syncTeacherAuthEmail` | Update Auth email when admin edits person email (`lib/auth/teacher-email.ts`) |
+| `requireAdminSession`, `requireTeacherSession` | Auth session guards (`require-session.ts`) |
+| `assertTeacherEmailAvailable`, `resolveEmailChangeOnAdminSave` | Option A email policy on admin save |
 | `clearMustChangePassword` | Service-role metadata cleanup after password change |
 | `provisionAndEmailTeacherAccount`, `maybeProvisionOnAdminSave`, `linkPersonToAuthUser` | Orchestrate people row + email |
 | `mustChangePassword`, `getTeacherPersonByUserId` | Middleware + layout helpers |
@@ -317,6 +333,9 @@ stateDiagram-v2
 | Export | Role |
 |--------|------|
 | `getPublishedPeople`, `getAllPeopleAdmin`, `getPersonById` | Queries |
+| `persistPerson` | Shared admin/teacher profile save (`persist-person.ts`) |
+| `emptyPersonInput`, `personInputFromPerson` | Form state (`form-state.ts`) |
+| `uploadPersonPhoto`, `validatePersonPhotoFile` | Client photo upload (`photo-upload.ts`) |
 | `validatePersonInput` | Form validation |
 | `personRowFromInput`, `savePersonPrograms`, `resolvePersonSlug`, `uniqueSlug` | Persist |
 | `isSelfRegistered(status, userId?)` | Registration helpers; legacy `approved` without `user_id` excluded |
@@ -327,7 +346,8 @@ stateDiagram-v2
 | Export | Role |
 |--------|------|
 | `getFloors`, `getSessionsForDay`, `getSessionsForRange` | Queries |
-| `getUpcomingSessionsForTeacher` | Teacher portal: own confirmed+published future sessions |
+| `getUpcomingSessions`, `getUpcomingSessionsForInstructor` | Upcoming confirmed sessions |
+| `getUpcomingSessionsForTeacher` | Teacher portal wrapper |
 | `toSessionWithRelations` | Normalize Supabase relation arrays |
 | `formatWeekRangeLabel`, `formatCompactWeekRange`, `listWeeksOverlappingMonth` | Period labels + week picker |
 | `toKstIso`, `sessionsOverlap`, `isWithinOperatingHours`, week/month helpers | KST time math |
@@ -354,6 +374,7 @@ stateDiagram-v2
 | Export | Role |
 |--------|------|
 | `createClient` (client/server/service) | Supabase instances |
+| `normalizeRelation` | Join array helper (`normalize-relation.ts`) |
 | `updateSession` | Middleware auth |
 | `isSupabaseConfigured` | Env guard |
 
@@ -366,6 +387,14 @@ stateDiagram-v2
 - Teacher RLS: own `people` + `person_programs`; read own `sessions` (confirmed + published only); cannot set `is_published`
 - Admin RLS: `is_admin_user()` on people/programs
 - Storage: public read; authenticated write per bucket policy
+
+---
+
+## Architecture audits
+
+점검 이력·비효율 분석·중복 목록: [architecture-audit-log.md](./architecture-audit-log.md)  
+개선 계획·요건·단계: [refactoring-plan.md](./refactoring-plan.md)  
+(2026-06-16 Audit #1: 프로그램 DELETE→INSERT FK 이슈, 이메일 3중 저장, Server Actions 중복 등)
 
 ---
 

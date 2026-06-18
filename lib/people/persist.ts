@@ -46,25 +46,55 @@ export async function savePersonPrograms(
   personId: string,
   input: PersonFormInput,
 ) {
-  const { error: deleteError } = await supabase
+  const { data: existingRows, error: loadError } = await supabase
     .from("person_programs")
-    .delete()
+    .select("id")
     .eq("person_id", personId)
 
-  if (deleteError) throw new Error(deleteError.message)
+  if (loadError) throw new Error(loadError.message)
 
-  if (input.programs.length === 0) return
+  const existingIds = new Set((existingRows ?? []).map((row) => row.id))
+  const incomingIds = new Set(
+    input.programs
+      .map((program) => program.id)
+      .filter((id): id is string => Boolean(id)),
+  )
 
-  const rows = input.programs.map((program, index) => ({
-    person_id: personId,
-    title: program.title.trim(),
-    description: program.description.trim() || null,
-    path_keys: program.path_keys,
-    sort_order: index,
-  }))
+  const idsToDelete = [...existingIds].filter((id) => !incomingIds.has(id))
+  if (idsToDelete.length > 0) {
+    const { error: deleteError } = await supabase
+      .from("person_programs")
+      .delete()
+      .in("id", idsToDelete)
 
-  const { error: insertError } = await supabase.from("person_programs").insert(rows)
-  if (insertError) throw new Error(insertError.message)
+    if (deleteError) throw new Error(deleteError.message)
+  }
+
+  for (const [index, program] of input.programs.entries()) {
+    const row = {
+      person_id: personId,
+      title: program.title.trim(),
+      description: program.description.trim() || null,
+      path_keys: program.path_keys,
+      sort_order: index,
+    }
+
+    if (program.id && existingIds.has(program.id)) {
+      const { error: updateError } = await supabase
+        .from("person_programs")
+        .update(row)
+        .eq("id", program.id)
+        .eq("person_id", personId)
+
+      if (updateError) throw new Error(updateError.message)
+    } else {
+      const { error: insertError } = await supabase
+        .from("person_programs")
+        .insert(row)
+
+      if (insertError) throw new Error(insertError.message)
+    }
+  }
 }
 
 export async function resolvePersonSlug(

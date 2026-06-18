@@ -1,23 +1,20 @@
 "use client"
 
 import { useState } from "react"
-import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { createClient } from "@/lib/supabase/client"
 import type { PersonFormInput, PersonWithPrograms } from "@/lib/people/types"
-import { activityRegionCodesFromRows } from "@/lib/regions/utils"
 import type { RegionsForForms } from "@/lib/regions/types"
 import { ActivityRegionFields } from "@/components/people/activity-region-fields"
+import { PersonPhotoField } from "@/components/people/person-photo-field"
 import { savePerson } from "@/app/admin/actions"
-import { canPublishPerson } from "@/lib/people/registration-status"
+import { emptyPersonInput, personInputFromPerson } from "@/lib/people/form-state"
 import {
-  extFromMime,
-  getPersonPhotoUrl,
-  instagramHandle,
-  PERSON_KINDS,
-  photoStoragePath,
-} from "@/lib/people/utils"
+  uploadPersonPhoto,
+  validatePersonPhotoFile,
+} from "@/lib/people/photo-upload"
+import { canPublishPerson } from "@/lib/people/registration-status"
+import { getPersonPhotoUrl, PERSON_KINDS } from "@/lib/people/utils"
 import { ProgramListEditor } from "@/components/admin/program-list-editor"
 
 type PersonFormProps = {
@@ -25,50 +22,11 @@ type PersonFormProps = {
   regions: RegionsForForms
 }
 
-const defaultInput: PersonFormInput = {
-  kind: "guide",
-  name_ko: "",
-  name_en: "",
-  role_ko: "",
-  role_en: "",
-  quote: "",
-  phone: "",
-  email: "",
-  instagram: "",
-  is_published: false,
-  primary_region_code: "",
-  secondary_region_code: "",
-  programs: [],
-}
-
-function formFromPerson(person: PersonWithPrograms): PersonFormInput {
-  const { primary, secondary } = activityRegionCodesFromRows(person.activity_regions)
-  return {
-    kind: person.kind,
-    name_ko: person.name_ko,
-    name_en: person.name_en,
-    role_ko: person.role_ko,
-    role_en: person.role_en,
-    quote: person.quote ?? "",
-    phone: person.phone ?? "",
-    email: person.email ?? "",
-    instagram: instagramHandle(person.instagram) ?? person.instagram ?? "",
-    is_published: person.is_published,
-    primary_region_code: primary,
-    secondary_region_code: secondary,
-    programs: person.programs.map((p) => ({
-      title: p.title,
-      description: p.description ?? "",
-      path_keys: p.path_keys ?? [],
-    })),
-  }
-}
-
 export function PersonForm({ person, regions }: PersonFormProps) {
   const router = useRouter()
   const isEdit = Boolean(person)
   const [input, setInput] = useState<PersonFormInput>(
-    person ? formFromPerson(person) : defaultInput,
+    person ? personInputFromPerson(person) : emptyPersonInput(),
   )
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<string | null>(
@@ -84,33 +42,17 @@ export function PersonForm({ person, regions }: PersonFormProps) {
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0]
     if (!f) return
-    if (!["image/jpeg", "image/png", "image/webp"].includes(f.type)) {
-      setError("Use JPG, PNG, or WebP.")
-      return
-    }
-    if (f.size > 5 * 1024 * 1024) {
-      setError("Max file size is 5MB.")
+    const validationError = validatePersonPhotoFile(f, {
+      invalidType: "Use JPG, PNG, or WebP.",
+      tooLarge: "Max file size is 5MB.",
+    })
+    if (validationError) {
+      setError(validationError)
       return
     }
     setError(null)
     setFile(f)
     setPreview(URL.createObjectURL(f))
-  }
-
-  const uploadPhotoFile = async (
-    personId: string,
-    photo: File,
-  ): Promise<string> => {
-    const supabase = createClient()
-    const ext = extFromMime(photo.type)
-    const path = photoStoragePath(personId, ext)
-
-    const { error: uploadError } = await supabase.storage
-      .from("person-photos")
-      .upload(path, photo, { upsert: true, contentType: photo.type })
-
-    if (uploadError) throw new Error(uploadError.message)
-    return path
   }
 
   const onSubmit = async (e: React.FormEvent) => {
@@ -121,15 +63,19 @@ export function PersonForm({ person, regions }: PersonFormProps) {
       const personId = person?.id ?? crypto.randomUUID()
       let photoPath: string | null | undefined = undefined
       if (file) {
-        photoPath = await uploadPhotoFile(personId, file)
+        photoPath = await uploadPersonPhoto(personId, file)
       } else if (!person) {
         photoPath = null
       }
 
-      await savePerson(input, person?.id, {
+      const result = await savePerson(input, person?.id, {
         newPersonId: person?.id ? undefined : personId,
         photoPath,
       })
+      if (!result.ok) {
+        setError(result.error)
+        return
+      }
       router.push("/admin/people")
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.")
@@ -178,22 +124,11 @@ export function PersonForm({ person, regions }: PersonFormProps) {
           Contact details are admin-only and never shown on the public site.
         </p>
 
-        <div className="space-y-3">
-          <span className="text-sm font-medium">Profile photo</span>
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-            {preview && (
-              <div className="relative size-32 shrink-0 overflow-hidden rounded-2xl border border-border">
-                <Image src={preview} alt="Preview" fill className="object-cover" />
-              </div>
-            )}
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              onChange={onFileChange}
-              className="text-sm text-muted-foreground file:mr-4 file:rounded-full file:border-0 file:bg-primary file:px-4 file:py-2 file:text-sm file:font-medium file:text-primary-foreground"
-            />
-          </div>
-        </div>
+        <PersonPhotoField
+          label="Profile photo"
+          preview={preview}
+          onFileChange={onFileChange}
+        />
 
         <div className="grid gap-6 sm:grid-cols-2">
           <label className="block space-y-2">
@@ -231,6 +166,10 @@ export function PersonForm({ person, regions }: PersonFormProps) {
               value={input.email}
               onChange={(e) => setInput((v) => ({ ...v, email: e.target.value }))}
             />
+            <p className="text-xs text-muted-foreground">
+              Teacher login and contact. Cannot be the same as an admin account
+              email.
+            </p>
           </label>
           <label className="block space-y-2 sm:col-span-2">
             <span className="text-sm font-medium">Instagram</span>

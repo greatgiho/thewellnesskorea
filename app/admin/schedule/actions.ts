@@ -1,8 +1,8 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
+import { requireAdminSession } from "@/lib/auth/require-session"
 import {
   extFromPath,
   SESSION_PHOTOS_BUCKET,
@@ -21,12 +21,6 @@ import {
   toKstIso,
 } from "@/lib/schedule/utils"
 
-type AuthContext = {
-  supabase: Awaited<ReturnType<typeof createClient>>
-  userId: string
-  userEmail: string | undefined
-}
-
 type SessionConflictRow = {
   id: string
   floor_id: string
@@ -38,13 +32,9 @@ type SessionConflictRow = {
   slot_lane: number
 }
 
-async function requireAuth(): Promise<AuthContext> {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) redirect("/admin/login")
-  return { supabase, userId: user.id, userEmail: user.email }
+async function requireAuth() {
+  const { supabase, userId, userEmail } = await requireAdminSession()
+  return { supabase, userId, userEmail }
 }
 
 function validateSessionInput(input: SessionFormInput): {

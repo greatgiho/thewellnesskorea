@@ -1,8 +1,8 @@
 # The Wellness Korea — Database ERD
 
-Last updated: 2026-06-17
+Last updated: 2026-06-16
 
-Companion: [Schema reference](./database-schema.md) · [Backend logic](./backend-architecture.md) · [Site map](./site-map-and-flows.md)
+Companion: [Schema reference](./database-schema.md) · [Backend logic](./backend-architecture.md) · [Site map](./site-map-and-flows.md) · [Audit log](./architecture-audit-log.md)
 
 > 목적: 데이터 간 관계 시각화
 
@@ -92,6 +92,7 @@ erDiagram
         boolean is_published
         jsonb description_blocks
         uuid created_by FK
+        text created_by_email
         uuid confirmed_by FK
         uuid cancelled_by FK
     }
@@ -131,7 +132,15 @@ flowchart TB
     subgraph people_domain [People]
         P[people]
         PP[person_programs]
+        PAR[person_activity_regions]
         P --> PP
+        P --> PAR
+    end
+
+    subgraph geo_domain [Regions]
+        R[regions]
+        R --> R
+        PAR --> R
     end
 
     subgraph schedule_domain [Schedule]

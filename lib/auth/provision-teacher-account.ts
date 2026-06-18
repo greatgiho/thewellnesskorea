@@ -1,5 +1,9 @@
-import type { User } from "@supabase/supabase-js"
 import { generateTempPassword } from "@/lib/auth/temp-password"
+import {
+  assertTeacherEmailAvailable,
+  findAuthUserByEmail,
+} from "@/lib/auth/teacher-email"
+import { UserFacingError } from "@/lib/errors"
 import { createServiceClient } from "@/lib/supabase/service"
 
 export type ProvisionTeacherResult = {
@@ -10,30 +14,6 @@ export type ProvisionTeacherResult = {
 
 function normalizeEmail(email: string): string {
   return email.trim().toLowerCase()
-}
-
-async function findUserByEmail(email: string): Promise<User | null> {
-  const admin = createServiceClient()
-  const normalized = normalizeEmail(email)
-  let page = 1
-
-  while (true) {
-    const { data, error } = await admin.auth.admin.listUsers({
-      page,
-      perPage: 200,
-    })
-    if (error) throw new Error(error.message)
-
-    const match = data.users.find(
-      (u) => u.email?.toLowerCase() === normalized,
-    )
-    if (match) return match
-
-    if (data.users.length < 200) break
-    page++
-  }
-
-  return null
 }
 
 async function upsertTeacherAuthUser(
@@ -60,13 +40,11 @@ async function upsertTeacherAuthUser(
     return { userId: existingUserId, isNewUser: false }
   }
 
-  const existing = await findUserByEmail(normalized)
+  const existing = await findAuthUserByEmail(normalized)
   if (existing) {
-    if (existing.app_metadata?.role === "admin") {
-      throw new Error(
-        "This email is already used by an admin account. Use a different email.",
-      )
-    }
+    await assertTeacherEmailAvailable(normalized, {
+      excludeUserId: existingUserId ?? existing.id,
+    })
     const { error } = await admin.auth.admin.updateUserById(existing.id, {
       password: tempPassword,
       email_confirm: true,
@@ -96,8 +74,12 @@ export async function provisionTeacherAccount(params: {
 }): Promise<ProvisionTeacherResult> {
   const email = params.email.trim()
   if (!email) {
-    throw new Error("Email is required to provision a teacher account.")
+    throw new UserFacingError("Email is required to provision a teacher account.")
   }
+
+  await assertTeacherEmailAvailable(email, {
+    excludeUserId: params.existingUserId,
+  })
 
   const tempPassword = generateTempPassword()
   const { userId, isNewUser } = await upsertTeacherAuthUser(
@@ -109,20 +91,7 @@ export async function provisionTeacherAccount(params: {
   return { userId, tempPassword, isNewUser }
 }
 
-export async function syncTeacherAuthEmail(
-  userId: string,
-  email: string,
-): Promise<void> {
-  const normalized = normalizeEmail(email)
-  if (!normalized) return
-
-  const admin = createServiceClient()
-  const { error } = await admin.auth.admin.updateUserById(userId, {
-    email: normalized,
-    email_confirm: true,
-  })
-  if (error) throw new Error(error.message)
-}
+export { syncTeacherAuthEmail } from "@/lib/auth/teacher-email"
 
 export async function clearMustChangePassword(userId: string): Promise<void> {
   const admin = createServiceClient()

@@ -1,10 +1,10 @@
 # The Wellness Korea — Database Schema
 
-Last updated: 2026-06-17
+Last updated: 2026-06-16
 
 Source of truth: `supabase/migrations/001`–`010`
 
-Companion: [ERD](./database-erd.md) · [Backend logic](./backend-architecture.md) · [Site map](./site-map-and-flows.md)
+Companion: [ERD](./database-erd.md) · [Backend logic](./backend-architecture.md) · [Site map](./site-map-and-flows.md) · [Audit log](./architecture-audit-log.md)
 
 > 목적: 데이터베이스 물리/논리 스키마 명세
 

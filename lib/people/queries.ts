@@ -18,15 +18,10 @@ import {
 } from "./utils"
 import { getRegionsForForms } from "@/lib/regions/queries"
 import type { RegionRow } from "@/lib/regions/types"
+import { normalizeRelation } from "@/lib/supabase/normalize-relation"
 
 function kindsForSection(section: "guide" | "artist"): PersonKind[] {
   return section === "guide" ? ["guide", "both"] : ["artist", "both"]
-}
-
-function normalizeRelation<T>(value: T | T[] | null | undefined): T | undefined {
-  if (!value) return undefined
-  if (Array.isArray(value)) return value[0]
-  return value
 }
 
 function normalizeActivityRegions(

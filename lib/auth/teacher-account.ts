@@ -1,7 +1,7 @@
 import {
   provisionTeacherAccount,
-  syncTeacherAuthEmail,
 } from "@/lib/auth/provision-teacher-account"
+import { resolveEmailChangeOnAdminSave } from "@/lib/auth/teacher-email"
 import { sendTeacherCredentialsEmail } from "@/lib/notifications/teacher-credentials-email"
 import { createServiceClient } from "@/lib/supabase/service"
 import type { SupabaseClient } from "@supabase/supabase-js"
@@ -86,7 +86,11 @@ export async function maybeProvisionOnAdminSave(
     params.previousEmail &&
     email.toLowerCase() !== params.previousEmail.trim().toLowerCase()
   ) {
-    await syncTeacherAuthEmail(params.previousUserId, email)
+    await resolveEmailChangeOnAdminSave({
+      previousUserId: params.previousUserId,
+      previousEmail: params.previousEmail,
+      newEmail: email,
+    })
     return false
   }
 

@@ -10,6 +10,7 @@ type ProgramListEditorProps = {
 }
 
 const emptyProgram = (): PersonProgramFormInput => ({
+  clientKey: crypto.randomUUID(),
   title: "",
   description: "",
   path_keys: [],
@@ -41,7 +42,7 @@ export function ProgramListEditor({ programs, onChange }: ProgramListEditorProps
 
       {programs.map((program, index) => (
         <div
-          key={index}
+          key={program.id ?? program.clientKey ?? index}
           className="rounded-2xl border border-border bg-card/50 p-4 space-y-4"
         >
           <div className="flex items-start justify-between gap-3">

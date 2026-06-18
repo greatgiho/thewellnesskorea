@@ -52,6 +52,8 @@ export type PersonWithPrograms = PersonRow & {
 }
 
 export type PersonProgramFormInput = {
+  id?: string
+  clientKey?: string
   title: string
   description: string
   path_keys: PathKey[]

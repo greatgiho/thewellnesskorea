@@ -1,9 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import Image from "next/image"
 import { useRouter } from "next/navigation"
-import { createClient } from "@/lib/supabase/client"
 import {
   saveTeacherProfileDraft,
   submitTeacherProfile,
@@ -11,67 +9,27 @@ import {
 } from "@/app/apply/actions"
 import { ProgramListEditor } from "@/components/admin/program-list-editor"
 import type { PersonFormInput, PersonWithPrograms } from "@/lib/people/types"
-import { activityRegionCodesFromRows } from "@/lib/regions/utils"
 import type { RegionsForForms } from "@/lib/regions/types"
 import {
   ActivityRegionFields,
   teacherActivityRegionLabels,
 } from "@/components/people/activity-region-fields"
+import { PersonPhotoField } from "@/components/people/person-photo-field"
+import { emptyPersonInput, personInputFromPerson } from "@/lib/people/form-state"
+import {
+  uploadPersonPhoto,
+  validatePersonPhotoFile,
+} from "@/lib/people/photo-upload"
 import {
   REGISTRATION_STATUS_BADGE_CLASS,
   registrationStatusLabel,
 } from "@/lib/people/registration-status"
-import {
-  extFromMime,
-  getPersonPhotoUrl,
-  instagramHandle,
-  PERSON_KINDS,
-  photoStoragePath,
-} from "@/lib/people/utils"
+import { getPersonPhotoUrl, PERSON_KINDS } from "@/lib/people/utils"
 
 type TeacherProfileFormProps = {
   person: PersonWithPrograms | null
   loginEmail: string
   regions: RegionsForForms
-}
-
-const defaultInput = (loginEmail: string): PersonFormInput => ({
-  kind: "guide",
-  name_ko: "",
-  name_en: "",
-  role_ko: "",
-  role_en: "",
-  quote: "",
-  phone: "",
-  email: loginEmail,
-  instagram: "",
-  is_published: false,
-  primary_region_code: "",
-  secondary_region_code: "",
-  programs: [],
-})
-
-function formFromPerson(person: PersonWithPrograms): PersonFormInput {
-  const { primary, secondary } = activityRegionCodesFromRows(person.activity_regions)
-  return {
-    kind: person.kind,
-    name_ko: person.name_ko,
-    name_en: person.name_en,
-    role_ko: person.role_ko,
-    role_en: person.role_en,
-    quote: person.quote ?? "",
-    phone: person.phone ?? "",
-    email: person.email ?? "",
-    instagram: instagramHandle(person.instagram) ?? person.instagram ?? "",
-    is_published: false,
-    primary_region_code: primary,
-    secondary_region_code: secondary,
-    programs: person.programs.map((p) => ({
-      title: p.title,
-      description: p.description ?? "",
-      path_keys: p.path_keys ?? [],
-    })),
-  }
 }
 
 export function TeacherProfileForm({
@@ -81,7 +39,9 @@ export function TeacherProfileForm({
 }: TeacherProfileFormProps) {
   const router = useRouter()
   const [input, setInput] = useState<PersonFormInput>(
-    person ? formFromPerson(person) : defaultInput(loginEmail),
+    person
+      ? personInputFromPerson(person, { is_published: false })
+      : emptyPersonInput({ email: loginEmail }),
   )
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<string | null>(
@@ -96,33 +56,17 @@ export function TeacherProfileForm({
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0]
     if (!f) return
-    if (!["image/jpeg", "image/png", "image/webp"].includes(f.type)) {
-      setError("JPG, PNG, WebP만 업로드할 수 있습니다.")
-      return
-    }
-    if (f.size > 5 * 1024 * 1024) {
-      setError("최대 5MB까지 업로드할 수 있습니다.")
+    const validationError = validatePersonPhotoFile(f, {
+      invalidType: "JPG, PNG, WebP만 업로드할 수 있습니다.",
+      tooLarge: "최대 5MB까지 업로드할 수 있습니다.",
+    })
+    if (validationError) {
+      setError(validationError)
       return
     }
     setError(null)
     setFile(f)
     setPreview(URL.createObjectURL(f))
-  }
-
-  const uploadPhotoFile = async (
-    personId: string,
-    photo: File,
-  ): Promise<string> => {
-    const supabase = createClient()
-    const ext = extFromMime(photo.type)
-    const path = photoStoragePath(personId, ext)
-
-    const { error: uploadError } = await supabase.storage
-      .from("person-photos")
-      .upload(path, photo, { upsert: true, contentType: photo.type })
-
-    if (uploadError) throw new Error(uploadError.message)
-    return path
   }
 
   const persist = async (submit: boolean) => {
@@ -132,7 +76,7 @@ export function TeacherProfileForm({
       const personId = person?.id ?? crypto.randomUUID()
       let photoPath: string | null | undefined = undefined
       if (file) {
-        photoPath = await uploadPhotoFile(personId, file)
+        photoPath = await uploadPersonPhoto(personId, file)
       } else if (!person) {
         photoPath = null
       }
@@ -219,22 +163,11 @@ export function TeacherProfileForm({
 
       <section className="space-y-6 rounded-2xl border border-border bg-card p-6">
         <h2 className="font-serif text-xl text-foreground">기본 정보</h2>
-        <div className="space-y-3">
-          <span className="text-sm font-medium">프로필 사진</span>
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-            {preview && (
-              <div className="relative size-32 shrink-0 overflow-hidden rounded-2xl border border-border">
-                <Image src={preview} alt="Preview" fill className="object-cover" />
-              </div>
-            )}
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              onChange={onFileChange}
-              className="text-sm text-muted-foreground file:mr-4 file:rounded-full file:border-0 file:bg-primary file:px-4 file:py-2 file:text-sm file:font-medium file:text-primary-foreground"
-            />
-          </div>
-        </div>
+        <PersonPhotoField
+          label="프로필 사진"
+          preview={preview}
+          onFileChange={onFileChange}
+        />
         <div className="grid gap-6 sm:grid-cols-2">
           <label className="block space-y-2">
             <span className="text-sm font-medium">이름 (한글)</span>

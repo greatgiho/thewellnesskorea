@@ -3,29 +3,11 @@
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
-import type { PersonFormInput, PersonRegistrationStatus } from "@/lib/people/types"
-import {
-  personRowFromInput,
-  resolvePersonSlug,
-  savePersonPrograms,
-} from "@/lib/people/persist"
-import {
-  maybeProvisionOnAdminSave,
-  provisionAndEmailTeacherAccount,
-} from "@/lib/auth/teacher-account"
-import { canPublishPerson } from "@/lib/people/registration-status"
-import { validatePersonInput } from "@/lib/people/validate"
-import { getRegionsForForms } from "@/lib/regions/queries"
-import { savePersonActivityRegions } from "@/lib/regions/persist"
-
-async function requireAuth() {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) redirect("/admin/login")
-  return { supabase, user }
-}
+import { requireAdminSession } from "@/lib/auth/require-session"
+import { provisionAndEmailTeacherAccount } from "@/lib/auth/teacher-account"
+import { isUserFacingError } from "@/lib/errors"
+import { persistPerson } from "@/lib/people/persist-person"
+import type { PersonFormInput } from "@/lib/people/types"
 
 function revalidatePersonCaches(isPublished: boolean, personId?: string, slug?: string) {
   revalidatePath("/admin/people")
@@ -39,6 +21,10 @@ export type SavePersonOptions = {
   photoPath?: string | null
 }
 
+export type PersonSaveResult =
+  | { ok: true; personId: string }
+  | { ok: false; error: string }
+
 export async function signOut() {
   const supabase = await createClient()
   await supabase.auth.signOut()
@@ -49,99 +35,26 @@ export async function savePerson(
   input: PersonFormInput,
   personId?: string,
   options?: SavePersonOptions,
-) {
-  const regions = await getRegionsForForms()
-  validatePersonInput(input, regions)
-  const { supabase } = await requireAuth()
-  const slug = await resolvePersonSlug(supabase, input, personId)
-
-  let sortOrder = 0
-  let existingPhotoPath: string | null = null
-  let registrationStatus: PersonRegistrationStatus = "admin"
-  let existingEmail: string | null = null
-  let existingUserId: string | null = null
-
-  if (personId) {
-    const { data: existing } = await supabase
-      .from("people")
-      .select(
-        "sort_order, photo_path, registration_status, is_published, email, user_id",
-      )
-      .eq("id", personId)
-      .maybeSingle()
-
-    sortOrder = existing?.sort_order ?? 0
-    existingPhotoPath = existing?.photo_path ?? null
-    registrationStatus = (existing?.registration_status ??
-      "admin") as PersonRegistrationStatus
-    existingEmail = existing?.email ?? null
-    existingUserId = existing?.user_id ?? null
-
-    if (
-      input.is_published &&
-      !canPublishPerson(registrationStatus)
-    ) {
-      throw new Error("Profile must be approved before publishing.")
+): Promise<PersonSaveResult> {
+  try {
+    const { supabase } = await requireAdminSession()
+    const result = await persistPerson(supabase, input, {
+      mode: "admin",
+      personId,
+      options,
+    })
+    revalidatePersonCaches(result.isPublished, result.personId, result.slug)
+    return { ok: true, personId: result.personId }
+  } catch (error) {
+    if (isUserFacingError(error) || error instanceof Error) {
+      return {
+        ok: false,
+        error: error.message || "저장에 실패했습니다.",
+      }
     }
+    console.error("[savePerson]", error)
+    return { ok: false, error: "저장에 실패했습니다. 잠시 후 다시 시도해 주세요." }
   }
-
-  const row = personRowFromInput(input, slug, sortOrder) as ReturnType<
-    typeof personRowFromInput
-  > & { photo_path?: string | null; registration_status?: string }
-
-  if (!personId) {
-    row.registration_status = "admin"
-  }
-
-  if (options?.photoPath !== undefined) {
-    row.photo_path = options.photoPath
-  } else if (!personId) {
-    row.photo_path = null
-  }
-
-  if (
-    personId &&
-    options?.photoPath &&
-    existingPhotoPath &&
-    existingPhotoPath !== options.photoPath
-  ) {
-    await supabase.storage.from("person-photos").remove([existingPhotoPath])
-  }
-
-  if (personId) {
-    const { error } = await supabase.from("people").update(row).eq("id", personId)
-    if (error) throw new Error(error.message)
-    await savePersonPrograms(supabase, personId, input)
-  } else {
-    const insertRow = options?.newPersonId
-      ? { id: options.newPersonId, ...row }
-      : row
-    const { data, error } = await supabase
-      .from("people")
-      .insert(insertRow)
-      .select("id")
-      .single()
-    if (error) throw new Error(error.message)
-    personId = data.id as string
-    await savePersonPrograms(supabase, personId, input)
-  }
-
-  await savePersonActivityRegions(
-    supabase,
-    personId,
-    input.primary_region_code,
-    input.secondary_region_code,
-  )
-
-  await maybeProvisionOnAdminSave(supabase, personId, {
-    email: input.email,
-    previousEmail: existingEmail,
-    previousUserId: existingUserId,
-    registrationStatus,
-  })
-
-  revalidatePersonCaches(input.is_published, personId, slug)
-  return personId
 }
 
 export async function createPerson(input: PersonFormInput) {
@@ -153,7 +66,7 @@ export async function updatePerson(id: string, input: PersonFormInput) {
 }
 
 export async function updatePersonPhotoPath(id: string, photoPath: string) {
-  const { supabase } = await requireAuth()
+  const { supabase } = await requireAdminSession()
 
   const { data: existing } = await supabase
     .from("people")
@@ -177,7 +90,7 @@ export async function updatePersonPhotoPath(id: string, photoPath: string) {
 }
 
 export async function approvePerson(personId: string) {
-  const { supabase, user } = await requireAuth()
+  const { supabase, user } = await requireAdminSession()
   const now = new Date().toISOString()
 
   const { data: person, error: loadError } = await supabase
@@ -208,14 +121,14 @@ export async function approvePerson(personId: string) {
 }
 
 export async function reissueTeacherPassword(personId: string) {
-  const { supabase } = await requireAuth()
+  const { supabase } = await requireAdminSession()
   await provisionAndEmailTeacherAccount(supabase, personId, {
     isReissue: true,
   })
 }
 
 export async function rejectPerson(personId: string, reason: string) {
-  const { supabase, user } = await requireAuth()
+  const { supabase, user } = await requireAdminSession()
   const trimmed = reason.trim()
   if (!trimmed) throw new Error("Rejection reason is required.")
 
@@ -235,7 +148,7 @@ export async function rejectPerson(personId: string, reason: string) {
 }
 
 export async function deletePerson(id: string) {
-  const { supabase } = await requireAuth()
+  const { supabase } = await requireAdminSession()
 
   const { count: sessionCount, error: sessionCountError } = await supabase
     .from("sessions")
