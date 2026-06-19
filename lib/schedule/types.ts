@@ -12,6 +12,7 @@ export type SessionDescriptionBlocks = {
 
 export type FloorRow = {
   id: string
+  experience_id: string
   slug: string
   level: number
   name_ko: string

@@ -71,6 +71,24 @@ function revalidateSessionCaches(isPublished: boolean) {
   if (isPublished) revalidatePath("/")
 }
 
+async function resolveExperienceIdForFloor(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  floorId: string,
+): Promise<string> {
+  const { data, error } = await supabase
+    .from("floors")
+    .select("experience_id")
+    .eq("id", floorId)
+    .maybeSingle()
+
+  if (error) throw new Error(error.message)
+  if (!data?.experience_id) {
+    throw new Error("Selected floor is missing an experience. Check Floors in the database.")
+  }
+
+  return data.experience_id as string
+}
+
 async function fetchOverlappingSessions(
   supabase: Awaited<ReturnType<typeof createClient>>,
   input: SessionFormInput,
@@ -190,8 +208,10 @@ function sessionRowFromInput(
   starts_at: string,
   ends_at: string,
   slot_lane: number,
+  experience_id: string,
 ) {
   return {
+    experience_id,
     floor_id: input.floor_id,
     instructor_id: input.instructor_id,
     person_program_id: input.person_program_id || null,
@@ -307,7 +327,8 @@ export async function saveSession(
     sessionId,
   )
 
-  const row = sessionRowFromInput(input, starts_at, ends_at, slot_lane)
+  const experience_id = await resolveExperienceIdForFloor(supabase, input.floor_id)
+  const row = sessionRowFromInput(input, starts_at, ends_at, slot_lane, experience_id)
 
   if (sessionId) {
     const { data: existing, error: fetchError } = await supabase
@@ -541,7 +562,8 @@ export async function duplicateSession(
     ends_at,
   )
 
-  const row = sessionRowFromInput(input, starts_at, ends_at, slot_lane)
+  const experience_id = await resolveExperienceIdForFloor(supabase, input.floor_id)
+  const row = sessionRowFromInput(input, starts_at, ends_at, slot_lane, experience_id)
   row.image_paths = []
 
   const { data: inserted, error: insertError } = await supabase
