@@ -6,6 +6,7 @@ import {
 import type { PersonActivityRegionRow, RegionRow } from "@/lib/regions/types"
 import type {
   PersonCardData,
+  PersonKind,
   PersonProgramRow,
   PersonRow,
   PersonWithPrograms,
@@ -132,6 +133,17 @@ export function extFromMime(mime: string): string {
   if (mime === "image/png") return "png"
   if (mime === "image/webp") return "webp"
   return "jpg"
+}
+
+/** Guides and artists can lead sessions (homepage lists both separately). */
+export function isSessionInstructorKind(kind: PersonKind): boolean {
+  return kind === "guide" || kind === "artist" || kind === "both"
+}
+
+export function filterSessionInstructors<T extends { kind: PersonKind }>(
+  people: T[],
+): T[] {
+  return people.filter((p) => isSessionInstructorKind(p.kind))
 }
 
 export function isValidEmail(email: string): boolean {

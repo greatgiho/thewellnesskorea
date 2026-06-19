@@ -8,6 +8,7 @@ import { getPersonPhotoUrl, sortPeopleByName } from "@/lib/people/utils"
 
 type InstructorSearchPickerProps = {
   instructors: PersonWithPrograms[]
+  allPeople?: PersonWithPrograms[]
   value: string
   onChange: (instructorId: string) => void
   disabled?: boolean
@@ -27,6 +28,7 @@ function matchesInstructorSearch(person: PersonWithPrograms, query: string) {
 
 export function InstructorSearchPicker({
   instructors,
+  allPeople,
   value,
   onChange,
   disabled,
@@ -34,7 +36,9 @@ export function InstructorSearchPicker({
   const [search, setSearch] = useState("")
   const [listOpen, setListOpen] = useState(false)
 
-  const selected = instructors.find((p) => p.id === value)
+  const selected =
+    instructors.find((p) => p.id === value) ??
+    allPeople?.find((p) => p.id === value)
 
   const results = useMemo(() => {
     const filtered = instructors.filter((p) => matchesInstructorSearch(p, search))
@@ -120,7 +124,7 @@ export function InstructorSearchPicker({
             >
               {instructors.length === 0 ? (
                 <li className="px-3 py-3 text-sm text-muted-foreground">
-                  No wellness guides yet. Add one in People.
+                  No instructors yet. Add a guide or artist in People.
                 </li>
               ) : results.length === 0 ? (
                 <li className="px-3 py-3 text-sm text-muted-foreground">

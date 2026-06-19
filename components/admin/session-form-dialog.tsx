@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import { X } from "lucide-react"
 import { type PathKey } from "@/lib/paths/paths-data"
 import type { PersonWithPrograms } from "@/lib/people/types"
+import { filterSessionInstructors } from "@/lib/people/utils"
 import { EMPTY_SESSION_DESCRIPTION } from "@/lib/schedule/images"
 import type { FloorRow, SessionFormInput, SessionWithRelations } from "@/lib/schedule/types"
 import {
@@ -74,7 +75,7 @@ export function SessionFormDialog({
   onSaved,
 }: SessionFormDialogProps) {
   const instructors = useMemo(
-    () => people.filter((p) => p.kind === "guide" || p.kind === "both"),
+    () => filterSessionInstructors(people),
     [people],
   )
 
@@ -443,6 +444,7 @@ export function SessionFormDialog({
             <InstructorSearchPicker
               key={session?.id ?? "new-session"}
               instructors={instructors}
+              allPeople={people}
               value={input.instructor_id}
               disabled={readOnly || pending}
               onChange={(instructorId) =>
