@@ -34,7 +34,7 @@ export default async function Page() {
       : {}
 
   return (
-    <main className="snap-y snap-mandatory bg-background">
+    <main className="bg-background max-lg:snap-none snap-y snap-proximity lg:snap-mandatory">
       <Navbar />
       <ExperienceHomeProvider experiences={experiences}>
         <HeroCarousel />

@@ -88,7 +88,7 @@ export function PersonSection({
       ) : (
         <div
           ref={scrollRef}
-          className="hide-scrollbar mt-14 flex w-full snap-x snap-mandatory gap-6 overflow-x-auto overscroll-x-contain scroll-smooth px-6 pb-4 touch-pan-x [-webkit-overflow-scrolling:touch] lg:px-10"
+          className="hide-scrollbar mt-14 flex w-full snap-x snap-mandatory gap-6 overflow-x-auto overscroll-x-contain scroll-smooth px-6 pb-4 [-webkit-overflow-scrolling:touch] lg:px-10"
         >
           {people.map((person) => (
             <PersonCard key={person.id} person={person} />

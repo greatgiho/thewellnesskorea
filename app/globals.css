@@ -125,9 +125,12 @@
   }
   body {
     @apply bg-background text-foreground;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
   html {
     @apply font-sans;
+    overflow-y: auto;
   }
 }
 

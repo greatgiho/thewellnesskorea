@@ -12,7 +12,7 @@ export function HeroSlide({ experience }: HeroSlideProps) {
   const comingSoon = !experience.schedule_enabled
 
   return (
-    <article className="relative h-svh w-full shrink-0 snap-center snap-always overflow-hidden">
+    <article className="relative h-svh w-full shrink-0 snap-center overflow-hidden lg:snap-always">
       {experience.hero_image_path ? (
         <Image
           src={experience.hero_image_path}

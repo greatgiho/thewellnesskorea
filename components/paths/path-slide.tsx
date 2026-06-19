@@ -9,7 +9,7 @@ type PathSlideProps = {
 
 export function PathSlide({ path, index, total }: PathSlideProps) {
   return (
-    <article className="relative h-svh w-full shrink-0 snap-start snap-always overflow-hidden">
+    <article className="relative h-svh w-full shrink-0 overflow-hidden lg:snap-start lg:snap-always">
       <Image
         src={path.image || "/placeholder.svg"}
         alt={path.en}

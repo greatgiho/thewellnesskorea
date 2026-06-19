@@ -24,7 +24,7 @@ export function PathSection({ paths }: PathSectionProps) {
   return (
     <section
       id="paths"
-      className="relative h-svh w-full shrink-0 snap-start snap-always overflow-hidden bg-foreground"
+      className="relative h-svh w-full shrink-0 overflow-hidden bg-foreground lg:snap-start lg:snap-always"
     >
       <div
         ref={scrollRef}

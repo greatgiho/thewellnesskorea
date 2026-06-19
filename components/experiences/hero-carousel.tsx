@@ -10,12 +10,11 @@ export function HeroCarousel() {
   return (
     <section
       id="hero"
-      className="relative h-svh w-full shrink-0 snap-start snap-always overflow-hidden"
+      className="relative h-svh w-full shrink-0 overflow-hidden lg:snap-start lg:snap-always"
     >
       <div
         ref={setHeroTrackEl}
         className="flex h-full w-full snap-x snap-mandatory overflow-x-auto overflow-y-hidden overscroll-x-contain [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
-        style={{ touchAction: "pan-x pinch-zoom" }}
       >
         {experiences.map((experience) => (
           <HeroSlide key={experience.id} experience={experience} />

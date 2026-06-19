@@ -4,7 +4,7 @@ export function Philosophy() {
   return (
     <section
       id="philosophy"
-      className="relative h-svh w-full shrink-0 snap-start snap-always overflow-hidden"
+      className="relative h-svh w-full shrink-0 overflow-hidden lg:snap-start lg:snap-always"
     >
       <Image
         src="/kw-philosophy.png"
