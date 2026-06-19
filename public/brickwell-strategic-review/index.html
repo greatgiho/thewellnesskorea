@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="light" style=""><head><meta charset="utf-8"><link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&amp;display=swap" rel="stylesheet" data-editor-preserved="true">
+    
+    
+    <title>Brickwell Strategic Review - 통합 전략 제안서</title>
+    
+    
+    
+    
+
+    <style>
+      :root {
+        --primary: #b3543f;
+        --primary-light: #f4ebe8;
+        --bg-body: #fcfaf7;
+        --bg-card: #fdfbf7;
+        --text-main: #2c2c2c;
+        --text-muted: #666666;
+        --border-light: #eae5de;
+        --radius: 12px;
+        --shadow-sm: 0 4px 16px rgba(0, 0, 0, 0.04);
+      }
+
+      body {
+        font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+        background-color: var(--bg-body);
+        color: var(--text-main);
+        margin: 0;
+        padding: 0;
+        line-height: 1.65;
+      }
+
+      /* Navigation */
+      .sticky-nav {
+        position: sticky;
+        top: 0;
+        background: rgba(252, 250, 247, 0.85);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border-bottom: 1px solid var(--border-light);
+        z-index: 1000;
+        padding: 16px 5%;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .nav-brand {
+        font-weight: 700;
+        color: var(--primary);
+        font-size: 1.1rem;
+        letter-spacing: -0.3px;
+      }
+      .nav-links {
+        display: flex;
+        gap: 24px;
+      }
+      .nav-links a {
+        color: var(--text-muted);
+        text-decoration: none;
+        font-weight: 500;
+        font-size: 0.95rem;
+      }
+      .nav-links a:hover {
+        color: var(--primary);
+      }
+
+      .container {
+        max-width: 1140px;
+        margin: 0 auto;
+        padding: 0 20px;
+      }
+
+      /* Hero Section */
+      .hero {
+        padding: 100px 0 80px;
+        text-align: center;
+        border-bottom: 1px solid var(--border-light);
+      }
+      .eyebrow {
+        display: inline-block;
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: var(--primary);
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        margin-bottom: 16px;
+        background: var(--primary-light);
+        padding: 6px 16px;
+        border-radius: 20px;
+      }
+      .hero h1 {
+        font-size: 2.8rem;
+        font-weight: 700;
+        color: var(--text-main);
+        line-height: 1.3;
+        margin-bottom: 24px;
+        word-break: keep-all;
+      }
+      .hero p {
+        font-size: 1.2rem;
+        color: var(--text-muted);
+        max-width: 700px;
+        margin: 0 auto 40px;
+        word-break: keep-all;
+      }
+      .hero-badges {
+        display: flex;
+        justify-content: center;
+        gap: 12px;
+        margin-bottom: 48px;
+      }
+      .hero-badge {
+        border: 1px solid var(--primary);
+        color: var(--primary);
+        padding: 8px 20px;
+        border-radius: 30px;
+        font-size: 0.95rem;
+        font-weight: 600;
+      }
+      .summary-cards {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+        text-align: left;
+      }
+      .summary-card {
+        background: #fff;
+        padding: 24px;
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--border-light);
+      }
+      .summary-card h4 {
+        font-size: 1rem;
+        color: var(--primary);
+        margin-bottom: 8px;
+        font-weight: 700;
+      }
+      .summary-card p {
+        font-size: 0.95rem;
+        color: var(--text-main);
+        margin: 0;
+      }
+
+      /* Section Global */
+      .section-spacing {
+        padding: 100px 0;
+      }
+      .section-label {
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: var(--text-muted);
+        letter-spacing: 1px;
+        margin-bottom: 8px;
+      }
+      .section-title {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--text-main);
+        margin-bottom: 16px;
+      }
+      .section-desc {
+        font-size: 1.05rem;
+        color: var(--text-muted);
+        margin-bottom: 40px;
+        max-width: 800px;
+        word-break: keep-all;
+      }
+
+      /* 01. Gap Analysis */
+      .table-ui-wrapper {
+        background: #fff;
+        border-radius: var(--radius);
+        border: 1px solid var(--border-light);
+        box-shadow: var(--shadow-sm);
+        padding: 8px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 0;
+      }
+      th,
+      td {
+        padding: 20px 24px;
+        text-align: left;
+        font-size: 0.95rem;
+        border-bottom: 1px solid var(--border-light);
+      }
+      th {
+        background-color: var(--bg-card);
+        color: var(--primary);
+        font-weight: 700;
+        border-top: 1px solid transparent;
+      }
+      th:first-child {
+        border-top-left-radius: 8px;
+      }
+      th:last-child {
+        border-top-right-radius: 8px;
+      }
+      tr:last-child td {
+        border-bottom: none;
+      }
+      tbody tr {
+        transition: background-color 0.2s;
+      }
+      tbody tr:hover {
+        background-color: var(--bg-body);
+      }
+      .td-label {
+        font-weight: 600;
+        color: var(--text-main);
+      }
+
+      /* 02. Synthesis */
+      .synthesis-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 24px;
+      }
+      .syn-card {
+        background: #fff;
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius);
+        padding: 32px;
+        box-shadow: var(--shadow-sm);
+        display: flex;
+        flex-direction: column;
+      }
+      .syn-header {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+      .syn-num {
+        background: var(--primary);
+        color: #fff;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 0.9rem;
+      }
+      .syn-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        margin: 0;
+        color: var(--text-main);
+      }
+      .syn-block {
+        margin-bottom: 20px;
+      }
+      .syn-block:last-child {
+        margin-bottom: 0;
+        background: var(--bg-card);
+        padding: 16px;
+        border-radius: 8px;
+        border-left: 3px solid var(--primary);
+      }
+      .syn-label {
+        display: inline-block;
+        font-size: 0.8rem;
+        font-weight: 700;
+        padding: 4px 10px;
+        border-radius: 4px;
+        margin-bottom: 8px;
+        background: #eee9e5;
+        color: var(--text-muted);
+      }
+      .syn-label.integration {
+        background: var(--primary-light);
+        color: var(--primary);
+      }
+      .syn-text {
+        font-size: 0.95rem;
+        color: var(--text-muted);
+        line-height: 1.6;
+        word-break: keep-all;
+      }
+
+      /* 03. Partnership */
+      .partner-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 24px;
+      }
+      .partner-card {
+        background: #fff;
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius);
+        padding: 32px 24px;
+        text-align: center;
+        box-shadow: var(--shadow-sm);
+      }
+      .partner-icon {
+        width: 56px;
+        height: 56px;
+        background: var(--bg-card);
+        border: 2px solid var(--primary-light);
+        color: var(--primary);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        font-weight: 700;
+        margin: 0 auto 20px;
+      }
+      .partner-name {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: var(--text-main);
+        margin-bottom: 8px;
+      }
+      .partner-role {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--primary);
+        display: block;
+        margin-bottom: 16px;
+        padding-bottom: 16px;
+        border-bottom: 1px dashed var(--border-light);
+      }
+      .partner-desc {
+        font-size: 0.95rem;
+        color: var(--text-muted);
+        word-break: keep-all;
+        text-align: left;
+      }
+
+      /* 04. Floor Guide */
+      .floor-guide {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+      .floor-card {
+        display: flex;
+        background: #fff;
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-sm);
+        overflow: hidden;
+      }
+      .floor-left {
+        background: var(--bg-card);
+        width: 280px;
+        padding: 32px;
+        border-right: 1px solid var(--border-light);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+      .floor-level {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: var(--primary);
+        margin-bottom: 8px;
+      }
+      .floor-theme {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--text-main);
+        margin-bottom: 4px;
+      }
+      .floor-sub {
+        font-size: 0.9rem;
+        color: var(--text-muted);
+      }
+      .floor-right {
+        padding: 32px;
+        flex: 1;
+      }
+      .floor-right ul {
+        margin: 0;
+        padding-left: 20px;
+        color: var(--text-muted);
+      }
+      .floor-right li {
+        font-size: 0.95rem;
+        margin-bottom: 12px;
+        word-break: keep-all;
+      }
+      .floor-right li:last-child {
+        margin-bottom: 0;
+      }
+      .floor-right strong {
+        color: var(--text-main);
+        font-weight: 600;
+      }
+
+      /* 05. Next Step */
+      .callout-wrapper {
+        background: #fff;
+        border: 1px solid var(--border-light);
+        border-left: 6px solid var(--primary);
+        border-radius: var(--radius);
+        padding: 40px;
+        box-shadow: var(--shadow-sm);
+      }
+      .callout-intro {
+        font-size: 1.1rem;
+        color: var(--text-main);
+        font-weight: 500;
+        margin-bottom: 24px;
+        word-break: keep-all;
+      }
+      .checklist {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      .checklist li {
+        position: relative;
+        padding-left: 32px;
+        margin-bottom: 20px;
+        font-size: 0.95rem;
+        color: var(--text-muted);
+        word-break: keep-all;
+      }
+      .checklist li:last-child {
+        margin-bottom: 0;
+      }
+      .checklist li::before {
+        content: '✓';
+        position: absolute;
+        left: 0;
+        top: 0;
+        color: var(--primary);
+        font-weight: 700;
+        font-size: 1.2rem;
+        line-height: 1.2;
+      }
+      .checklist li strong {
+        color: var(--text-main);
+        font-weight: 600;
+        display: inline-block;
+        margin-bottom: 4px;
+      }
+
+      footer {
+        text-align: center;
+        padding: 40px 0;
+        border-top: 1px solid var(--border-light);
+        color: var(--text-muted);
+        font-size: 0.9rem;
+      }
+
+      @media (max-width: 992px) {
+        .synthesis-grid,
+        .partner-grid {
+          grid-template-columns: 1fr;
+        }
+        .floor-card {
+          flex-direction: column;
+        }
+        .floor-left {
+          width: 100%;
+          border-right: none;
+          border-bottom: 1px solid var(--border-light);
+          padding: 24px;
+        }
+        .summary-cards {
+          grid-template-columns: 1fr;
+        }
+        .nav-links {
+          display: none;
+        } /* Simplified for mobile */
+        .hero h1 {
+          font-size: 2.2rem;
+        }
+      }
+    </style>
+  </head>
+  <body style="">
+    
+    <nav class="sticky-nav">
+      <div class="nav-brand">Brickwell Strategic Review</div>
+      <div class="nav-links">
+        <a href="#gap">Gap Analysis</a>
+        <a href="#synthesis">Synthesis</a>
+        <a href="#partnership">Partnership</a>
+        <a href="#floor-guide">Floor Guide</a>
+        <a href="#next-step">Next Step</a>
+      </div>
+    </nav>
+
+    <main class="container">
+      
+      <section class="hero">
+        <div class="eyebrow">Integrated Strategy Proposal</div>
+        <h1>[보고서] 브릭웰(Brickwell) 공간 활성화<br>기획안 검토 및 통합 전략 제안서</h1>
+        <p>공간 활성화 전략, 운영 모델, 파트너십 정렬, 층별 가이드라인을 통합적으로 검토한 제안서</p>
+
+        <div class="hero-badges">
+          <span class="hero-badge">MVP 가오픈</span>
+          <span class="hero-badge">K-웰니스</span>
+          <span class="hero-badge">파트너십 정렬</span>
+        </div>
+
+        <div class="summary-cards">
+          <div class="summary-card">
+            <h4>운영 모델</h4>
+            <p>단기 화제성보다 지속가능한 플랫폼 가치 정렬 및 콘텐츠 적층형 단계적 확장(MVP) 운영</p>
+          </div>
+          <div class="summary-card">
+            <h4>공간 전략</h4>
+            <p>도심 속 무료 쉼터를 통한 공공성 확보 및 상층부 상업 공간으로의 유기적인 유입 퍼널 구축</p>
+          </div>
+          <div class="summary-card">
+            <h4>파트너 구조</h4>
+            <p>단순 입점이 아닌 공간 기반 웰니스 프로그램 큐레이션 및 창작자 브랜딩 상생 플랫폼</p>
+          </div>
+        </div>
+      </section>
+
+      
+      <section id="gap" class="section-spacing">
+        <div class="section-label">01 GAP ANALYSIS</div>
+        <h2 class="section-title">기획안 및 경영 지향점 대비 분석</h2>
+        <p class="section-desc">
+          현재 제출된 기획안과 경영 지향점은 각각 '단기 화제성·수익 확보'와 '장기 브랜드 가치·상생 플랫폼 구축'이라는
+          명확한 강점과 특성을 지니고 있습니다. 양측의 핵심 차이점은 다음과 같습니다.
+        </p>
+
+        <div class="table-ui-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>비교 항목</th>
+                <th>기획안</th>
+                <th>경영 지향점</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="td-label">운영 타임라인</td>
+                <td>5주간 정밀 시공 후 8월 말 집중 오픈</td>
+                <td>7월 초 가오픈(MVP) 후 프로그램 순차 확장</td>
+              </tr>
+              <tr>
+                <td class="td-label">공간 톤앤매너</td>
+                <td>가구/구조물 시공 중심의 모던 웰니스</td>
+                <td>건물 본연의 미를 살린 현대적 K-웰니스</td>
+              </tr>
+              <tr>
+                <td class="td-label">1층 중정 활용</td>
+                <td>인포메이션 및 상업 브랜드 부스 배치</td>
+                <td>전면 개방을 통한 공공 휴식 공간 제공</td>
+              </tr>
+              <tr>
+                <td class="td-label">수익 모델</td>
+                <td>부스비, 티켓 판매 등 즉각적인 매출 쉐어</td>
+                <td>초기 플랫폼 수익 최소화, 롱테일 생태계 구축</td>
+              </tr>
+              <tr>
+                <td class="td-label">마케팅 방식</td>
+                <td>인플루엔서 및 유료 매체 비용 투입</td>
+                <td>젊은 창작자 협업 기반의 유기적 바이럴</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      
+      <section id="synthesis" class="section-spacing">
+        <div class="section-label">02 SYNTHESIS</div>
+        <h2 class="section-title">전략적 절충 및 통합 방향성</h2>
+        <p class="section-desc">
+          두 가지 접근법의 한계를 보완하고 시너지를 내기 위해, 기획측의 '트렌디한 실행력 및 동선 설계안'을 경영진의
+          '지속가능한 플랫폼 철학'과 정렬하는 통합 방안을 검토할 필요가 있습니다.
+        </p>
+
+        <div class="synthesis-grid">
+          
+          <div class="syn-card">
+            <div class="syn-header">
+              <div class="syn-num">01</div>
+              <h3 class="syn-title">타임라인 및 운영 모델 최적화</h3>
+            </div>
+            <div class="syn-block">
+              <span class="syn-label">분석</span>
+              <div class="syn-text">
+                5주간의 중시공은 초기 비용 부담과 운영 기간 단축의 리스크가 있으며, 반대로 준비 없는 조기 개장은 완성도
+                저하를 야기할 수 있습니다.
+              </div>
+            </div>
+            <div class="syn-block">
+              <span class="syn-label integration">통합안</span>
+              <div class="syn-text">
+                과도한 인테리어 시공을 배제하고 브릭웰 고유의 건축미를 기본 인프라로 활용하되, 7월 초에는 최소한의 운영
+                집기만 세팅하여 '가오픈(MVP) 형태'로 즉시 가동하는 방안입니다. 7월 가오픈 운영을 통해 축적된 고객
+                피드백을 반영하여 8월 메인 행사의 완성도를 점진적으로 높이는 '콘텐츠 적층형' 프로세스가 대안이 될 수
+                있습니다.
+              </div>
+            </div>
+          </div>
+
+          
+          <div class="syn-card">
+            <div class="syn-header">
+              <div class="syn-num">02</div>
+              <h3 class="syn-title">현대적 'K-웰니스' 콘텐츠 범주 확장</h3>
+            </div>
+            <div class="syn-block">
+              <span class="syn-label">분석</span>
+              <div class="syn-text">
+                순수 전통 예술만 고집할 경우 젊은 층의 유입 동인이 약화될 수 있고, 흔한 팝업 형태는 차별성이 떨어질 수
+                있습니다.
+              </div>
+            </div>
+            <div class="syn-block">
+              <span class="syn-label integration">통합안</span>
+              <div class="syn-text">
+                한국적 웰니스를 과거의 전통에만 가두지 않고, '현대 한국인의 라이프스타일과 정서'로 재정의하는 브랜딩을
+                제안합니다. 트렌디한 러닝 크루 문화나 한국적 감성을 담은 디카페인 F&amp;B처럼, 확장성 있고 대중적인 콘텐츠를
+                기획안에 녹여내는 방식입니다.
+              </div>
+            </div>
+          </div>
+
+          
+          <div class="syn-card">
+            <div class="syn-header">
+              <div class="syn-num">03</div>
+              <h3 class="syn-title">공공성 기반 트래픽 유입 동선 구축</h3>
+            </div>
+            <div class="syn-block">
+              <span class="syn-label">분석</span>
+              <div class="syn-text">
+                1층부터 상업 부스를 전면 배치하면 심리적 진입 장벽이 높아질 수 있으나, 아무런 장치 없이 비워두기만 하면
+                상층부로의 유입이 어려워집니다.
+              </div>
+            </div>
+            <div class="syn-block">
+              <span class="syn-label integration">통합안</span>
+              <div class="syn-text">
+                1층 중정은 조경 중심의 '도심 속 무료 쉼터'로 개방하여 모객력을 극대화하되, 상층부 유입을 유도하기 위해
+                기획측이 제안한 '웰니스 가이드 카드(스탬프 투어)' 배포처를 중정 한구석에 최소화하여 배치하는 동선입니다.
+                공공성이 상층부 상업 공간의 트래픽 마중물이 되도록 유도하는 구조입니다.
+              </div>
+            </div>
+          </div>
+
+          
+          <div class="syn-card">
+            <div class="syn-header">
+              <div class="syn-num">04</div>
+              <h3 class="syn-title">교감 중심 데이터 확보 및 수익 모델 조정</h3>
+            </div>
+            <div class="syn-block">
+              <span class="syn-label">분석</span>
+              <div class="syn-text">
+                단순 방문객 수 중심의 데이터는 공간의 장기적 가치를 증명하기 어려우며, 초기부터 높은 입점비를 책정하면
+                양질의 파트너 유입이 제한될 수 있습니다.
+              </div>
+            </div>
+            <div class="syn-block">
+              <span class="syn-label integration">통합안</span>
+              <div class="syn-text">
+                파일럿 기간인 7~8월은 단기 수익보다 '인스트럭터(강사) 및 아티스트와의 인적 커넥션, 코칭 피드백 데이터'를
+                확보하는 데 집중할 것을 제안합니다. 강사들에게 최고 수준의 정산율을 보장하여 자발적인 모객을 유도하되,
+                플랫폼은 공간 활성화 데이터와 3층 F&amp;B 매출을 확보하여 향후 장기 입점 및 파트너십 유치의 근거로 활용하는
+                방안입니다.
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      
+      <section id="partnership" class="section-spacing">
+        <div class="section-label">03 PARTNERSHIP</div>
+        <h2 class="section-title">파트너십 정렬 및 R&amp;R 검토</h2>
+        <p class="section-desc">
+          참여하는 파트너들이 확실한 실익을 챙기고 명확한 역할을 가져갈 수 있도록 R&amp;R 구조를 제안합니다.
+        </p>
+
+        <div class="partner-grid">
+          <div class="partner-card">
+            <div class="partner-icon">D</div>
+            <h3 class="partner-name">더존바이오</h3>
+            <span class="partner-role">웰니스 F&amp;B 및 Tech 총괄 큐레이터</span>
+            <p class="partner-desc">
+              'Lock In Coffee'라는 단일 매장을 강조하는 상업적 부담을 낮추는 대신, 공간 기반의 웰니스 프로그램을
+              큐레이팅하는 상위 롤을 부여합니다. 더존바이오의 리드 하에 한국적 감성의 디카페인 커피를 포함한 다양한
+              한국적 웰니스 F&amp;B와 테크를 공간에 총괄 큐레이션하는 형태입니다.
+            </p>
+          </div>
+
+          <div class="partner-card">
+            <div class="partner-icon">E</div>
+            <h3 class="partner-name">이화여대 DPROmenade</h3>
+            <span class="partner-role">공식 기업 협업 파트너</span>
+            <p class="partner-desc">
+              단순한 외주 디자인 작업에 그치지 않도록, 학생들이 '더웰니스코리아-더존바이오'라는 실제 기업과의 공식 협업
+              레퍼런스(포트폴리오)를 확실히 확보할 수 있도록 기획 단계를 설계하는 배려 방안입니다.
+            </p>
+          </div>
+
+          <div class="partner-card">
+            <div class="partner-icon">A</div>
+            <h3 class="partner-name">인스트럭터 및 아티스트</h3>
+            <span class="partner-role">브랜딩 및 팬덤 확장 주체</span>
+            <p class="partner-desc">
+              일회성 티켓 판매자가 아닌, 브릭웰이라는 공간을 지원받아 참가자들과 직접 소통하고 본인의 브랜딩을 강화하며
+              피드백을 주고받는 상생 파트너로 설정합니다.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      
+      <section id="floor-guide" class="section-spacing">
+        <div class="section-label">04 FLOOR GUIDE</div>
+        <h2 class="section-title">수정된 층별 공간 가이드라인</h2>
+        <p class="section-desc">기획안의 레이아웃에 피드백과 현장 물리적 제약을 반영하여 조정한 공간 제안입니다.</p>
+
+        <div class="floor-guide">
+          <div class="floor-card">
+            <div class="floor-left">
+              <div class="floor-level">1F</div>
+              <div class="floor-theme">Secret Garden</div>
+              <div class="floor-sub">체험 및 개방형 휴식 공간</div>
+            </div>
+            <div class="floor-right">
+              <ul>
+                <li>
+                  <strong>Unit 1:</strong> 대중의 이목을 끌 수 있는 도예, 민화 클래스 등 '전통 기반 크래프트(Craft) 체험
+                  공간'으로 활용하여 진입 장벽 완화.
+                </li>
+                <li>
+                  <strong>중정 및 주차 공간:</strong> 상시 테이블을 운영하여 방문객이 쉬어갈 수 있는 개방형 쉼터 무드
+                  조성.
+                </li>
+                <li>
+                  <strong>우물 앞 공간:</strong> 기존 파일럿 행사에서 반응이 검증된 만큼, 시그니처 경험 공간 및
+                  포토존으로 적극 활용 검토.
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="floor-card">
+            <div class="floor-left">
+              <div class="floor-level">2F &amp; 3F</div>
+              <div class="floor-theme">Sense &amp; Stay</div>
+              <div class="floor-sub">인스트럭터 라운지 및 큐레이션 공간</div>
+            </div>
+            <div class="floor-right">
+              <ul>
+                <li>
+                  빽빽한 브랜드 부스 형태의 상업 공간은 최소화. 선생님들이 참가자들과 소통하고 본인 브랜딩을 전개하는
+                  <strong>'교감 및 피드백 공간'</strong>으로 배정.
+                </li>
+                <li>
+                  더존바이오의 큐레이션 하에 한국적 F&amp;B 배치. 2층 'Do Nothing Zone'은 전통 평상과 명상 음악을 활용한
+                  한국적 쉼터로, 3층 'Work Well' 구역은 대형 나무 테이블을 활용한 전통 서재(서당) 무드로 차분한 몰입
+                  환경 조성.
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="floor-card">
+            <div class="floor-left">
+              <div class="floor-level">4F &amp; Rooftop</div>
+              <div class="floor-theme">Connect &amp; Inspire</div>
+              <div class="floor-sub">프로그램 및 메인 콘텐츠</div>
+            </div>
+            <div class="floor-right">
+              <ul>
+                <li>7월 초부터 루프탑 요가 및 사운드 테라피 프로그램을 즉시 가동하여 공간 활성화 신호 송출.</li>
+                <li>
+                  <strong>Unit 7 공간 제약 대응:</strong> 5m 이상의 높은 층고가 일부 구역에만 한정되는 하드웨어적 한계를
+                  고려하여, 기획자 및 DPRO 팀이 즉시 현장 실사를 진행하도록 유도. 공간 왜곡이 없는 맞춤형 미디어 아트 및
+                  전통 예술 작가 콜라보레이션 콘텐츠로 조율.
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      
+      <section id="next-step" class="section-spacing" style="padding-bottom: 120px">
+        <div class="section-label">05 NEXT STEP</div>
+        <h2 class="section-title">종합 결론 및 향후 과제</h2>
+
+        <div class="callout-wrapper">
+          <p class="callout-intro">
+            본 통합 검토안은 기획자들의 트렌디한 감각과 실행력을 수용하면서도, 더존바이오의 역할 확장과 DPRO 학생들의
+            실질적인 포트폴리오 혜택을 보장하는 균형점을 찾는 데 초점을 맞추었습니다.
+          </p>
+          <ul class="checklist">
+            <li>
+              <strong>DPRO 배려 방안 구체화</strong><br>
+              이화여대 DPRO 팀에게 실질적인 리워드가 될 수 있도록, 프로젝트 종료 후 ‘더웰니스코리아 X 더존바이오 공식
+              프로젝트 참여 인증서(또는 추천서) 발행’ 등 취업 스펙에 직접적인 도움이 되는 혜택을 기획자 측에
+              가이드라인으로 제시하는 방안을 권장합니다.
+            </li>
+            <li>
+              <strong>4층 현장 실사 및 디렉션 전달</strong><br>
+              Unit 7의 층고 제약을 극복할 수 있도록 기획자 및 DPRO 기획/디자인 팀의 현장 실사 일정을 최우선으로 조율할
+              필요가 있습니다.
+            </li>
+          </ul>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="container">© Brickwell Strategic Review Document. All rights reserved.</div>
+    </footer>
+  
+</body></html>
