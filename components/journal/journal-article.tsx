@@ -1,7 +1,10 @@
 import { journalCategoryLabel } from "@/lib/journal/copy"
 import { journalBodyToHtml } from "@/lib/journal/body"
 import type { JournalPartnerTag } from "@/lib/journal/partners"
-import { getJournalPhotoUrl } from "@/lib/journal/images"
+import {
+  getJournalPhotoUrl,
+  shouldUnoptimizeJournalPhoto,
+} from "@/lib/journal/images"
 import type { JournalPostRow } from "@/lib/journal/types"
 import { JournalPartnerTags } from "@/components/journal/journal-partner-tags"
 import Image from "next/image"
@@ -49,6 +52,7 @@ export function JournalArticle({ post, partners = [] }: JournalArticleProps) {
             alt=""
             fill
             priority
+            unoptimized={shouldUnoptimizeJournalPhoto(heroSrc)}
             sizes="(max-width: 768px) 100vw, 768px"
             className="object-cover"
           />

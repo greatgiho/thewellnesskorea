@@ -2,6 +2,7 @@ import Link from "next/link"
 import Image from "next/image"
 import type { JournalCardData } from "@/lib/journal/types"
 import { journalCategoryLabel } from "@/lib/journal/copy"
+import { shouldUnoptimizeJournalPhoto } from "@/lib/journal/images"
 
 type JournalCardProps = {
   post: JournalCardData
@@ -25,6 +26,7 @@ export function JournalCard({ post }: JournalCardProps) {
               src={post.heroImage}
               alt=""
               fill
+              unoptimized={shouldUnoptimizeJournalPhoto(post.heroImage)}
               sizes="(max-width: 768px) 100vw, 400px"
               className="object-cover transition-transform duration-700 group-hover:scale-105"
             />

@@ -10,6 +10,11 @@ export function getJournalPhotoUrl(path: string | null | undefined): string {
   return `${base}/storage/v1/object/public/${JOURNAL_PHOTOS_BUCKET}/${path}`
 }
 
+/** Supabase storage URLs skip Next.js optimizer (large uploads can timeout on Vercel SSR). */
+export function shouldUnoptimizeJournalPhoto(src: string): boolean {
+  return src.includes("/storage/v1/object/public/")
+}
+
 export function journalHeroStoragePath(postId: string, ext: string): string {
   return `${postId}/hero.${ext}`
 }
