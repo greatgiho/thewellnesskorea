@@ -336,7 +336,7 @@ stateDiagram-v2
 | `getPublishedJournalPosts`, `getPublishedJournalPostBySlug` | Public reads (fallback when empty) |
 | `getAllJournalPostsAdmin`, `getJournalPostByIdAdmin` | Admin reads |
 | `getJournalPhotoUrl`, `shouldUnoptimizeJournalPhoto`, `uploadJournalHero`, `uploadJournalInline` | Hero/inline URL + client upload to `journal-photos`; Supabase storage heroes use `unoptimized` on public `<Image>` (Vercel SSR timeout on large PNGs) |
-| `sanitizeJournalHtml`, `journalBodyToHtml`, `estimateReadMinutes` | HTML sanitize, legacy Markdown → HTML, read time |
+| `sanitizeJournalHtml` (admin save only), `journalBodyToHtml`, `estimateReadMinutes` | HTML sanitize on write; public render skips DOMPurify (Vercel jsdom ESM issue) |
 | `removeJournalPostStorage` | Delete hero + inline files on post delete |
 | `JournalEditor` (`components/admin/journal-editor.tsx`) | TipTap WYSIWYG (StarterKit, Image, Link) |
 | `getJournalPartnerTagsForPost`, `syncJournalPostPartners` | Article footer partner tags |

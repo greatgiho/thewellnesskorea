@@ -5,6 +5,7 @@ const supabaseHostname = supabaseUrl
   : undefined
 
 const nextConfig = {
+  serverExternalPackages: ["isomorphic-dompurify", "jsdom"],
   images: {
     remotePatterns: [
       ...(supabaseHostname
