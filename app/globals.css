@@ -144,3 +144,61 @@
 .snap-panel {
   scroll-snap-stop: always;
 }
+
+@layer components {
+  .journal-body > * + * {
+    margin-top: 1.5rem;
+  }
+
+  .journal-body p {
+    @apply leading-relaxed text-foreground/90;
+  }
+
+  .journal-body h2 {
+    @apply mt-10 font-serif text-3xl font-light text-foreground;
+  }
+
+  .journal-body h3 {
+    @apply mt-8 font-serif text-2xl font-light text-foreground;
+  }
+
+  .journal-body blockquote {
+    @apply border-l-2 border-primary/30 pl-6 font-serif text-xl font-light italic leading-relaxed text-foreground/90;
+  }
+
+  .journal-body blockquote p {
+    @apply m-0;
+  }
+
+  .journal-body ul {
+    @apply list-disc space-y-2 pl-6 text-foreground/90;
+  }
+
+  .journal-body a {
+    @apply text-primary underline underline-offset-2;
+  }
+
+  .journal-body img {
+    @apply my-8 w-full rounded-xl;
+  }
+
+  .journal-editor-content p {
+    @apply leading-relaxed text-foreground/90;
+  }
+
+  .journal-editor-content h2 {
+    @apply mt-6 font-serif text-2xl font-light text-foreground;
+  }
+
+  .journal-editor-content blockquote {
+    @apply border-l-2 border-primary/30 pl-4 font-serif italic text-foreground/90;
+  }
+
+  .journal-editor-content ul {
+    @apply list-disc pl-6;
+  }
+
+  .journal-editor-content img {
+    @apply my-4 max-w-full rounded-lg;
+  }
+}

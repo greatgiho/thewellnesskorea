@@ -9,6 +9,11 @@ import type { PathKey } from "@/lib/paths/paths-data"
 import { PATH_OPTIONS } from "@/lib/paths/paths-data"
 import type { PersonRegistrationStatus, PersonWithPrograms } from "@/lib/people/types"
 import {
+  type PartnerKindFilter,
+  partnerKindLabel,
+  personMatchesPartnerKind,
+} from "@/lib/people/partner-kind"
+import {
   isSelfRegistered,
   REGISTRATION_STATUS_BADGE_CLASS,
   registrationStatusLabel,
@@ -55,6 +60,7 @@ function personMatchesSearch(person: PersonWithPrograms, query: string) {
 export function AdminPeopleList({ people, applyLink }: AdminPeopleListProps) {
   const router = useRouter()
   const [search, setSearch] = useState("")
+  const [kindFilter, setKindFilter] = useState<PartnerKindFilter>("all")
   const [philosophyFilters, setPhilosophyFilters] = useState<PathKey[]>([])
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all")
   const [copied, setCopied] = useState(false)
@@ -69,11 +75,12 @@ export function AdminPeopleList({ people, applyLink }: AdminPeopleListProps) {
     const list = people.filter(
       (person) =>
         personMatchesSearch(person, search) &&
+        personMatchesPartnerKind(person, kindFilter) &&
         personMatchesPhilosophy(person, philosophyFilters) &&
         personMatchesStatus(person, statusFilter),
     )
     return sortPeopleByName(list)
-  }, [people, search, philosophyFilters, statusFilter])
+  }, [people, search, kindFilter, philosophyFilters, statusFilter])
 
   const togglePhilosophy = (key: PathKey) => {
     setPhilosophyFilters((prev) =>
@@ -98,7 +105,7 @@ export function AdminPeopleList({ people, applyLink }: AdminPeopleListProps) {
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search name, email, phone, program…"
             className={`${fieldClass} pl-9`}
-            aria-label="Search people"
+            aria-label="Search partners"
           />
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -113,7 +120,7 @@ export function AdminPeopleList({ people, applyLink }: AdminPeopleListProps) {
             href="/admin/people/new"
             className="inline-flex h-9 shrink-0 items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-all hover:bg-primary/90"
           >
-            Add person
+            Add partner
           </Link>
         </div>
       </div>
@@ -122,6 +129,30 @@ export function AdminPeopleList({ people, applyLink }: AdminPeopleListProps) {
         Teacher self-registration: {applyLink} · code{" "}
         <span className="font-mono">twk2026</span>
       </p>
+
+      <div className="flex flex-wrap gap-2">
+        {(
+          [
+            ["all", "All"],
+            ["guide", "Wellness Guide"],
+            ["artist", "Artist"],
+            ["brand", "Brand"],
+          ] as const
+        ).map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setKindFilter(key)}
+            className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+              kindFilter === key
+                ? "border-primary bg-primary/10 text-primary"
+                : "border-border text-muted-foreground hover:border-primary/40"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
 
       <div className="flex flex-wrap gap-2">
         {(
@@ -153,7 +184,7 @@ export function AdminPeopleList({ people, applyLink }: AdminPeopleListProps) {
           Philosophy paths
         </p>
         <p className="mt-1 text-xs text-muted-foreground">
-          Show teachers with at least one program in the selected paths.
+          Show partners with at least one program in the selected paths.
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
           {PATH_OPTIONS.map((path) => {
@@ -197,7 +228,7 @@ export function AdminPeopleList({ people, applyLink }: AdminPeopleListProps) {
 
       {people.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border px-6 py-16 text-center text-muted-foreground">
-          No people yet.{" "}
+          No partners yet.{" "}
           <Link
             href="/admin/people/new"
             className="text-primary underline-offset-4 hover:underline"
@@ -258,7 +289,9 @@ export function AdminPeopleList({ people, applyLink }: AdminPeopleListProps) {
                         </p>
                       )}
                     </td>
-                    <td className="px-4 py-3 capitalize text-muted-foreground">{p.kind}</td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {partnerKindLabel(p.kind)}
+                    </td>
                     <td className="px-4 py-3 text-muted-foreground">{p.programs.length}</td>
                     <td className="px-4 py-3">
                       {pathLabels.length > 0 ? (

@@ -121,6 +121,7 @@ export function getInitials(nameEn: string): string {
 export const PERSON_KINDS = [
   { value: "guide" as const, label: "Wellness Guide" },
   { value: "artist" as const, label: "Artist" },
+  { value: "brand" as const, label: "Brand" },
   { value: "both" as const, label: "Guide & Artist" },
 ]
 

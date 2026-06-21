@@ -19,7 +19,7 @@ export default function AdminDashboardLayout({
                 href="/admin/people"
                 className="text-muted-foreground transition-colors hover:text-foreground"
               >
-                People
+                Partners
               </Link>
               <Link
                 href="/admin/schedule"
@@ -32,6 +32,12 @@ export default function AdminDashboardLayout({
                 className="text-muted-foreground transition-colors hover:text-foreground"
               >
                 Bookings
+              </Link>
+              <Link
+                href="/admin/journal"
+                className="text-muted-foreground transition-colors hover:text-foreground"
+              >
+                Journal
               </Link>
             </nav>
           </div>

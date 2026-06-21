@@ -7,6 +7,8 @@ export const JOURNAL_CATEGORIES: { key: JournalCategory | "all"; label: string }
     { key: "space", label: "Space" },
     { key: "programs", label: "Programs" },
     { key: "news", label: "News" },
+    { key: "region", label: "Local Discovery" },
+    { key: "taste", label: "Local Taste" },
   ]
 
 export function journalCategoryLabel(category: JournalCategory): string {

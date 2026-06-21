@@ -1,6 +1,6 @@
 # The Wellness Korea — Database Schema
 
-Last updated: 2026-06-18
+Last updated: 2026-06-17
 
 Source of truth: `supabase/migrations/001`–`011`
 
@@ -17,11 +17,12 @@ Companion: [ERD](./database-erd.md) · [Backend logic](./backend-architecture.md
 
 | Enum | Values | Used in |
 |------|--------|---------|
-| `person_kind` | `guide`, `artist`, `both` | `people.kind` |
+| `person_kind` | `guide`, `artist`, `both`, `brand` | `people.kind` |
 | `path_key` | `bium`, `kkaeum`, `jieum`, `chaeum`, `nurim` | `person_programs.path_keys`, `sessions.path_keys` |
 | `session_status` | `processing`, `confirmed`, `cancelled` | `sessions.status` |
 | `person_registration_status` | `admin`, `draft`, `submitted`, `approved`, `rejected` | `people.registration_status` |
 | `experience_kind` | `space`, `journey` | `experiences.kind` |
+| `journal_category` | `philosophy`, `space`, `programs`, `news`, `region`, `taste` | `journal_posts.category` |
 
 ---
 
@@ -136,6 +137,53 @@ Eyebrow copy is **frontend-fixed** — see `lib/experiences/copy.ts`.
 
 ---
 
+### `journal_posts`
+
+Platform Journal (Core region/taste + Space/programs). Admin CRUD; public read when published.
+
+| Column | Type | Constraints / default |
+|--------|------|----------------------|
+| `id` | uuid | PK |
+| `slug` | text | UNIQUE, NOT NULL |
+| `title_en` | text | NOT NULL |
+| `title_ko` | text | nullable |
+| `excerpt_en` | text | NOT NULL |
+| `body_en` | text | default `''` — TipTap HTML (sanitized on save); legacy Markdown converted at render |
+| `hero_image_path` | text | nullable — static path (`/…`) or `journal-photos` key (`{postId}/hero.*`) |
+| `category` | journal_category | NOT NULL, default `news` |
+| `published_at` | timestamptz | NOT NULL, default now() |
+| `read_minutes` | int | CHECK `> 0`, default 5 |
+| `is_published` | boolean | default false |
+| `experience_id` | uuid | FK → `experiences`, ON DELETE SET NULL |
+| `seo_title`, `seo_description` | text | nullable |
+| `created_at`, `updated_at` | timestamptz | trigger on update |
+
+**Indexes:** `(is_published, published_at desc)`, `(category, published_at desc)`
+
+**Seed (`014`–`016`):** 4 published posts (philosophy, space, region, taste). Copy source: `lib/journal/seed-content.ts`. Refresh: `015`; HTML bodies: `016`.
+
+---
+
+### `journal_post_people`
+
+Many-to-many tags linking a journal post to partner profiles (`people`).
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | uuid | PK |
+| `journal_post_id` | uuid | FK → `journal_posts`, ON DELETE CASCADE |
+| `person_id` | uuid | FK → `people`, ON DELETE CASCADE |
+| `sort_order` | int | display order on article footer |
+| `created_at` | timestamptz | |
+
+**Unique:** `(journal_post_id, person_id)`
+
+**Public read:** junction row visible when post `is_published` and person is published + approved/admin.
+
+**Admin:** full CRUD via `saveJournalPost` sync (`lib/journal/partners.ts`).
+
+---
+
 ### `floors`
 
 Per-experience building levels. Brickwell: 1F–4F (`slug` `1f`…`4f`).
@@ -229,7 +277,8 @@ Participant accounts (not `people` / teachers). Created on member signup (B4).
 | Function | Purpose |
 |----------|---------|
 | `set_updated_at()` | Trigger: bump `updated_at` on `people`, `sessions`, `experiences`, `members`, `bookings` |
-| `is_admin_user()` | RLS: `(jwt app_metadata.role) IS DISTINCT FROM 'teacher'` |
+| `is_admin_user()` | RLS: `(jwt app_metadata.role) = 'admin'` |
+| `enforce_session_floor_experience_match()` | Trigger: `sessions.experience_id` must match `floors.experience_id` |
 | `normalize_email(text)` | Lowercase trim for booking emails |
 | `create_booking(...)` | Security definer: insert booking + increment `booked_count` (service role only) |
 | `cancel_booking_by_token(text)` | Guest cancel + decrement `booked_count` |
@@ -240,7 +289,7 @@ Participant accounts (not `people` / teachers). Created on member signup (B4).
 
 ## Row Level Security
 
-RLS **enabled** on all app tables (`people`, `person_programs`, `floors`, `sessions`, `regions`, `person_activity_regions`, `experiences`, `members`, `bookings`).
+RLS **enabled** on all app tables (`people`, `person_programs`, `floors`, `sessions`, `regions`, `person_activity_regions`, `experiences`, `members`, `bookings`, `journal_posts`, `journal_post_people`).
 
 ### `experiences`
 
@@ -272,7 +321,7 @@ RLS **enabled** on all app tables (`people`, `person_programs`, `floors`, `sessi
 | Policy | Op | Rule |
 |--------|-----|------|
 | public read floors | SELECT | always true |
-| admin all on floors | ALL | authenticated |
+| admin all on floors | ALL | `is_admin_user()` |
 
 ### `sessions`
 
@@ -315,6 +364,20 @@ RLS **enabled** on all app tables (`people`, `person_programs`, `floors`, `sessi
 
 Guest insert via `create_booking` RPC (service role) — no direct anon INSERT policy.
 
+### `journal_posts`
+
+| Policy | Op | Rule |
+|--------|-----|------|
+| public read published journal posts | SELECT | `is_published = true` |
+| admin all on journal posts | ALL | `is_admin_user()` |
+
+### `journal_post_people`
+
+| Policy | Op | Rule |
+|--------|-----|------|
+| public read journal post partners | SELECT | published post + published partner |
+| admin all on journal post people | ALL | `is_admin_user()` |
+
 ---
 
 ## Storage buckets
@@ -323,6 +386,7 @@ Guest insert via `create_booking` RPC (service role) — no direct anon INSERT p
 |--------|--------|------|------|---------|
 | `person-photos` | yes | 5 MB | jpeg, png, webp | `people.photo_path` |
 | `session-photos` | yes | 5 MB | jpeg, png, webp | `sessions.image_paths[]` |
+| `journal-photos` | yes | 5 MB | jpeg, png, webp | `hero_image_path`, inline body images (`{postId}/inline/*`) |
 
 **Policies:** anonymous SELECT; authenticated INSERT/UPDATE/DELETE per bucket.
 
@@ -337,7 +401,7 @@ Referenced by FK (not created in app migrations):
 | Column | Referenced from |
 |--------|-----------------|
 | `id` | `people.user_id`, `people.reviewed_by`, `sessions.created_by`, `confirmed_by`, `cancelled_by`, `bookings.user_id`, `members.id` |
-| `app_metadata.role` | `teacher` \| `member` \| `admin` \| unset (admin) |
+| `app_metadata.role` | `teacher` \| `member` \| `admin` (admin required for `/admin` and RLS admin policies) |
 
 ---
 
@@ -358,6 +422,11 @@ Referenced by FK (not created in app migrations):
 | `011_experiences.sql` | `experiences` (space/journey), `floors.experience_id`, `sessions.experience_id`, Brickwell + coming soon seed |
 | `012_publish_confirmed_sessions.sql` | Backfill `is_published` on confirmed sessions |
 | `013_bookings.sql` | `booking_status`, `bookings`, `members`, booking RPCs, `booked_count` sync |
+| `014_journal_posts.sql` | `journal_category`, `journal_posts`, RLS, `journal-photos`, seed posts |
+| `015_journal_seed_content.sql` | Refresh journal seed editorial copy + hero images |
+| `016_journal_body_html.sql` | Convert seed `body_en` from Markdown to TipTap HTML |
+| `017_journal_partners.sql` | `person_kind` + `brand`; `journal_post_people` junction + RLS |
+| `018_security_rls_and_integrity.sql` | `is_admin_user()` requires `role = admin`; floors admin-only write; session/floor experience trigger; `journal_post_people.person_id` index |
 
 ---
 

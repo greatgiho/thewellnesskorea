@@ -1,7 +1,7 @@
 import type { PathKey } from "@/lib/paths/paths-data"
 import type { PersonActivityRegionRow } from "@/lib/regions/types"
 
-export type PersonKind = "guide" | "artist" | "both"
+export type PersonKind = "guide" | "artist" | "both" | "brand"
 
 export type PersonRegistrationStatus =
   | "admin"

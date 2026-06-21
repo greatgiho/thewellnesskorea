@@ -9,7 +9,6 @@ export function Artists({ people }: ArtistsProps) {
   return (
     <PersonSection
       id="arts"
-      eyebrow="Heung · 興"
       title="Artist"
       description="Our spaces are also stages. Gugak, Korean dance, and performances that reinterpret tradition bring wellness its pulse — heung."
       people={people}

@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { Suspense } from "react"
 import { AdminLoginForm } from "@/components/admin/admin-login-form"
 
 export default function AdminLoginPage() {
@@ -11,7 +12,9 @@ export default function AdminLoginPage() {
             Admin
           </h1>
         </div>
-        <AdminLoginForm />
+        <Suspense fallback={<p className="text-sm text-muted-foreground">Loading…</p>}>
+          <AdminLoginForm />
+        </Suspense>
         <p className="text-center text-xs text-muted-foreground">
           <Link href="/" className="underline-offset-4 hover:underline">
             Back to site

@@ -20,6 +20,7 @@ const footerLinks: Record<string, FooterLink[]> = {
     { label: "Wellness Guides", href: "#guides" },
     { label: "Artists", href: "#arts" },
     { label: "Schedule", href: "#schedule" },
+    { label: "Journal", href: "/journal" },
   ],
 }
 

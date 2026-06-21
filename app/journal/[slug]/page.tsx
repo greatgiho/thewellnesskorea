@@ -4,6 +4,7 @@ import { Footer } from "@/components/footer"
 import { JournalArticle } from "@/components/journal/journal-article"
 import { Navbar } from "@/components/navbar"
 import { getPublishedJournalPostBySlug } from "@/lib/journal/queries"
+import { getJournalPartnerTagsForPost } from "@/lib/journal/partners"
 
 type Props = {
   params: Promise<{ slug: string }>
@@ -29,11 +30,13 @@ export default async function JournalArticlePage({ params }: Props) {
 
   if (!post) notFound()
 
+  const partners = await getJournalPartnerTagsForPost(post.id)
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
       <main>
-        <JournalArticle post={post} />
+        <JournalArticle post={post} partners={partners} />
       </main>
       <Footer />
     </div>

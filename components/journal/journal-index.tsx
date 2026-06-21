@@ -7,11 +7,15 @@ import { JournalCard } from "./journal-card"
 
 type JournalIndexProps = {
   posts: JournalCardData[]
+  initialCategory?: JournalCategory | "all"
 }
 
-export function JournalIndex({ posts }: JournalIndexProps) {
+export function JournalIndex({
+  posts,
+  initialCategory = "all",
+}: JournalIndexProps) {
   const [activeCategory, setActiveCategory] = useState<JournalCategory | "all">(
-    "all",
+    initialCategory,
   )
 
   const filtered = useMemo(() => {
@@ -29,7 +33,8 @@ export function JournalIndex({ posts }: JournalIndexProps) {
           Stories from The Wellness Korea
         </h1>
         <p className="mt-5 text-pretty leading-relaxed text-muted-foreground">
-          Philosophy, Spaces, programs, and news—written for a slower read.
+          Philosophy, local discovery, taste, Spaces, programs, and news—written
+          for a slower read.
         </p>
       </header>
 

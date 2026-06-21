@@ -155,22 +155,35 @@ export async function updateSession(request: NextRequest) {
       redirectUrl.pathname = "/teacher"
       return NextResponse.redirect(redirectUrl)
     }
-    if (isMemberIntent) {
+    if (isMemberIntent || role === "member") {
       const redirectUrl = request.nextUrl.clone()
       redirectUrl.pathname = "/account/bookings"
+      return NextResponse.redirect(redirectUrl)
+    }
+    if (role !== "admin") {
+      const redirectUrl = request.nextUrl.clone()
+      redirectUrl.pathname = "/admin/login"
+      redirectUrl.search = "error=not_admin"
       return NextResponse.redirect(redirectUrl)
     }
   }
 
   if (isAdminLoginPage && user) {
-    const redirectUrl = request.nextUrl.clone()
-    redirectUrl.pathname =
-      role === "teacher"
-        ? "/teacher"
-        : isMemberIntent
-          ? "/account/bookings"
-          : "/admin/people"
-    return NextResponse.redirect(redirectUrl)
+    if (role === "teacher") {
+      const redirectUrl = request.nextUrl.clone()
+      redirectUrl.pathname = "/teacher"
+      return NextResponse.redirect(redirectUrl)
+    }
+    if (isMemberIntent || role === "member") {
+      const redirectUrl = request.nextUrl.clone()
+      redirectUrl.pathname = "/account/bookings"
+      return NextResponse.redirect(redirectUrl)
+    }
+    if (role === "admin") {
+      const redirectUrl = request.nextUrl.clone()
+      redirectUrl.pathname = "/admin/people"
+      return NextResponse.redirect(redirectUrl)
+    }
   }
 
   if (isMemberCheckEmailPage && user && isMemberIntent) {

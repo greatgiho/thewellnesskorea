@@ -3,6 +3,7 @@ import Link from "next/link"
 import { InstagramIcon } from "@/components/icons/social-icons"
 import { ActivityRegionDisplay } from "@/components/people/activity-region-display"
 import { pathLabelKo } from "@/lib/paths/paths-data"
+import { partnerKindLabel } from "@/lib/people/partner-kind"
 import type { PersonWithPrograms } from "@/lib/people/types"
 import { getPersonPhotoUrl, instagramHandle } from "@/lib/people/utils"
 import type { RegionRow } from "@/lib/regions/types"
@@ -16,11 +17,13 @@ type PersonProfileViewProps = {
 }
 
 function backHrefForKind(kind: PersonWithPrograms["kind"]): string {
+  if (kind === "brand") return "/journal"
   if (kind === "artist") return "/#arts"
   return "/#guides"
 }
 
 function backLabelForKind(kind: PersonWithPrograms["kind"]): string {
+  if (kind === "brand") return "Journal"
   if (kind === "artist") return "Artists"
   if (kind === "guide") return "Wellness Guides"
   return "Wellness Guides"
@@ -54,11 +57,7 @@ export function PersonProfileView({ person, sessions, sido }: PersonProfileViewP
 
         <div className="min-w-0 flex-1">
           <p className="font-mono text-xs uppercase tracking-[0.35em] text-primary">
-            {person.kind === "artist"
-              ? "Artist"
-              : person.kind === "guide"
-                ? "Wellness Guide"
-                : "Guide & Artist"}
+            {partnerKindLabel(person.kind)}
           </p>
           <h1 className="mt-4 font-serif text-4xl font-light text-foreground sm:text-5xl">
             {person.name_en}
@@ -149,9 +148,11 @@ export function PersonProfileView({ person, sessions, sido }: PersonProfileViewP
         </section>
       )}
 
-      <div className="mt-16 border-t border-border pt-16">
-        <PersonUpcomingSessions sessions={sessions} />
-      </div>
+      {person.kind !== "brand" && (
+        <div className="mt-16 border-t border-border pt-16">
+          <PersonUpcomingSessions sessions={sessions} />
+        </div>
+      )}
     </div>
   )
 }

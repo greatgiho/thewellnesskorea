@@ -3,6 +3,8 @@ export type JournalCategory =
   | "space"
   | "programs"
   | "news"
+  | "region"
+  | "taste"
 
 export type JournalPostRow = {
   id: string
@@ -33,5 +35,41 @@ export type JournalCardData = {
   readMinutes: number
 }
 
+export type JournalFormInput = {
+  slug: string
+  title_en: string
+  title_ko: string
+  excerpt_en: string
+  body_en: string
+  category: JournalCategory
+  published_at: string
+  read_minutes: number
+  is_published: boolean
+  experience_id: string | null
+  seo_title: string
+  seo_description: string
+  partner_ids: string[]
+}
+
 export const JOURNAL_PUBLIC_COLUMNS =
   "id, slug, title_en, title_ko, excerpt_en, body_en, hero_image_path, category, published_at, read_minutes, is_published, experience_id, seo_title, seo_description, created_at, updated_at"
+
+export const JOURNAL_CATEGORIES: JournalCategory[] = [
+  "philosophy",
+  "space",
+  "programs",
+  "news",
+  "region",
+  "taste",
+]
+
+export function isJournalCategory(value: string): value is JournalCategory {
+  return (JOURNAL_CATEGORIES as string[]).includes(value)
+}
+
+export function parseJournalCategoryParam(
+  value: string | undefined,
+): JournalCategory | "all" {
+  if (!value || value === "all") return "all"
+  return isJournalCategory(value) ? value : "all"
+}

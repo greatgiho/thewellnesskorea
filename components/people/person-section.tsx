@@ -7,7 +7,7 @@ import { PersonCard } from "./person-card"
 
 type PersonSectionProps = {
   id: string
-  eyebrow: string
+  eyebrow?: string
   title: string
   description: string
   people: PersonCardData[]
@@ -45,9 +45,11 @@ export function PersonSection({
       <div className="mx-auto max-w-7xl px-6 lg:px-10">
         <div className="flex flex-col gap-8 sm:flex-row sm:items-end sm:justify-between">
           <div className="max-w-xl">
-            <p className="font-mono text-xs uppercase tracking-[0.35em] text-primary">
-              {eyebrow}
-            </p>
+            {eyebrow && (
+              <p className="font-mono text-xs uppercase tracking-[0.35em] text-primary">
+                {eyebrow}
+              </p>
+            )}
             <h2 className="mt-5 text-balance font-serif text-4xl font-light leading-tight text-foreground sm:text-5xl">
               {title}
             </h2>

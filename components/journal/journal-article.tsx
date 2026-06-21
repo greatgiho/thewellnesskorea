@@ -1,10 +1,15 @@
+import { journalCategoryLabel } from "@/lib/journal/copy"
+import { journalBodyToHtml } from "@/lib/journal/body"
+import type { JournalPartnerTag } from "@/lib/journal/partners"
+import { getJournalPhotoUrl } from "@/lib/journal/images"
+import type { JournalPostRow } from "@/lib/journal/types"
+import { JournalPartnerTags } from "@/components/journal/journal-partner-tags"
 import Image from "next/image"
 import Link from "next/link"
-import type { JournalPostRow } from "@/lib/journal/types"
-import { journalCategoryLabel } from "@/lib/journal/copy"
 
 type JournalArticleProps = {
   post: JournalPostRow
+  partners?: JournalPartnerTag[]
 }
 
 function formatDate(iso: string) {
@@ -15,43 +20,12 @@ function formatDate(iso: string) {
   })
 }
 
-function renderBody(body: string) {
-  return body.split(/\n\n+/).map((block, index) => {
-    const trimmed = block.trim()
-    if (!trimmed) return null
+export function JournalArticle({ post, partners = [] }: JournalArticleProps) {
+  const heroSrc = post.hero_image_path
+    ? getJournalPhotoUrl(post.hero_image_path)
+    : null
+  const bodyHtml = journalBodyToHtml(post.body_en)
 
-    if (trimmed.startsWith("> ")) {
-      const quote = trimmed.replace(/^>\s?/gm, "")
-      return (
-        <blockquote
-          key={index}
-          className="border-l-2 border-primary/30 pl-6 font-serif text-xl font-light italic leading-relaxed text-foreground/90"
-        >
-          {quote}
-        </blockquote>
-      )
-    }
-
-    if (trimmed.startsWith("## ")) {
-      return (
-        <h2
-          key={index}
-          className="mt-10 font-serif text-3xl font-light text-foreground"
-        >
-          {trimmed.replace(/^##\s/, "")}
-        </h2>
-      )
-    }
-
-    return (
-      <p key={index} className="leading-relaxed text-foreground/90">
-        {trimmed}
-      </p>
-    )
-  })
-}
-
-export function JournalArticle({ post }: JournalArticleProps) {
   return (
     <article className="mx-auto max-w-3xl px-6 pb-24 pt-32 lg:px-0 lg:pb-32 lg:pt-36">
       <Link
@@ -68,10 +42,10 @@ export function JournalArticle({ post }: JournalArticleProps) {
         {post.read_minutes} min read · {journalCategoryLabel(post.category)}
       </p>
 
-      {post.hero_image_path ? (
+      {heroSrc ? (
         <div className="relative mt-10 aspect-[16/10] overflow-hidden rounded-2xl">
           <Image
-            src={post.hero_image_path}
+            src={heroSrc}
             alt=""
             fill
             priority
@@ -81,7 +55,14 @@ export function JournalArticle({ post }: JournalArticleProps) {
         </div>
       ) : null}
 
-      <div className="prose-spacing mt-12 space-y-6 text-base">{renderBody(post.body_en)}</div>
+      {bodyHtml ? (
+        <div
+          className="journal-body mt-12 text-base"
+          dangerouslySetInnerHTML={{ __html: bodyHtml }}
+        />
+      ) : null}
+
+      <JournalPartnerTags partners={partners} />
     </article>
   )
 }

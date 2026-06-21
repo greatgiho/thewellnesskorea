@@ -1,6 +1,6 @@
 # The Wellness Korea — Backend Architecture & Core Logic
 
-Last updated: 2026-06-18
+Last updated: 2026-06-17
 
 Companion docs: [Site map](./site-map-and-flows.md) · [DB schema](./database-schema.md) · [ERD](./database-erd.md) · [Audit log](./architecture-audit-log.md) · [Refactoring plan](./refactoring-plan.md) · [Multi-experience requirements](./multi-venue-requirements.md) · [Booking requirements](./booking-requirements.md)
 
@@ -47,10 +47,10 @@ Companion docs: [Site map](./site-map-and-flows.md) · [DB schema](./database-sc
 
 | Role | How set | Access |
 |------|---------|--------|
-| **Admin** | Default; or `app_metadata.role = "admin"` | `/admin/*`, full RLS via `is_admin_user()` |
+| **Admin** | `app_metadata.role = "admin"` (`npm run create-admin`, `set-admin-role`, or `backfill-admin-roles`) | `/admin/*`, full RLS via `is_admin_user()` |
 | **Teacher** | `ensureTeacherRole()` on first profile access; `app_metadata.role = teacher` on account provision | `/apply/profile/*` (registration), `/teacher/*` (portal), own `people` + `person_programs` via RLS |
 
-DB helper `is_admin_user()`: JWT `app_metadata.role IS DISTINCT FROM 'teacher'` (unset = admin).
+DB helper `is_admin_user()`: JWT `app_metadata.role = 'admin'` (explicit only; members/teachers/unset do not pass). Middleware and `/admin/login` enforce the same check; legacy unset accounts: `npm run backfill-admin-roles -- --apply`.
 
 ### Email policy (Option A — Strict) ✅
 
@@ -252,7 +252,7 @@ stateDiagram-v2
 ### Notifications (`notifyAdminProfileSubmitted`)
 
 - Trigger: new submit or re-submit (incl. post-approval edit)
-- Recipients: `getAdminNotifyEmails()` — all Auth users where `role !== "teacher"`
+- Recipients: `getAdminNotifyEmails()` — Auth users where `app_metadata.role = "admin"`
 - Channels: Resend + optional Slack; failures silent
 - Requires: `RESEND_API_KEY`, `NOTIFY_FROM_EMAIL`, `SUPABASE_SERVICE_ROLE_KEY`
 
@@ -307,6 +307,13 @@ stateDiagram-v2
 | `duplicateSession` | Copy to new slot as `processing` |
 | `deleteSession` | Soft cancel |
 
+### `app/admin/journal/actions.ts`
+
+| Function | Role |
+|----------|------|
+| `saveJournalPost` | Create/update post; hero cleanup on replace |
+| `deleteJournalPost` | Delete post + `journal-photos` storage under `{postId}/` |
+
 ---
 
 ## lib/ function map
@@ -321,6 +328,20 @@ stateDiagram-v2
 | `hasValidSiteAccessCookie` | HMAC cookie verification (Edge-safe) |
 | `safeNextPath` | Open-redirect guard for post-unlock redirect |
 | `unlockSite` | Server Action in `app/site-unlock/actions.ts` |
+
+### `lib/journal/`
+
+| Export | Role |
+|--------|------|
+| `getPublishedJournalPosts`, `getPublishedJournalPostBySlug` | Public reads (fallback when empty) |
+| `getAllJournalPostsAdmin`, `getJournalPostByIdAdmin` | Admin reads |
+| `getJournalPhotoUrl`, `uploadJournalHero`, `uploadJournalInline` | Hero/inline URL + client upload to `journal-photos` |
+| `sanitizeJournalHtml`, `journalBodyToHtml`, `estimateReadMinutes` | HTML sanitize, legacy Markdown → HTML, read time |
+| `removeJournalPostStorage` | Delete hero + inline files on post delete |
+| `JournalEditor` (`components/admin/journal-editor.tsx`) | TipTap WYSIWYG (StarterKit, Image, Link) |
+| `getJournalPartnerTagsForPost`, `syncJournalPostPartners` | Article footer partner tags |
+| `JournalPartnerPicker`, `JournalPartnerTags` | Admin picker + public footer cards |
+| `saveJournalPost`, `deleteJournalPost` | Server Actions (`app/admin/journal/actions.ts`) |
 
 ### `lib/auth/`
 

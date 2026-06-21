@@ -1,15 +1,32 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 
+function adminAccessError(role: string | undefined): string | null {
+  if (role === "admin") return null
+  if (role === "teacher") {
+    return "This is a teacher account. Sign in at /teacher/login instead."
+  }
+  if (role === "member") {
+    return "Member accounts cannot access admin. Use /login for member sign-in."
+  }
+  return "This account does not have admin access (app_metadata.role is not \"admin\"). Run: npm run set-admin-role -- your@email.com"
+}
+
 export function AdminLoginForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const queryError =
+    searchParams.get("error") === "not_admin"
+      ? "Signed in, but this account is not an admin. Run: npm run set-admin-role -- your@email.com"
+      : null
+
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(queryError)
   const [pending, setPending] = useState(false)
 
   const onSubmit = async (e: React.FormEvent) => {
@@ -17,15 +34,29 @@ export function AdminLoginForm() {
     setError(null)
     setPending(true)
     const supabase = createClient()
-    const { error: authError } = await supabase.auth.signInWithPassword({
+    const { data, error: authError } = await supabase.auth.signInWithPassword({
       email,
       password,
     })
-    setPending(false)
     if (authError) {
+      setPending(false)
       setError(authError.message)
       return
     }
+
+    const role =
+      typeof data.user?.app_metadata?.role === "string"
+        ? data.user.app_metadata.role
+        : undefined
+    const accessError = adminAccessError(role)
+    if (accessError) {
+      await supabase.auth.signOut()
+      setPending(false)
+      setError(accessError)
+      return
+    }
+
+    setPending(false)
     router.push("/admin/people")
     router.refresh()
   }

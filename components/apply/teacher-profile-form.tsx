@@ -152,7 +152,7 @@ export function TeacherProfileForm({
               }))
             }
           >
-            {PERSON_KINDS.map((k) => (
+            {PERSON_KINDS.filter((k) => k.value !== "brand").map((k) => (
               <option key={k.value} value={k.value}>
                 {k.label}
               </option>

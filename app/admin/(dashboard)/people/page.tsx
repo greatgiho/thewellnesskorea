@@ -8,9 +8,9 @@ export default async function AdminPeoplePage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="font-serif text-3xl font-light text-foreground">People</h1>
+        <h1 className="font-serif text-3xl font-light text-foreground">Partners</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Wellness guides and artists
+          Wellness guides, artists, and brands
         </p>
       </div>
       <AdminPeopleList people={people} applyLink={applyLinkForTeachers()} />

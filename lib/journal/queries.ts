@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
+import { getJournalPhotoUrl } from "./images"
 import type { JournalCardData, JournalCategory, JournalPostRow } from "./types"
 import { JOURNAL_PUBLIC_COLUMNS } from "./types"
 import { FALLBACK_JOURNAL_POSTS } from "./fallback"
@@ -8,7 +9,9 @@ function toCard(row: JournalPostRow): JournalCardData {
     slug: row.slug,
     title: row.title_en,
     excerpt: row.excerpt_en,
-    heroImage: row.hero_image_path,
+    heroImage: row.hero_image_path
+      ? getJournalPhotoUrl(row.hero_image_path)
+      : null,
     category: row.category,
     publishedAt: row.published_at,
     readMinutes: row.read_minutes,

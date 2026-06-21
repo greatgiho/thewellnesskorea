@@ -40,6 +40,10 @@ export async function assertMemberEmailAvailable(email: string): Promise<void> {
       "This email is registered as an admin account and cannot be used for member sign-in.",
     )
   }
+
+  throw new UserFacingError(
+    "This email is already registered. Sign in or use a different address.",
+  )
 }
 
 export { normalizeEmail as normalizeMemberEmail }

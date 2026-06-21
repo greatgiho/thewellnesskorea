@@ -9,8 +9,7 @@ function normalizeEmail(email: string): string {
 export function isAdminAuthUser(
   appMetadata: Record<string, unknown> | undefined,
 ): boolean {
-  const role = appMetadata?.role
-  return role !== "teacher"
+  return appMetadata?.role === "admin"
 }
 
 export async function findAuthUserByEmail(email: string): Promise<User | null> {

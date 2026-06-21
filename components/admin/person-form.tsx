@@ -96,7 +96,7 @@ export function PersonForm({ person, regions }: PersonFormProps) {
       )}
 
       <section className="space-y-6">
-        <h2 className="font-serif text-xl text-foreground">Type</h2>
+        <h2 className="font-serif text-xl text-foreground">Partner type</h2>
         <label className="block space-y-2">
           <span className="text-sm font-medium">Kind</span>
           <select

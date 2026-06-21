@@ -8,6 +8,7 @@ const navLinks = [
   { label: "Wellness Guides", href: "/#guides" },
   { label: "Artist", href: "/#arts" },
   { label: "Schedule", href: "/#schedule" },
+  { label: "Journal", href: "/journal" },
 ]
 
 export function Navbar() {

@@ -1,8 +1,8 @@
 # The Wellness Korea — Site Map & Flows
 
-Last updated: 2026-06-18
+Last updated: 2026-06-17
 
-Companion docs: [Backend](./backend-architecture.md) · [DB schema](./database-schema.md) · [ERD](./database-erd.md) · [Multi-experience requirements](./multi-venue-requirements.md) · [Journal requirements](./journal-requirements.md) · [Booking requirements](./booking-requirements.md)
+Companion docs: [Backend](./backend-architecture.md) · [DB schema](./database-schema.md) · [ERD](./database-erd.md) · [Multi-experience requirements](./multi-venue-requirements.md) · [Journal requirements](./journal-requirements.md) · [Platform Discover plan](./platform-discovery-plan.md) · [Booking requirements](./booking-requirements.md)
 
 > 목적: 전체 서비스의 지도 및 흐름 파악 (신규 개발자 온보딩용)
 
@@ -65,7 +65,7 @@ Public links, magic links, notification URLs → `NEXT_PUBLIC_SITE_URL`.
 | URL | File | Auth | Description |
 |-----|------|------|-------------|
 | `/` | `app/page.tsx` | Public | Homepage |
-| `/journal` | `app/journal/page.tsx` | Public | Journal index (posts list) |
+| `/journal` | `app/journal/page.tsx` | Public | Journal index (`?category=` filter) |
 | `/journal/[slug]` | `app/journal/[slug]/page.tsx` | Public | Journal article |
 | `/privacy` | `app/privacy/page.tsx` | Public | Privacy policy |
 | `/terms` | `app/terms/page.tsx` | Public | Terms of service |
@@ -86,6 +86,9 @@ Public links, magic links, notification URLs → `NEXT_PUBLIC_SITE_URL`.
 | `/admin/people/[id]` | `app/admin/(dashboard)/people/[id]/page.tsx` | Admin | Read-only profile (incl. activity regions) |
 | `/admin/people/[id]/edit` | `app/admin/(dashboard)/people/[id]/edit/page.tsx` | Admin | Edit + review + account panel |
 | `/admin/schedule` | `app/admin/(dashboard)/schedule/page.tsx` | Admin | Schedule admin |
+| `/admin/journal` | `app/admin/(dashboard)/journal/page.tsx` | Admin | Journal list |
+| `/admin/journal/new` | `app/admin/(dashboard)/journal/new/page.tsx` | Admin | New journal post |
+| `/admin/journal/[id]/edit` | `app/admin/(dashboard)/journal/[id]/edit/page.tsx` | Admin | Edit journal post |
 
 **Homepage anchors (same page):** `/#guides` · `/#artists` · `/#schedule`
 
@@ -286,7 +289,7 @@ Post-approval re-edit → `submitted`, unpublish, re-notify admins.
 
 **Production:** same keys; `NEXT_PUBLIC_SITE_URL` = `https://thewellnesskorea.com`. Set `SITE_ACCESS_PASSWORD` until public launch, then remove and redeploy.
 
-Admin notify recipients: all Supabase Auth users where `app_metadata.role !== "teacher"` (no fixed env email).
+Admin notify recipients: Supabase Auth users where `app_metadata.role = "admin"` (no fixed env email).
 
 **Supabase Auth redirect URLs:**
 
@@ -296,7 +299,7 @@ https://www.thewellnesskorea.com/auth/callback
 http://localhost:3000/auth/callback
 ```
 
-**Scripts (optional, not in .env.example):** `ADMIN_EMAIL`, `ADMIN_PASSWORD` for `npm run create-admin`.
+**Scripts (optional, not in .env.example):** `ADMIN_EMAIL`, `ADMIN_PASSWORD` for `npm run create-admin`. Admin role backfill: `npm run set-admin-role -- email@…` (one user) or `npm run backfill-admin-roles -- --apply` (all unset, non-teacher, non-member).
 
 ---
 
@@ -321,6 +324,10 @@ http://localhost:3000/auth/callback
 | Site preview lock | `app/site-unlock/`, `components/site-unlock-form.tsx` |
 | Admin people | `app/admin/(dashboard)/people/`, `app/admin/actions.ts` |
 | Admin schedule | `app/admin/(dashboard)/schedule/`, `app/admin/schedule/actions.ts` |
+| Admin partners | `app/admin/(dashboard)/people/` (nav: **Partners**), `components/admin/admin-people-list.tsx` — kind filter: Guide / Artist / Brand + philosophy paths |
+| Admin journal | `app/admin/(dashboard)/journal/`, `app/admin/journal/actions.ts`, `components/admin/journal-form.tsx`, `components/admin/journal-editor.tsx`, `components/admin/journal-partner-picker.tsx` |
+| Public journal | `app/journal/`, `components/journal/`, `lib/journal/` |
+| Public journal partners | `components/journal/journal-partner-tags.tsx` → links `/people/[slug]` |
 | Notifications | `lib/notifications/` |
 | Migrations | `supabase/migrations/` |
 

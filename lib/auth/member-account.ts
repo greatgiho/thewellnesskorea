@@ -93,8 +93,17 @@ export async function completeMemberOnboarding(
     throw new UserFacingError("Teacher accounts cannot use member sign-in.")
   }
 
-  if (role !== "member" && isAdminAuthUser(appMeta)) {
+  if (isAdminAuthUser(appMeta)) {
     throw new UserFacingError("Admin accounts cannot use member sign-in.")
+  }
+
+  if (role == null) {
+    const signupIntent = user.user_metadata?.signup_intent
+    if (signupIntent !== "member") {
+      throw new UserFacingError(
+        "This account cannot use member sign-in. Use admin or teacher login instead.",
+      )
+    }
   }
 
   const admin = createServiceClient()

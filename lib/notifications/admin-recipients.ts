@@ -1,11 +1,10 @@
 import { createServiceClient } from "@/lib/supabase/service"
 
 function isAdminAuthUser(appMetadata: Record<string, unknown> | undefined): boolean {
-  const role = appMetadata?.role
-  return role !== "teacher"
+  return appMetadata?.role === "admin"
 }
 
-/** All Supabase Auth users who can access /admin (role admin or unset, not teacher). */
+/** All Supabase Auth users with app_metadata.role = admin (admin notify recipients). */
 export async function getAdminNotifyEmails(): Promise<string[]> {
   const admin = createServiceClient()
   const emails = new Set<string>()
