@@ -69,6 +69,7 @@ Public links, magic links, notification URLs → `NEXT_PUBLIC_SITE_URL`.
 | `/journal/[slug]` | `app/journal/[slug]/page.tsx` | Public | Journal article |
 | `/privacy` | `app/privacy/page.tsx` | Public | Privacy policy |
 | `/terms` | `app/terms/page.tsx` | Public | Terms of service |
+| `/site-unlock` | `app/site-unlock/page.tsx` | Public (when lock enabled) | Preview password gate |
 | `/apply` | `app/apply/page.tsx` | Public | Teacher invite + email |
 | `/apply/check-email` | `app/apply/check-email/page.tsx` | Public | Magic link sent confirmation |
 | `/apply/profile` | `app/apply/profile/page.tsx` | Teacher session | Profile create/edit (registration) |
@@ -90,7 +91,9 @@ Public links, magic links, notification URLs → `NEXT_PUBLIC_SITE_URL`.
 
 **Schedule admin query params:** `date` (YYYY-MM-DD) · `floor` (floor slug) · `view` (`week` \| `day` \| `month`)
 
-**Middleware matcher:** `/`, `/admin/*`, `/apply/profile/*`, `/auth/callback`, `/teacher/*`. If Supabase lands on `/?code=...`, middleware forwards to `/auth/callback`.
+**Middleware matcher:** all app routes except static assets (`_next/static`, images). Order: **site preview lock** (`SITE_ACCESS_PASSWORD`) → Supabase session guards. Bypass: `/site-unlock`, `/auth/callback`, auth query params (`code`, `token_hash`+`type`). If Supabase lands on `/?code=...`, middleware forwards to `/apply/profile` flow via auth handler.
+
+**Site preview lock:** set `SITE_ACCESS_PASSWORD` in Vercel Production only. Cookie `twk_site_access` (14 days). Remove env to launch publicly.
 
 ---
 
@@ -279,8 +282,9 @@ Post-approval re-edit → `submitted`, unpublish, re-notify admins.
 | `RESEND_API_KEY` | server | Profile submit email |
 | `NOTIFY_FROM_EMAIL` | server | Resend from address |
 | `SLACK_WEBHOOK_URL` | server | Optional Slack alert |
+| `SITE_ACCESS_PASSWORD` | server | Optional whole-site preview lock (Production); omit locally |
 
-**Production:** same keys; `NEXT_PUBLIC_SITE_URL` = `https://thewellnesskorea.com`.
+**Production:** same keys; `NEXT_PUBLIC_SITE_URL` = `https://thewellnesskorea.com`. Set `SITE_ACCESS_PASSWORD` until public launch, then remove and redeploy.
 
 Admin notify recipients: all Supabase Auth users where `app_metadata.role !== "teacher"` (no fixed env email).
 
@@ -300,7 +304,7 @@ http://localhost:3000/auth/callback
 
 - [ ] Gabia DNS: A + CNAME
 - [ ] Vercel Domains: Valid (`thewellnesskorea.com`, `www`)
-- [ ] Vercel env vars + Redeploy
+- [ ] Vercel env vars + Redeploy (incl. optional `SITE_ACCESS_PASSWORD` for preview)
 - [ ] Supabase migrations `001`–`010` applied (`007` preferred over `006`; `010` seeds nationwide regions)
 - [ ] Supabase redirect URLs
 - [ ] Resend: verify domain for multi-admin production email
@@ -313,7 +317,8 @@ http://localhost:3000/auth/callback
 |------|------|
 | Teacher apply | `app/apply/`, `components/apply/` |
 | Auth callback | `app/auth/callback/route.ts` |
-| Middleware | `middleware.ts`, `lib/supabase/middleware.ts` |
+| Middleware | `middleware.ts`, `lib/supabase/middleware.ts`, `lib/site-access.ts` |
+| Site preview lock | `app/site-unlock/`, `components/site-unlock-form.tsx` |
 | Admin people | `app/admin/(dashboard)/people/`, `app/admin/actions.ts` |
 | Admin schedule | `app/admin/(dashboard)/schedule/`, `app/admin/schedule/actions.ts` |
 | Notifications | `lib/notifications/` |

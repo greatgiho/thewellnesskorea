@@ -145,7 +145,11 @@ sequenceDiagram
 
 ### Middleware guards (`middleware.ts`)
 
-Matcher: `/`, `/admin/:path*`, `/apply/profile/:path*`, `/auth/callback`, `/teacher/:path*`
+**Site preview lock** (when `SITE_ACCESS_PASSWORD` is set): `enforceSiteAccess` in `lib/site-access.ts` runs before Supabase session logic. All matched routes redirect to `/site-unlock` until a valid `twk_site_access` httpOnly cookie (14 days). Bypass: `/site-unlock`, `/auth/callback`, and auth callback query params. No admin bypass — admin still enters preview password, then `/admin/login`.
+
+**Supabase session guards** (`lib/supabase/middleware.ts`):
+
+Matcher: all app routes except static assets (see `middleware.ts` `config.matcher`).
 
 On `code` or `token_hash`+`type` in query: complete auth in middleware → redirect to `next` (default `/apply/profile`).
 
@@ -306,6 +310,17 @@ stateDiagram-v2
 ---
 
 ## lib/ function map
+
+### `lib/site-access.ts`
+
+| Export | Role |
+|--------|------|
+| `isSiteAccessEnabled` | True when `SITE_ACCESS_PASSWORD` env is set |
+| `enforceSiteAccess` | Middleware gate: redirect to `/site-unlock` or pass |
+| `shouldBypassSiteAccess` | `/site-unlock`, `/auth/callback`, auth query params |
+| `hasValidSiteAccessCookie` | HMAC cookie verification (Edge-safe) |
+| `safeNextPath` | Open-redirect guard for post-unlock redirect |
+| `unlockSite` | Server Action in `app/site-unlock/actions.ts` |
 
 ### `lib/auth/`
 
