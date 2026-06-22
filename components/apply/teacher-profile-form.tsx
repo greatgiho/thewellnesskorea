@@ -8,26 +8,26 @@ import {
   signOutTeacher,
 } from "@/app/apply/actions"
 import { ProgramListEditor } from "@/components/admin/program-list-editor"
-import type { PersonFormInput, PersonWithPrograms } from "@/lib/people/types"
+import type { PartnerFormInput, PartnerWithPrograms } from "@/lib/partners/types"
 import type { RegionsForForms } from "@/lib/regions/types"
 import {
   ActivityRegionFields,
   teacherActivityRegionLabels,
-} from "@/components/people/activity-region-fields"
-import { PersonPhotoField } from "@/components/people/person-photo-field"
-import { emptyPersonInput, personInputFromPerson } from "@/lib/people/form-state"
+} from "@/components/partners/activity-region-fields"
+import { PartnerPhotoField } from "@/components/partners/partner-photo-field"
+import { emptyPersonInput, personInputFromPerson } from "@/lib/partners/form-state"
 import {
   uploadPersonPhoto,
   validatePersonPhotoFile,
-} from "@/lib/people/photo-upload"
+} from "@/lib/partners/photo-upload"
 import {
   REGISTRATION_STATUS_BADGE_CLASS,
   registrationStatusLabel,
-} from "@/lib/people/registration-status"
-import { getPersonPhotoUrl, PERSON_KINDS } from "@/lib/people/utils"
+} from "@/lib/partners/registration-status"
+import { getPartnerPhotoUrl, PERSON_KINDS } from "@/lib/partners/utils"
 
 type TeacherProfileFormProps = {
-  person: PersonWithPrograms | null
+  person: PartnerWithPrograms | null
   loginEmail: string
   regions: RegionsForForms
 }
@@ -38,14 +38,14 @@ export function TeacherProfileForm({
   regions,
 }: TeacherProfileFormProps) {
   const router = useRouter()
-  const [input, setInput] = useState<PersonFormInput>(
+  const [input, setInput] = useState<PartnerFormInput>(
     person
       ? personInputFromPerson(person, { is_published: false })
       : emptyPersonInput({ email: loginEmail }),
   )
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<string | null>(
-    person ? getPersonPhotoUrl(person.photo_path) : null,
+    person ? getPartnerPhotoUrl(person.photo_path) : null,
   )
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
@@ -148,7 +148,7 @@ export function TeacherProfileForm({
             onChange={(e) =>
               setInput((v) => ({
                 ...v,
-                kind: e.target.value as PersonFormInput["kind"],
+                kind: e.target.value as PartnerFormInput["kind"],
               }))
             }
           >
@@ -163,7 +163,7 @@ export function TeacherProfileForm({
 
       <section className="space-y-6 rounded-2xl border border-border bg-card p-6">
         <h2 className="font-serif text-xl text-foreground">기본 정보</h2>
-        <PersonPhotoField
+        <PartnerPhotoField
           label="프로필 사진"
           preview={preview}
           onFileChange={onFileChange}

@@ -43,6 +43,7 @@ function validateSessionInput(input: SessionFormInput): {
 } {
   if (!input.title.trim()) throw new Error("Session title is required.")
   if (input.capacity <= 0) throw new Error("Capacity must be greater than 0.")
+  if (input.price_krw < 0) throw new Error("Price cannot be negative.")
   if (input.path_keys.length === 0) {
     throw new Error("Select at least one philosophy path.")
   }
@@ -214,12 +215,13 @@ function sessionRowFromInput(
     experience_id,
     floor_id: input.floor_id,
     instructor_id: input.instructor_id,
-    person_program_id: input.person_program_id || null,
+    partner_program_id: input.partner_program_id || null,
     title: input.title.trim(),
     path_keys: input.path_keys,
     starts_at,
     ends_at,
     capacity: input.capacity,
+    price_krw: input.price_krw,
     is_published: input.status === "confirmed" ? input.is_published : false,
     status: input.status,
     slot_lane,
@@ -406,13 +408,14 @@ export async function confirmSession(
   const input: SessionFormInput = {
     floor_id: session.floor_id,
     instructor_id: session.instructor_id,
-    person_program_id: session.person_program_id,
+    partner_program_id: session.partner_program_id,
     title: session.title,
     path_keys: session.path_keys ?? [],
     date: session.starts_at.slice(0, 10),
     start_time: formatTimeInKst(session.starts_at),
     end_time: formatTimeInKst(session.ends_at),
     capacity: session.capacity,
+    price_krw: session.price_krw ?? 0,
     is_published: session.is_published,
     status: "confirmed",
     image_paths: session.image_paths ?? [],
@@ -476,13 +479,14 @@ export async function unconfirmSession(
   const input: SessionFormInput = {
     floor_id: session.floor_id,
     instructor_id: session.instructor_id,
-    person_program_id: session.person_program_id,
+    partner_program_id: session.partner_program_id,
     title: session.title,
     path_keys: session.path_keys ?? [],
     date: session.starts_at.slice(0, 10),
     start_time: formatTimeInKst(session.starts_at),
     end_time: formatTimeInKst(session.ends_at),
     capacity: session.capacity,
+    price_krw: session.price_krw ?? 0,
     is_published: false,
     status: "processing",
     image_paths: session.image_paths ?? [],
@@ -541,13 +545,14 @@ export async function duplicateSession(
   const input: SessionFormInput = {
     floor_id: target.floor_id,
     instructor_id: source.instructor_id,
-    person_program_id: source.person_program_id,
+    partner_program_id: source.partner_program_id,
     title: source.title,
     path_keys: source.path_keys ?? [],
     date: target.date,
     start_time: target.start_time,
     end_time: target.end_time,
     capacity: source.capacity,
+    price_krw: source.price_krw ?? 0,
     is_published: false,
     status: "processing",
     image_paths: [],

@@ -7,7 +7,7 @@ export type RegionRow = {
   sort_order: number
 }
 
-export type PersonActivityRegionRow = {
+export type PartnerActivityRegionRow = {
   priority: 1 | 2
   region_code: string
   region?: RegionRow | null

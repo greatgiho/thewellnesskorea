@@ -8,6 +8,8 @@ import {
   createBookingRpc,
   cancelBookingByTokenRpc,
 } from "@/lib/bookings/rpc"
+import { createBookingHoldRpc, confirmBookingPaymentRpc } from "@/lib/bookings/hold-rpc"
+import { getPendingBookingPayment } from "@/lib/bookings/payment-queries"
 import {
   getBookableSession,
   getBookingSummaryById,
@@ -51,6 +53,21 @@ export async function submitGuestBooking(
 
     if (session.booked_count >= session.capacity) {
       return { error: "This class is full." }
+    }
+
+    const priceKrw = session.price_krw ?? 0
+
+    if (priceKrw > 0) {
+      const hold = await createBookingHoldRpc({
+        sessionId,
+        guestName,
+        guestEmail,
+        guestPhone: guestPhone || null,
+        userId,
+      })
+
+      revalidatePath("/")
+      redirect(`/book/pay?booking=${hold.bookingId}`)
     }
 
     const result = await createBookingRpc({
@@ -126,4 +143,44 @@ export async function confirmCancelBooking(
 
     return { error: message }
   }
+}
+
+/** Local dev only: simulate PG webhook when PAYMENT_DEV_MOCK=true */
+export async function devMockConfirmPayment(bookingId: string): Promise<void> {
+  if (process.env.NODE_ENV !== "development") {
+    throw new Error("Dev mock payment is not available in production.")
+  }
+  if (process.env.PAYMENT_DEV_MOCK !== "true") {
+    throw new Error("Set PAYMENT_DEV_MOCK=true in .env.local to use dev mock payment.")
+  }
+
+  const pending = await getPendingBookingPayment(bookingId)
+  if (!pending) {
+    throw new Error("Booking not found.")
+  }
+  if (pending.status === "confirmed") {
+    redirect(`/book/confirm?booking=${bookingId}`)
+  }
+  if (pending.status !== "pending_payment") {
+    throw new Error("This booking is not awaiting payment.")
+  }
+
+  await confirmBookingPaymentRpc(
+    pending.merchantUid,
+    `dev-mock-${Date.now()}`,
+    pending.pgProvider,
+    pending.amount,
+  )
+
+  const summary = await getBookingSummaryById(bookingId)
+  if (summary) {
+    try {
+      await sendBookingConfirmationEmail(summary, pending.cancelToken)
+    } catch (emailError) {
+      console.error("[booking] confirmation email failed:", emailError)
+    }
+  }
+
+  revalidatePath("/")
+  redirect(`/book/confirm?booking=${bookingId}`)
 }

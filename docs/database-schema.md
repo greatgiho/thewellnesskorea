@@ -2,14 +2,14 @@
 
 Last updated: 2026-06-17
 
-Source of truth: `supabase/migrations/001`–`011`
+Source of truth: `supabase/migrations/001`–`022`
 
 Companion: [ERD](./database-erd.md) · [Backend logic](./backend-architecture.md) · [Site map](./site-map-and-flows.md) · [Multi-experience requirements](./multi-venue-requirements.md) · [Audit log](./architecture-audit-log.md)
 
 > 목적: 데이터베이스 물리/논리 스키마 명세
 
-**Apply order:** `001` → `002` → `003` → `004` → `005` → `007` → `008` → `009` → `010` → `011`  
-(`007_fix_duplicate_emails.sql` = idempotent superset of `006`; use `007` if emails may duplicate)
+**Apply order:** `001` → … → `020` → `021` → `022`  
+(`021` = enum only — PG requires commit before using new `booking_status` value)
 
 ---
 
@@ -17,26 +17,28 @@ Companion: [ERD](./database-erd.md) · [Backend logic](./backend-architecture.md
 
 | Enum | Values | Used in |
 |------|--------|---------|
-| `person_kind` | `guide`, `artist`, `both`, `brand` | `people.kind` |
-| `path_key` | `bium`, `kkaeum`, `jieum`, `chaeum`, `nurim` | `person_programs.path_keys`, `sessions.path_keys` |
+| `partner_kind` | `guide`, `artist`, `both`, `brand` | `partners.kind` |
+| `path_key` | `bium`, `kkaeum`, `jieum`, `chaeum`, `nurim` | `partner_programs.path_keys`, `sessions.path_keys` |
 | `session_status` | `processing`, `confirmed`, `cancelled` | `sessions.status` |
-| `person_registration_status` | `admin`, `draft`, `submitted`, `approved`, `rejected` | `people.registration_status` |
+| `partner_registration_status` | `admin`, `draft`, `submitted`, `approved`, `rejected` | `partners.registration_status` |
 | `experience_kind` | `space`, `journey` | `experiences.kind` |
 | `journal_category` | `philosophy`, `space`, `programs`, `news`, `region`, `taste` | `journal_posts.category` |
+| `booking_status` | `confirmed`, `cancelled`, `no_show`, `pending_payment` | `bookings.status` |
+| `payment_status` | `pending`, `paid`, `failed`, `cancelled` | `payments.status` |
 
 ---
 
 ## Tables
 
-### `people`
+### `partners`
 
-Guide/Artist master profile.
+Guide / Artist / Brand master profile (renamed from `people` in `020`).
 
 | Column | Type | Constraints / default |
 |--------|------|----------------------|
 | `id` | uuid | PK, `gen_random_uuid()` |
 | `slug` | text | UNIQUE, NOT NULL |
-| `kind` | person_kind | NOT NULL |
+| `kind` | partner_kind | NOT NULL |
 | `name_ko`, `name_en` | text | NOT NULL |
 | `role_ko`, `role_en` | text | NOT NULL |
 | `quote` | text | nullable |
@@ -46,37 +48,37 @@ Guide/Artist master profile.
 | `sort_order` | int | default 0 |
 | `is_published` | boolean | default false |
 | `user_id` | uuid | FK → `auth.users`, ON DELETE SET NULL |
-| `registration_status` | person_registration_status | default `admin` |
+| `registration_status` | partner_registration_status | default `admin` |
 | `submitted_at` | timestamptz | nullable |
 | `reviewed_at` | timestamptz | nullable |
 | `reviewed_by` | uuid | FK → `auth.users` |
 | `rejection_reason` | text | nullable |
 | `created_at`, `updated_at` | timestamptz | `updated_at` via trigger |
 
-**Indexes**
+**Indexes** (legacy names from `001` may retain `people_*` prefix)
 
 - `people_kind_published_idx` — `(kind, is_published, sort_order)`
 - `people_registration_status_idx` — `(registration_status, updated_at DESC)`
 - `people_user_id_unique_idx` — UNIQUE `(user_id)` WHERE `user_id IS NOT NULL`
 - `people_email_unique_idx` — UNIQUE `(lower(email))` WHERE email not empty
 
-**Triggers:** `people_updated_at` → `set_updated_at()`
+**Triggers:** `partners_updated_at` → `set_updated_at()`
 
 ---
 
-### `person_programs`
+### `partner_programs`
 
 | Column | Type | Constraints / default |
 |--------|------|----------------------|
 | `id` | uuid | PK |
-| `person_id` | uuid | FK → `people`, ON DELETE CASCADE |
+| `partner_id` | uuid | FK → `partners`, ON DELETE CASCADE |
 | `title` | text | NOT NULL |
 | `description` | text | nullable |
 | `path_keys` | path_key[] | default `{}` |
 | `sort_order` | int | default 0 |
 | `created_at` | timestamptz | default now() |
 
-**Index:** `person_programs_person_idx` — `(person_id, sort_order)`
+**Index:** `partner_programs_partner_idx` — `(partner_id, sort_order)`
 
 ---
 
@@ -96,19 +98,19 @@ Nationwide administrative districts (시·도 + 시·군·구). Seeded in `010_r
 
 ---
 
-### `person_activity_regions`
+### `partner_activity_regions`
 
 Teacher primary/secondary activity areas (priority 1 required on save).
 
 | Column | Type | Constraints / default |
 |--------|------|----------------------|
-| `person_id` | uuid | FK → `people`, ON DELETE CASCADE |
-| `priority` | smallint | CHECK IN (1, 2); PK `(person_id, priority)` |
+| `partner_id` | uuid | FK → `partners`, ON DELETE CASCADE |
+| `priority` | smallint | CHECK IN (1, 2); PK `(partner_id, priority)` |
 | `region_code` | text | FK → `regions` |
 | `created_at` | timestamptz | default now() |
 
-**Indexes:** `person_activity_regions_region_idx` — `(region_code)`  
-**Unique:** `(person_id, region_code)` — same region cannot be both priorities
+**Indexes:** `partner_activity_regions_region_idx` — `(region_code)`  
+**Unique:** `(partner_id, region_code)` — same region cannot be both priorities
 
 ---
 
@@ -164,21 +166,21 @@ Platform Journal (Core region/taste + Space/programs). Admin CRUD; public read w
 
 ---
 
-### `journal_post_people`
+### `journal_post_partners`
 
-Many-to-many tags linking a journal post to partner profiles (`people`).
+Many-to-many tags linking a journal post to partner profiles (`partners`).
 
 | Column | Type | Notes |
 |--------|------|-------|
 | `id` | uuid | PK |
 | `journal_post_id` | uuid | FK → `journal_posts`, ON DELETE CASCADE |
-| `person_id` | uuid | FK → `people`, ON DELETE CASCADE |
+| `partner_id` | uuid | FK → `partners`, ON DELETE CASCADE |
 | `sort_order` | int | display order on article footer |
 | `created_at` | timestamptz | |
 
-**Unique:** `(journal_post_id, person_id)`
+**Unique:** `(journal_post_id, partner_id)`
 
-**Public read:** junction row visible when post `is_published` and person is published + approved/admin.
+**Public read:** junction row visible when post `is_published` and partner is published + approved/admin.
 
 **Admin:** full CRUD via `saveJournalPost` sync (`lib/journal/partners.ts`).
 
@@ -208,13 +210,14 @@ Per-experience building levels. Brickwell: 1F–4F (`slug` `1f`…`4f`).
 | `id` | uuid | PK |
 | `experience_id` | uuid | FK → `experiences`, NOT NULL |
 | `floor_id` | uuid | FK → `floors`, ON DELETE RESTRICT |
-| `instructor_id` | uuid | FK → `people`, ON DELETE RESTRICT |
-| `person_program_id` | uuid | FK → `person_programs`, ON DELETE SET NULL |
+| `instructor_id` | uuid | FK → `partners`, ON DELETE RESTRICT |
+| `partner_program_id` | uuid | FK → `partner_programs`, ON DELETE SET NULL |
 | `title` | text | NOT NULL |
 | `path_keys` | path_key[] | default `{}` |
 | `starts_at`, `ends_at` | timestamptz | CHECK `ends_at > starts_at` |
 | `capacity` | int | CHECK `> 0` |
 | `booked_count` | int | default 0, CHECK `>= 0` |
+| `price_krw` | int | default 0, CHECK `>= 0` — `0` = on-site/free; `>0` = online payment (B7) |
 | `is_published` | boolean | default false |
 | `status` | session_status | default `processing` |
 | `slot_lane` | smallint | default 0, CHECK 0–1 |
@@ -242,12 +245,12 @@ Per-experience building levels. Brickwell: 1F–4F (`slug` `1f`…`4f`).
 | Column | Type | Constraints / default |
 |--------|------|----------------------|
 | `id` | uuid | PK, FK → `auth.users`, ON DELETE CASCADE |
-| `name` | text | NOT NULL |
+| `name` | text | nullable — JIT from booking or `inferMemberName` on signup |
 | `phone` | text | nullable |
 | `locale` | text | nullable |
 | `created_at`, `updated_at` | timestamptz | trigger on update |
 
-Participant accounts (not `people` / teachers). Created on member signup (B4).
+Participant accounts (not `partners` / teachers). Created on member signup (B4).
 
 ---
 
@@ -262,13 +265,39 @@ Participant accounts (not `people` / teachers). Created on member signup (B4).
 | `guest_email` | text | NOT NULL, normalized lowercase |
 | `guest_phone` | text | nullable |
 | `status` | booking_status | default `confirmed` |
+| `expires_at` | timestamptz | nullable — set for `pending_payment` holds |
 | `cancelled_at` | timestamptz | nullable |
 | `cancel_token` | text | NOT NULL, unique — guest cancel without login |
 | `created_at`, `updated_at` | timestamptz | trigger on update |
 
 **Indexes:** `(session_id)`, `(user_id)`, `(guest_email)`; unique active `(session_id, guest_email)` and `(session_id, user_id)` where `status = confirmed`
 
-**Enum `booking_status`:** `confirmed`, `cancelled`, `no_show`
+**Enum `booking_status`:** `confirmed`, `cancelled`, `no_show`, `pending_payment`
+
+---
+
+### `payments`
+
+Online PG attempts linked to a booking (B7). One row per payment try; `merchant_uid` sent to PortOne/Toss.
+
+| Column | Type | Constraints / default |
+|--------|------|----------------------|
+| `id` | uuid | PK |
+| `booking_id` | uuid | FK → `bookings`, ON DELETE CASCADE |
+| `merchant_uid` | text | UNIQUE, NOT NULL |
+| `pg_provider` | text | NOT NULL (e.g. `portone`, `toss`) |
+| `amount` | int | NOT NULL, CHECK `> 0` — must match `sessions.price_krw` at hold time |
+| `currency` | text | default `KRW` |
+| `status` | payment_status | default `pending` |
+| `pg_tid` | text | UNIQUE, nullable — PG transaction id (refunds) |
+| `paid_at` | timestamptz | nullable |
+| `cancelled_at` | timestamptz | nullable |
+| `metadata` | jsonb | default `{}` |
+| `created_at`, `updated_at` | timestamptz | trigger on update |
+
+**Indexes:** `(booking_id)`; unique `(booking_id)` where `status = pending`
+
+**RLS:** admin ALL; member SELECT own via booking `user_id`. Writes via security definer RPCs only.
 
 ---
 
@@ -276,12 +305,15 @@ Participant accounts (not `people` / teachers). Created on member signup (B4).
 
 | Function | Purpose |
 |----------|---------|
-| `set_updated_at()` | Trigger: bump `updated_at` on `people`, `sessions`, `experiences`, `members`, `bookings` |
+| `set_updated_at()` | Trigger: bump `updated_at` on `partners`, `sessions`, `experiences`, `members`, `bookings` |
 | `is_admin_user()` | RLS: `(jwt app_metadata.role) = 'admin'` |
 | `enforce_session_floor_experience_match()` | Trigger: `sessions.experience_id` must match `floors.experience_id` |
 | `normalize_email(text)` | Lowercase trim for booking emails |
-| `create_booking(...)` | Security definer: insert booking + increment `booked_count` (service role only) |
-| `cancel_booking_by_token(text)` | Guest cancel + decrement `booked_count` |
+| `create_booking(...)` | Security definer: free/on-site (`price_krw = 0`) → `confirmed` + increment `booked_count` |
+| `create_booking_hold(...)` | Paid hold → `pending_payment` + `payments.pending` + increment `booked_count` |
+| `confirm_booking_payment(...)` | Webhook: amount verify → `paid` + booking `confirmed` |
+| `expire_stale_booking_holds()` | Cron: expire stale holds, decrement `booked_count` |
+| `cancel_booking_by_token(text)` | Guest cancel (`confirmed` or live `pending_payment`) |
 | `cancel_booking_for_user(uuid, uuid)` | Member cancel own booking |
 | `admin_cancel_booking(uuid)` | Admin cancel (requires admin JWT) |
 
@@ -289,7 +321,7 @@ Participant accounts (not `people` / teachers). Created on member signup (B4).
 
 ## Row Level Security
 
-RLS **enabled** on all app tables (`people`, `person_programs`, `floors`, `sessions`, `regions`, `person_activity_regions`, `experiences`, `members`, `bookings`, `journal_posts`, `journal_post_people`).
+RLS **enabled** on all app tables (`partners`, `partner_programs`, `floors`, `sessions`, `regions`, `partner_activity_regions`, `experiences`, `members`, `bookings`, `payments`, `journal_posts`, `journal_post_partners`).
 
 ### `experiences`
 
@@ -298,23 +330,23 @@ RLS **enabled** on all app tables (`people`, `person_programs`, `floors`, `sessi
 | public read published experiences | SELECT | `is_published = true` |
 | admin all on experiences | ALL | `is_admin_user()` |
 
-### `people`
+### `partners`
 
 | Policy | Op | Rule |
 |--------|-----|------|
-| public read published people | SELECT | `is_published AND registration_status IN ('admin','approved')` |
-| admin all on people | ALL | `is_admin_user()` |
-| teacher read own people | SELECT | `user_id = auth.uid()` |
-| teacher insert own people | INSERT | `user_id = auth.uid()`, status `draft`\|`submitted`, not published, no duplicate user row |
-| teacher update own people | UPDATE | `user_id = auth.uid()`, `is_published = false` |
+| public read published partners | SELECT | `is_published AND registration_status IN ('admin','approved')` |
+| admin all on partners | ALL | `is_admin_user()` |
+| teacher read own partners | SELECT | `user_id = auth.uid()` |
+| teacher insert own partners | INSERT | `user_id = auth.uid()`, status `draft`\|`submitted`, not published, no duplicate user row |
+| teacher update own partners | UPDATE | `user_id = auth.uid()`, `is_published = false` |
 
-### `person_programs`
+### `partner_programs`
 
 | Policy | Op | Rule |
 |--------|-----|------|
-| public read programs of published people | SELECT | parent person published + approved/admin |
-| admin all on person_programs | ALL | `is_admin_user()` |
-| teacher manage own programs | ALL | parent `people.user_id = auth.uid()` |
+| public read programs of published partners | SELECT | parent partner published + approved/admin |
+| admin all on partner_programs | ALL | `is_admin_user()` |
+| teacher manage own partner programs | ALL | parent `partners.user_id = auth.uid()` |
 
 ### `floors`
 
@@ -329,7 +361,7 @@ RLS **enabled** on all app tables (`people`, `person_programs`, `floors`, `sessi
 |--------|-----|------|
 | public read published sessions | SELECT | `is_published AND status = 'confirmed'` |
 | admin all on sessions | ALL | `is_admin_user()` |
-| teacher read own published sessions | SELECT | not admin; `status = confirmed`; `is_published`; `instructor_id` linked to `people.user_id = auth.uid()` |
+| teacher read own published sessions | SELECT | not admin; `status = confirmed`; `is_published`; `instructor_id` linked to `partners.user_id = auth.uid()` |
 
 ### `regions`
 
@@ -338,14 +370,14 @@ RLS **enabled** on all app tables (`people`, `person_programs`, `floors`, `sessi
 | public read regions | SELECT | always true |
 | admin all on regions | ALL | `is_admin_user()` |
 
-### `person_activity_regions`
+### `partner_activity_regions`
 
 | Policy | Op | Rule |
 |--------|-----|------|
-| public read activity regions of published people | SELECT | parent person published + approved/admin |
-| admin all on person_activity_regions | ALL | `is_admin_user()` |
-| teacher read own activity regions | SELECT | parent `people.user_id = auth.uid()` |
-| teacher manage own activity regions | ALL | parent `people.user_id = auth.uid()` |
+| public read activity regions of published partners | SELECT | parent partner published + approved/admin |
+| admin all on partner_activity_regions | ALL | `is_admin_user()` |
+| teacher read own partner activity regions | SELECT | parent `partners.user_id = auth.uid()` |
+| teacher manage own partner activity regions | ALL | parent `partners.user_id = auth.uid()` |
 
 ### `members`
 
@@ -362,7 +394,14 @@ RLS **enabled** on all app tables (`people`, `person_programs`, `floors`, `sessi
 | member read own bookings | SELECT | `user_id = auth.uid()` |
 | admin all on bookings | ALL | `is_admin_user()` |
 
-Guest insert via `create_booking` RPC (service role) — no direct anon INSERT policy.
+Guest insert via `create_booking` / `create_booking_hold` RPC (service role) — no direct anon INSERT policy.
+
+### `payments`
+
+| Policy | Op | Rule |
+|--------|-----|------|
+| admin all on payments | ALL | `is_admin_user()` |
+| member read own payments | SELECT | booking `user_id = auth.uid()` |
 
 ### `journal_posts`
 
@@ -371,12 +410,12 @@ Guest insert via `create_booking` RPC (service role) — no direct anon INSERT p
 | public read published journal posts | SELECT | `is_published = true` |
 | admin all on journal posts | ALL | `is_admin_user()` |
 
-### `journal_post_people`
+### `journal_post_partners`
 
 | Policy | Op | Rule |
 |--------|-----|------|
 | public read journal post partners | SELECT | published post + published partner |
-| admin all on journal post people | ALL | `is_admin_user()` |
+| admin all on journal post partners | ALL | `is_admin_user()` |
 
 ---
 
@@ -384,7 +423,7 @@ Guest insert via `create_booking` RPC (service role) — no direct anon INSERT p
 
 | Bucket | Public | Size | MIME | Used by |
 |--------|--------|------|------|---------|
-| `person-photos` | yes | 5 MB | jpeg, png, webp | `people.photo_path` |
+| `person-photos` | yes | 5 MB | jpeg, png, webp | `partners.photo_path` |
 | `session-photos` | yes | 5 MB | jpeg, png, webp | `sessions.image_paths[]` |
 | `journal-photos` | yes | 5 MB | jpeg, png, webp | `hero_image_path`, inline body images (`{postId}/inline/*`) |
 
@@ -400,7 +439,7 @@ Referenced by FK (not created in app migrations):
 
 | Column | Referenced from |
 |--------|-----------------|
-| `id` | `people.user_id`, `people.reviewed_by`, `sessions.created_by`, `confirmed_by`, `cancelled_by`, `bookings.user_id`, `members.id` |
+| `id` | `partners.user_id`, `partners.reviewed_by`, `sessions.created_by`, `confirmed_by`, `cancelled_by`, `bookings.user_id`, `members.id` |
 | `app_metadata.role` | `teacher` \| `member` \| `admin` (admin required for `/admin` and RLS admin policies) |
 
 ---
@@ -410,14 +449,14 @@ Referenced by FK (not created in app migrations):
 | File | Summary |
 |------|---------|
 | `001_people.sql` | `people`, `person_kind`, RLS, `person-photos` |
-| `002_person_programs.sql` | contact fields, `path_key`, `person_programs`, modality → program migration |
+| `002_partner_programs.sql` | contact fields, `path_key`, `partner_programs`, modality → program migration |
 | `003_schedule.sql` | `floors` seed, `sessions` |
 | `004_session_content.sql` | `image_paths`, `description_blocks`, `session-photos` |
 | `005_session_status.sql` | `session_status`, slot workflow, public session policy |
 | `006_teacher_self_registration.sql` | registration columns, teacher RLS (may fail on dup email) |
 | `007_fix_duplicate_emails.sql` | idempotent 006 + email dedupe + unique index |
 | `008_teacher_sessions_rls.sql` | admin sessions policy via `is_admin_user()`; teacher read own confirmed+published sessions |
-| `009_person_activity_regions.sql` | `regions`, `person_activity_regions`, RLS |
+| `009_partner_activity_regions.sql` | `regions`, `partner_activity_regions`, RLS |
 | `010_regions_seed.sql` | nationwide sido + sigungu seed data |
 | `011_experiences.sql` | `experiences` (space/journey), `floors.experience_id`, `sessions.experience_id`, Brickwell + coming soon seed |
 | `012_publish_confirmed_sessions.sql` | Backfill `is_published` on confirmed sessions |
@@ -425,14 +464,19 @@ Referenced by FK (not created in app migrations):
 | `014_journal_posts.sql` | `journal_category`, `journal_posts`, RLS, `journal-photos`, seed posts |
 | `015_journal_seed_content.sql` | Refresh journal seed editorial copy + hero images |
 | `016_journal_body_html.sql` | Convert seed `body_en` from Markdown to TipTap HTML |
-| `017_journal_partners.sql` | `person_kind` + `brand`; `journal_post_people` junction + RLS |
-| `018_security_rls_and_integrity.sql` | `is_admin_user()` requires `role = admin`; floors admin-only write; session/floor experience trigger; `journal_post_people.person_id` index |
+| `017_journal_partners.sql` | `person_kind` + `brand`; `journal_post_partners` junction + RLS |
+| `018_security_rls_and_integrity.sql` | `is_admin_user()` requires `role = admin`; floors admin-only write; session/floor experience trigger; `journal_post_partners.partner_id` index |
+| `019_fix_create_booking_cancel_token.sql` | Fix ambiguous `cancel_token` in `create_booking` RETURNING vs RETURNS TABLE |
+| `020_rename_people_to_partners.sql` | `people` → `partners`; enum renames; `partner_program_id`; RLS refresh |
+| `021_booking_status_pending_payment.sql` | Add `booking_status.pending_payment` (separate migration — enum commit rule) |
+| `022_online_payments.sql` | `sessions.price_krw`, `payments`, hold/confirm/expire RPCs, `members.name` nullable |
 
 ---
 
 ## Not yet implemented (schema)
 
-- Online payments
+- PG webhook Route Handler + client SDK wiring (schema/RPC ready in `021`–`022`)
+- Automated refunds after `payments.paid`
 - Session waitlist
 - Audit log table
 - Street address + geocoding on activity regions (Phase B)

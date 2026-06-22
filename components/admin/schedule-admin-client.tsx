@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { ChevronLeft, ChevronRight } from "lucide-react"
-import type { PersonWithPrograms } from "@/lib/people/types"
+import type { PartnerWithPrograms } from "@/lib/partners/types"
 import type { FloorRow, SessionWithRelations, ScheduleViewMode } from "@/lib/schedule/types"
 import {
   addMonthsToDateKey,
@@ -30,7 +30,7 @@ type ScheduleAdminClientProps = {
   floorSlug: string
   floors: FloorRow[]
   sessions: SessionWithRelations[]
-  people: PersonWithPrograms[]
+  partners: PartnerWithPrograms[]
 }
 
 function buildScheduleUrl(
@@ -48,7 +48,7 @@ export function ScheduleAdminClient({
   floorSlug,
   floors,
   sessions,
-  people,
+  partners,
 }: ScheduleAdminClientProps) {
   const router = useRouter()
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -249,7 +249,7 @@ export function ScheduleAdminClient({
         open={dialogOpen}
         dateKey={formDateKey}
         floors={floors}
-        people={people}
+        partners={partners}
         session={editingSession}
         presetFloorId={presetFloorId}
         presetStartTime={presetStartTime}

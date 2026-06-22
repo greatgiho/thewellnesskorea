@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useState } from "react"
 import { X } from "lucide-react"
 import { type PathKey } from "@/lib/paths/paths-data"
-import type { PersonWithPrograms } from "@/lib/people/types"
-import { filterSessionInstructors } from "@/lib/people/utils"
+import type { PartnerWithPrograms } from "@/lib/partners/types"
+import { filterSessionInstructors } from "@/lib/partners/utils"
 import { EMPTY_SESSION_DESCRIPTION } from "@/lib/schedule/images"
 import type { FloorRow, SessionFormInput, SessionWithRelations } from "@/lib/schedule/types"
 import {
@@ -35,7 +35,7 @@ type SessionFormDialogProps = {
   open: boolean
   dateKey: string
   floors: FloorRow[]
-  people: PersonWithPrograms[]
+  partners: PartnerWithPrograms[]
   session?: SessionWithRelations | null
   presetFloorId?: string
   presetStartTime?: string
@@ -50,13 +50,14 @@ const defaultInput = (
 ): SessionFormInput => ({
   floor_id: floorId,
   instructor_id: "",
-  person_program_id: null,
+  partner_program_id: null,
   title: "",
   path_keys: [],
   date: dateKey,
   start_time: startTime,
   end_time: defaultEndTime(startTime, 60),
   capacity: 12,
+  price_krw: 0,
   is_published: false,
   status: "processing",
   image_paths: [],
@@ -67,7 +68,7 @@ export function SessionFormDialog({
   open,
   dateKey,
   floors,
-  people,
+  partners,
   session,
   presetFloorId,
   presetStartTime,
@@ -75,8 +76,8 @@ export function SessionFormDialog({
   onSaved,
 }: SessionFormDialogProps) {
   const instructors = useMemo(
-    () => filterSessionInstructors(people),
-    [people],
+    () => filterSessionInstructors(partners),
+    [partners],
   )
 
   const [input, setInput] = useState<SessionFormInput>(
@@ -117,13 +118,14 @@ export function SessionFormDialog({
       setInput({
         floor_id: session.floor_id,
         instructor_id: session.instructor_id,
-        person_program_id: session.person_program_id,
+        partner_program_id: session.partner_program_id,
         title: session.title,
         path_keys: session.path_keys ?? [],
         date: dateKey,
         start_time: formatTimeInKst(session.starts_at),
         end_time: formatTimeInKst(session.ends_at),
         capacity: session.capacity,
+        price_krw: session.price_krw ?? 0,
         is_published: session.is_published,
         status: session.status ?? "confirmed",
         image_paths: session.image_paths ?? [],
@@ -145,7 +147,7 @@ export function SessionFormDialog({
     setError(null)
   }, [open, session, dateKey, presetFloorId, presetStartTime, floors])
 
-  const selectedInstructor = people.find((p) => p.id === input.instructor_id)
+  const selectedInstructor = partners.find((p) => p.id === input.instructor_id)
   const programs = selectedInstructor?.programs ?? []
 
   const startOptions = buildTimeOptions()
@@ -153,14 +155,14 @@ export function SessionFormDialog({
 
   const onProgramChange = (programId: string) => {
     if (!programId) {
-      setInput((v) => ({ ...v, person_program_id: null }))
+      setInput((v) => ({ ...v, partner_program_id: null }))
       return
     }
     const program = programs.find((p) => p.id === programId)
     if (!program) return
     setInput((v) => ({
       ...v,
-      person_program_id: programId,
+      partner_program_id: programId,
       title: program.title,
       path_keys: program.path_keys ?? [],
       description_blocks: {
@@ -444,14 +446,14 @@ export function SessionFormDialog({
             <InstructorSearchPicker
               key={session?.id ?? "new-session"}
               instructors={instructors}
-              allPeople={people}
+              allPartners={partners}
               value={input.instructor_id}
               disabled={readOnly || pending}
               onChange={(instructorId) =>
                 setInput((v) => ({
                   ...v,
                   instructor_id: instructorId,
-                  person_program_id: null,
+                  partner_program_id: null,
                   title: "",
                   path_keys: [],
                 }))
@@ -463,7 +465,7 @@ export function SessionFormDialog({
                 <span className="text-sm font-medium">Program</span>
                 <select
                   className={fieldClass}
-                  value={input.person_program_id ?? ""}
+                  value={input.partner_program_id ?? ""}
                   onChange={(e) => onProgramChange(e.target.value)}
                 >
                   <option value="">Custom title</option>
@@ -530,6 +532,27 @@ export function SessionFormDialog({
                   booked
                 </p>
               ) : null}
+            </label>
+
+            <label className="block space-y-1.5">
+              <span className="text-sm font-medium">Price (KRW)</span>
+              <input
+                type="number"
+                min={0}
+                step={1000}
+                className={fieldClass}
+                value={input.price_krw}
+                onChange={(e) =>
+                  setInput((v) => ({
+                    ...v,
+                    price_krw: Math.max(0, Number(e.target.value) || 0),
+                  }))
+                }
+              />
+              <p className="text-xs text-muted-foreground">
+                0 = free / on-site payment. Above 0 requires online payment at
+                booking (B7).
+              </p>
             </label>
 
             {session ? (

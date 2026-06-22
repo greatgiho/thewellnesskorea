@@ -1,4 +1,4 @@
-import { isValidEmail } from "@/lib/people/utils"
+import { isValidEmail } from "@/lib/partners/utils"
 
 export type GuestBookingInput = {
   guestName: string

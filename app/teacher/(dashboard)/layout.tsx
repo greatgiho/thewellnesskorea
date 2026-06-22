@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { teacherSignOut } from "@/app/teacher/actions"
-import { getTeacherPersonByUserId } from "@/lib/auth/teacher-account"
+import { getTeacherPartnerByUserId } from "@/lib/auth/teacher-account"
 import { createClient } from "@/lib/supabase/server"
 
 export default async function TeacherDashboardLayout({
@@ -13,7 +13,7 @@ export default async function TeacherDashboardLayout({
     data: { user },
   } = await supabase.auth.getUser()
 
-  const person = user ? await getTeacherPersonByUserId(user.id) : null
+  const person = user ? await getTeacherPartnerByUserId(user.id) : null
 
   return (
     <div className="min-h-screen bg-background">

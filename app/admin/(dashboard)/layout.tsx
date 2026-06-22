@@ -11,12 +11,12 @@ export default function AdminDashboardLayout({
       <header className="border-b border-border bg-card/50">
         <div className="mx-auto flex max-w-[1400px] flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6">
           <div className="flex flex-wrap items-center gap-4 sm:gap-6">
-            <Link href="/admin/people" className="font-serif text-xl text-foreground">
+            <Link href="/admin/partners" className="font-serif text-xl text-foreground">
               Admin
             </Link>
             <nav className="flex gap-4 text-sm">
               <Link
-                href="/admin/people"
+                href="/admin/partners"
                 className="text-muted-foreground transition-colors hover:text-foreground"
               >
                 Partners

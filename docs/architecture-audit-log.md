@@ -43,7 +43,7 @@ erDiagram
     REGIONS ||--o{ PERSON_ACTIVITY_REGIONS : "region_code"
 
     FLOORS ||--|{ SESSIONS : "hosts"
-    PERSON_PROGRAMS ||--o{ SESSIONS : "person_program_id"
+    PERSON_PROGRAMS ||--o{ SESSIONS : "partner_program_id"
 
     AUTH_USERS {
         uuid id PK
@@ -80,7 +80,7 @@ erDiagram
 
     PERSON_PROGRAMS {
         uuid id PK
-        uuid person_id FK
+        uuid partner_id FK
         text title
         text description
         path_key_array path_keys
@@ -98,7 +98,7 @@ erDiagram
     }
 
     PERSON_ACTIVITY_REGIONS {
-        uuid person_id FK
+        uuid partner_id FK
         smallint priority PK "1 or 2"
         text region_code FK
         timestamptz created_at
@@ -117,7 +117,7 @@ erDiagram
         uuid id PK
         uuid floor_id FK
         uuid instructor_id FK
-        uuid person_program_id FK "nullable"
+        uuid partner_program_id FK "nullable"
         text title
         path_key_array path_keys "denormalized"
         timestamptz starts_at
@@ -159,8 +159,8 @@ flowchart TB
 
     subgraph people [People domain]
         P[people]
-        PP[person_programs]
-        PAR[person_activity_regions]
+        PP[partner_programs]
+        PAR[partner_activity_regions]
         P --> PP
         P --> PAR
     end
@@ -180,7 +180,7 @@ flowchart TB
     AU -->|user_id reviewed_by| P
     AU -->|created confirmed cancelled| S
     P -->|instructor_id| S
-    PP -.->|person_program_id optional| S
+    PP -.->|partner_program_id optional| S
 ```
 
 ### 1.4 Cardinality & delete rules
@@ -189,10 +189,10 @@ flowchart TB
 |------|-----|-------|-----------|------|
 | `people.user_id` | `auth.users` | 0..1:1 | SET NULL | Auth 삭제 시 프로필 유지 |
 | `people.email` | — | UNIQUE lower | — | Auth 이메일과 별도 관리 |
-| `person_programs.person_id` | `people` | N:1 | CASCADE | |
-| `person_activity_regions.person_id` | `people` | ≤2:1 | CASCADE | priority 1·2 |
+| `partner_programs.partner_id` | `people` | N:1 | CASCADE | |
+| `partner_activity_regions.partner_id` | `people` | ≤2:1 | CASCADE | priority 1·2 |
 | `sessions.instructor_id` | `people` | N:1 | RESTRICT | 강사 삭제 차단 |
-| `sessions.person_program_id` | `person_programs` | N:0..1 | **SET NULL** | 프로그램 삭제 시 링크 소실 |
+| `sessions.partner_program_id` | `partner_programs` | N:0..1 | **SET NULL** | 프로그램 삭제 시 링크 소실 |
 | `sessions.created_by` | `auth.users` | N:1 | — | FK만, 이메일은 별도 컬럼 |
 
 ---
@@ -203,7 +203,7 @@ flowchart TB
 
 | # | 이슈 | 위치 | 설명 |
 |---|------|------|------|
-| D-01 | **프로그램 저장 시 세션 FK 끊김** | `lib/people/persist.ts` → `savePersonPrograms` | 사람 저장마다 `person_programs` 전체 DELETE 후 INSERT. 기존 `sessions.person_program_id`는 `ON DELETE SET NULL`로 **즉시 해제**됨. 프로그램 UUID가 매 저장마다 바뀜. |
+| D-01 | **프로그램 저장 시 세션 FK 끊김** | `lib/people/persist.ts` → `savePartnerPrograms` | 사람 저장마다 `partner_programs` 전체 DELETE 후 INSERT. 기존 `sessions.partner_program_id`는 `ON DELETE SET NULL`로 **즉시 해제**됨. 프로그램 UUID가 매 저장마다 바뀜. |
 | D-02 | **이메일 3중 저장 + Auth 동기화 실패** | `people.email`, `auth.users.email`, `sessions.created_by_email` | 어드민이 `people.email` 변경 시 `syncTeacherAuthEmail`이 기존 teacher Auth UUID의 이메일만 변경 시도. **이미 다른 Auth 계정(어드민)이 쓰는 이메일**이면 저장 실패 (프로덕션에서 digest 에러로만 표시). |
 | D-03 | **어드민/선생님 1이메일=1역할** | `provision-teacher-account.ts`, `middleware.ts` | `jueeyipida@gmail.com`(admin)과 `mudrasoil`(teacher) 분리 설계. 한 이메일에 두 역할 불가 → 운영 혼선 반복 가능. |
 
@@ -211,8 +211,8 @@ flowchart TB
 
 | # | 이슈 | 위치 | 설명 |
 |---|------|------|------|
-| D-04 | **`modalities` + `person_programs`** | `people.modalities`, `person_programs` | 저장 시 `modalities ← program titles` 동기화만 함. 읽기는 programs 우선, 없으면 modalities 폴백. **이중 소스** — 레거시 제거 전까지 혼란. |
-| D-05 | **`sessions.path_keys` + `person_program_id`** | `sessions` | 프로그램 연결 시에도 세션에 `path_keys` 별도 저장. 프로그램 수정 후 **세션 철학 태그 불일치** 가능. |
+| D-04 | **`modalities` + `partner_programs`** | `people.modalities`, `partner_programs` | 저장 시 `modalities ← program titles` 동기화만 함. 읽기는 programs 우선, 없으면 modalities 폴백. **이중 소스** — 레거시 제거 전까지 혼란. |
+| D-05 | **`sessions.path_keys` + `partner_program_id`** | `sessions` | 프로그램 연결 시에도 세션에 `path_keys` 별도 저장. 프로그램 수정 후 **세션 철학 태그 불일치** 가능. |
 | D-06 | **`created_by` + `created_by_email`** | `sessions` | Auth 사용자 삭제/이메일 변경 후에도 표시용 이메일 유지 목적. `created_by` FK와 **어긋날 수 있음** (수동 패치 시 발생). |
 | D-07 | **지역 마스터 이중 소스** | `regions` 테이블 + `lib/regions/korea-regions.json` | `getRegionsForForms()` — DB 실패/빈 테이블 시 JSON 폴백. 시드 미적용 환경과 프로덕션 **코드 불일치** 가능. |
 
@@ -221,7 +221,7 @@ flowchart TB
 | # | 이슈 | 위치 | 설명 |
 |---|------|------|------|
 | D-08 | **Auth 사용자 선형 검색** | `findUserByEmail`, `getAdminNotifyEmails` | `listUsers` 페이지네이션 전체 스캔. 사용자 수 적을 때는 OK, 수백+ 시 지연. |
-| D-09 | **활동 지역 조회 N+1 가능** | `getPublishedPeople` | 사람마다 `activity_regions` + `region` join. 현재 규모에선 허용, 카드 수 증가 시 select 최적화 필요. |
+| D-09 | **활동 지역 조회 N+1 가능** | `getPublishedPartners` | 사람마다 `activity_regions` + `region` join. 현재 규모에선 허용, 카드 수 증가 시 select 최적화 필요. |
 | D-10 | **`booked_count` 미사용** | `sessions.booked_count` | 스키마만 존재, 예약 플로우 없음. UI/RLS와 무관한 dead column. |
 | D-11 | **Storage 경로 무FK** | `photo_path`, `image_paths` | DB orphan 파일·고아 스토리지 객체 정리 배치 없음. 삭제 로직은 일부 액션에만 존재. |
 
@@ -284,7 +284,7 @@ flowchart TB
 ```mermaid
 flowchart LR
     subgraph admin [app/admin/actions.ts]
-        savePerson
+        savePartner
         approvePerson
     end
 
@@ -305,10 +305,10 @@ flowchart LR
         validate[people/validate]
     end
 
-    savePerson --> validate
-    savePerson --> persist
-    savePerson --> regions
-    savePerson --> teacher
+    savePartner --> validate
+    savePartner --> persist
+    savePartner --> regions
+    savePartner --> teacher
 
     persistTeacherProfile --> validate
     persistTeacherProfile --> persist
@@ -335,14 +335,14 @@ flowchart LR
 | # | 이슈 | 파일 | 권장 |
 |---|------|------|------|
 | C-01 | **이메일 변경 시 충돌 미처리** | `maybeProvisionOnAdminSave`, `syncTeacherAuthEmail` | 대상 이메일 Auth 존재 여부 선검사 + 명확한 에러 메시지. admin 계정이면 `people.user_id` 재연결 분기. |
-| C-02 | **프로그램 upsert 없음** | `savePersonPrograms` | DELETE→INSERT 대신 id 기준 upsert 또는 diff. 세션 `person_program_id` 보존. |
+| C-02 | **프로그램 upsert 없음** | `savePartnerPrograms` | DELETE→INSERT 대신 id 기준 upsert 또는 diff. 세션 `partner_program_id` 보존. |
 
 ### P1
 
 | # | 이슈 | 파일 | 권장 |
 |---|------|------|------|
-| C-03 | **Person 폼 로직 중복** | `person-form.tsx`, `teacher-profile-form.tsx` | `uploadPhotoFile`, submit 플로우 공통 훅/유틸 추출 |
-| C-04 | **persist 경로 이중** | `savePerson` vs `persistTeacherProfile` | 공통 `persistPersonCore()` + status/notify만 분기 |
+| C-03 | **Person 폼 로직 중복** | `partner-form.tsx`, `teacher-profile-form.tsx` | `uploadPhotoFile`, submit 플로우 공통 훅/유틸 추출 |
+| C-04 | **persist 경로 이중** | `savePartner` vs `persistTeacherProfile` | 공통 `persistPartnerCore()` + status/notify만 분기 |
 | C-05 | **`normalizeRelation` 중복** | `lib/people/queries.ts`, `lib/schedule/queries.ts` | `lib/supabase/normalize-relation.ts` 단일화 |
 | C-06 | **`requireAuth` 중복** | `admin/actions.ts`, `schedule/actions.ts`, `apply/actions.ts` | `lib/auth/require-session.ts` |
 | C-07 | **Upcoming sessions 쿼리 중복** | `getUpcomingSessionsForInstructor`, `getUpcomingSessionsForTeacher` | instructorId vs user_id lookup만 인자로 통합 |
@@ -352,7 +352,7 @@ flowchart LR
 
 | # | 이슈 | 파일 | 권장 |
 |---|------|------|------|
-| C-09 | **프로덕션 Server Action 에러 마스킹** | Next.js prod build | `savePerson` 등에서 사용자Facing `Error` 메시지 유지 또는 `unstable_rethrow` 패턴 검토 |
+| C-09 | **프로덕션 Server Action 에러 마스킹** | Next.js prod build | `savePartner` 등에서 사용자Facing `Error` 메시지 유지 또는 `unstable_rethrow` 패턴 검토 |
 | C-10 | **`getRegionsForForms` 반복 호출** | edit page + save action 각각 호출 | 페이지에서 regions props 전달, action에서만 재검증 |
 | C-11 | **충돌 검사 앱 레이어** | `schedule/actions.ts` `fetchOverlappingSessions` | 세션 많아지면 DB exclusion constraint 또는 RPC 검토 |
 
@@ -376,10 +376,10 @@ flowchart LR
 
 | 우선순위 | 항목 | 유형 | 예상 효과 |
 |----------|------|------|-----------|
-| 1 | `savePersonPrograms` upsert로 변경 | DB+코드 | 세션–프로그램 링크 유지 |
+| 1 | `savePartnerPrograms` upsert로 변경 | DB+코드 | 세션–프로그램 링크 유지 |
 | 2 | 이메일 변경 분기 개선 (D-02/C-01) | 코드 | 어드민 저장 실패 제거 |
 | 3 | `modalities` 컬럼 deprecate 계획 | DB | 이중 소스 제거 |
-| 4 | `persistPersonCore` 추출 | 리팩터 | admin/apply 중복 감소 |
+| 4 | `persistPartnerCore` 추출 | 리팩터 | admin/apply 중복 감소 |
 | 5 | regions JSON 폴백 제거 (시드 필수화) | 운영 | 환경 간 일관성 |
 | 6 | `bookings` 테이블 설계 시 `booked_count` 연동 | 스키마 | dead column 해소 |
 
@@ -391,8 +391,8 @@ flowchart LR
 |------|-------|--------|-------|
 | 2026-06-16 | #1 | Cursor agent | Initial full ERD, data + backend duplication audit |
 | 2026-06-16 | — | Team | **Email policy Option A (Strict) 확정** — [refactoring-plan.md § P0-B](./refactoring-plan.md) |
-| 2026-06-16 | — | Cursor agent | **P0-A/P0-B 구현** — program upsert, `teacher-email.ts`, `PersonSaveResult` |
-| 2026-06-16 | — | Cursor agent | **P1 구현** — `persist-person`, photo/form 공통화, auth/query 유틸 |
+| 2026-06-16 | — | Cursor agent | **P0-A/P0-B 구현** — program upsert, `teacher-email.ts`, `PartnerSaveResult` |
+| 2026-06-16 | — | Cursor agent | **P1 구현** — `persist-partner`, photo/form 공통화, auth/query 유틸 |
 
 ---
 

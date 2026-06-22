@@ -1,4 +1,4 @@
-import { slugify } from "@/lib/people/utils"
+import { slugify } from "@/lib/partners/utils"
 import type { JournalFormInput, JournalPostRow } from "./types"
 
 export function emptyJournalInput(): JournalFormInput {

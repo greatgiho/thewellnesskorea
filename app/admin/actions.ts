@@ -4,16 +4,19 @@ import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { requireAdminSession } from "@/lib/auth/require-session"
-import { provisionAndEmailTeacherAccount } from "@/lib/auth/teacher-account"
+import {
+  deleteLinkedTeacherAuthUser,
+  provisionAndEmailTeacherAccount,
+} from "@/lib/auth/teacher-account"
 import { isUserFacingError } from "@/lib/errors"
-import { persistPerson } from "@/lib/people/persist-person"
-import type { PersonFormInput } from "@/lib/people/types"
+import { persistPartner } from "@/lib/partners/persist-partner"
+import type { PartnerFormInput } from "@/lib/partners/types"
 
-function revalidatePersonCaches(isPublished: boolean, personId?: string, slug?: string) {
-  revalidatePath("/admin/people")
-  if (personId) revalidatePath(`/admin/people/${personId}/edit`)
+function revalidatePartnerCaches(isPublished: boolean, personId?: string, slug?: string) {
+  revalidatePath("/admin/partners")
+  if (personId) revalidatePath(`/admin/partners/${personId}/edit`)
   if (isPublished) revalidatePath("/")
-  if (slug) revalidatePath(`/people/${slug}`)
+  if (slug) revalidatePath(`/partners/${slug}`)
 }
 
 export type SavePersonOptions = {
@@ -21,7 +24,7 @@ export type SavePersonOptions = {
   photoPath?: string | null
 }
 
-export type PersonSaveResult =
+export type PartnerSaveResult =
   | { ok: true; personId: string }
   | { ok: false; error: string }
 
@@ -31,19 +34,19 @@ export async function signOut() {
   redirect("/admin/login")
 }
 
-export async function savePerson(
-  input: PersonFormInput,
+export async function savePartner(
+  input: PartnerFormInput,
   personId?: string,
   options?: SavePersonOptions,
-): Promise<PersonSaveResult> {
+): Promise<PartnerSaveResult> {
   try {
     const { supabase } = await requireAdminSession()
-    const result = await persistPerson(supabase, input, {
+    const result = await persistPartner(supabase, input, {
       mode: "admin",
       personId,
       options,
     })
-    revalidatePersonCaches(result.isPublished, result.personId, result.slug)
+    revalidatePartnerCaches(result.isPublished, result.personId, result.slug)
     return { ok: true, personId: result.personId }
   } catch (error) {
     if (isUserFacingError(error) || error instanceof Error) {
@@ -52,30 +55,30 @@ export async function savePerson(
         error: error.message || "저장에 실패했습니다.",
       }
     }
-    console.error("[savePerson]", error)
+    console.error("[savePartner]", error)
     return { ok: false, error: "저장에 실패했습니다. 잠시 후 다시 시도해 주세요." }
   }
 }
 
-export async function createPerson(input: PersonFormInput) {
-  return savePerson(input)
+export async function createPerson(input: PartnerFormInput) {
+  return savePartner(input)
 }
 
-export async function updatePerson(id: string, input: PersonFormInput) {
-  return savePerson(input, id)
+export async function updatePerson(id: string, input: PartnerFormInput) {
+  return savePartner(input, id)
 }
 
 export async function updatePersonPhotoPath(id: string, photoPath: string) {
   const { supabase } = await requireAdminSession()
 
   const { data: existing } = await supabase
-    .from("people")
+    .from("partners")
     .select("photo_path, is_published")
     .eq("id", id)
     .maybeSingle()
 
   const { error } = await supabase
-    .from("people")
+    .from("partners")
     .update({ photo_path: photoPath })
     .eq("id", id)
 
@@ -86,7 +89,7 @@ export async function updatePersonPhotoPath(id: string, photoPath: string) {
     await supabase.storage.from("person-photos").remove([oldPath])
   }
 
-  revalidatePersonCaches(existing?.is_published ?? false, id)
+  revalidatePartnerCaches(existing?.is_published ?? false, id)
 }
 
 export async function approvePerson(personId: string) {
@@ -94,7 +97,7 @@ export async function approvePerson(personId: string) {
   const now = new Date().toISOString()
 
   const { data: person, error: loadError } = await supabase
-    .from("people")
+    .from("partners")
     .select("email")
     .eq("id", personId)
     .maybeSingle()
@@ -105,7 +108,7 @@ export async function approvePerson(personId: string) {
   }
 
   const { error } = await supabase
-    .from("people")
+    .from("partners")
     .update({
       registration_status: "approved",
       reviewed_at: now,
@@ -117,7 +120,7 @@ export async function approvePerson(personId: string) {
   if (error) throw new Error(error.message)
 
   await provisionAndEmailTeacherAccount(supabase, personId)
-  revalidatePersonCaches(false, personId)
+  revalidatePartnerCaches(false, personId)
 }
 
 export async function reissueTeacherPassword(personId: string) {
@@ -133,7 +136,7 @@ export async function rejectPerson(personId: string, reason: string) {
   if (!trimmed) throw new Error("Rejection reason is required.")
 
   const { error } = await supabase
-    .from("people")
+    .from("partners")
     .update({
       registration_status: "rejected",
       reviewed_at: new Date().toISOString(),
@@ -144,10 +147,10 @@ export async function rejectPerson(personId: string, reason: string) {
     .eq("id", personId)
 
   if (error) throw new Error(error.message)
-  revalidatePersonCaches(false, personId)
+  revalidatePartnerCaches(false, personId)
 }
 
-export async function deletePerson(id: string) {
+export async function deletePartner(id: string) {
   const { supabase } = await requireAdminSession()
 
   const { count: sessionCount, error: sessionCountError } = await supabase
@@ -163,8 +166,8 @@ export async function deletePerson(id: string) {
   }
 
   const { data: person } = await supabase
-    .from("people")
-    .select("photo_path, is_published")
+    .from("partners")
+    .select("photo_path, is_published, user_id")
     .eq("id", id)
     .maybeSingle()
 
@@ -172,8 +175,14 @@ export async function deletePerson(id: string) {
     await supabase.storage.from("person-photos").remove([person.photo_path])
   }
 
-  const { error } = await supabase.from("people").delete().eq("id", id)
+  const linkedUserId = person?.user_id ?? null
+
+  const { error } = await supabase.from("partners").delete().eq("id", id)
   if (error) throw new Error(error.message)
 
-  revalidatePersonCaches(person?.is_published ?? false)
+  if (linkedUserId) {
+    await deleteLinkedTeacherAuthUser(linkedUserId)
+  }
+
+  revalidatePartnerCaches(person?.is_published ?? false)
 }

@@ -81,7 +81,7 @@ export async function getUpcomingSessions(
     instructorId = filter.instructorId
   } else {
     const { data: person, error: personError } = await supabase
-      .from("people")
+      .from("partners")
       .select("id")
       .eq("user_id", filter.userId)
       .maybeSingle()

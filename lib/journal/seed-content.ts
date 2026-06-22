@@ -33,7 +33,7 @@ We call this rhythm the five paths: Bium (stillness), Kkaeum (movement), Jieum (
 
 ## Why a platform, not a single studio
 
-The Wellness Korea begins at Brickwell in Seochon, but it is not limited to one address. Spaces hold daily life. Journeys will carry you to regions where the land itself teaches pace. This Journal holds the stories that connect them—philosophy, places, people, and the taste of a particular season.
+The Wellness Korea begins at Brickwell in Seochon, but it is not limited to one address. Spaces hold daily life. Journeys will carry you to regions where the land itself teaches pace. This Journal holds the stories that connect them—philosophy, places, partners, and the taste of a particular season.
 
 If you are new here, meet a Wellness Guide on the homepage, browse the schedule, and return when you want the longer view.`),
   },

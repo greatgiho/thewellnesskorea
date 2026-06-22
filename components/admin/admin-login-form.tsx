@@ -57,7 +57,7 @@ export function AdminLoginForm() {
     }
 
     setPending(false)
-    router.push("/admin/people")
+    router.push("/admin/partners")
     router.refresh()
   }
 

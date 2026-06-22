@@ -1,15 +1,15 @@
 "use client"
 
 import type { PathKey } from "@/lib/paths/paths-data"
-import type { PersonProgramFormInput } from "@/lib/people/types"
+import type { PartnerProgramFormInput } from "@/lib/partners/types"
 import { PhilosophyPathPicker } from "./philosophy-path-picker"
 
 type ProgramListEditorProps = {
-  programs: PersonProgramFormInput[]
-  onChange: (programs: PersonProgramFormInput[]) => void
+  programs: PartnerProgramFormInput[]
+  onChange: (programs: PartnerProgramFormInput[]) => void
 }
 
-const emptyProgram = (): PersonProgramFormInput => ({
+const emptyProgram = (): PartnerProgramFormInput => ({
   clientKey: crypto.randomUUID(),
   title: "",
   description: "",
@@ -17,7 +17,7 @@ const emptyProgram = (): PersonProgramFormInput => ({
 })
 
 export function ProgramListEditor({ programs, onChange }: ProgramListEditorProps) {
-  const updateAt = (index: number, patch: Partial<PersonProgramFormInput>) => {
+  const updateAt = (index: number, patch: Partial<PartnerProgramFormInput>) => {
     onChange(programs.map((p, i) => (i === index ? { ...p, ...patch } : p)))
   }
 

@@ -46,8 +46,9 @@ export default async function BookConfirmPage({
             See you at Brickwell, Seochon.
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
-            Payment is on-site. Please arrive a few minutes early and wear
-            comfortable clothing.
+            {summary.priceKrw > 0
+              ? "Your online payment is confirmed. Please arrive a few minutes early and wear comfortable clothing."
+              : "Payment is on-site. Please arrive a few minutes early and wear comfortable clothing."}
           </p>
           <p className="mt-4 text-sm text-foreground">
             Save this booking to an account for easier access next time.

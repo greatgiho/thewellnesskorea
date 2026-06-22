@@ -7,7 +7,7 @@ import { siteOrigin } from "@/lib/apply/config"
 import { completeMemberOnboarding, validateMemberSignupEmail } from "@/lib/auth/member-account"
 import { requireMemberSession } from "@/lib/auth/require-session"
 import { cancelBookingForUserRpc } from "@/lib/bookings/rpc"
-import { isValidEmail } from "@/lib/people/utils"
+import { isValidEmail } from "@/lib/partners/utils"
 import { createClient } from "@/lib/supabase/server"
 
 export type MemberCancelState = {

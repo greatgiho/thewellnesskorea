@@ -1,4 +1,4 @@
-import { extFromMime } from "@/lib/people/utils"
+import { extFromMime } from "@/lib/partners/utils"
 
 export const JOURNAL_PHOTOS_BUCKET = "journal-photos"
 

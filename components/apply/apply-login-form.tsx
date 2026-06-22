@@ -4,7 +4,7 @@ import { useState } from "react"
 import { useSearchParams } from "next/navigation"
 import { validateTeacherInviteCode } from "@/app/apply/actions"
 import { createClient } from "@/lib/supabase/client"
-import { isValidEmail } from "@/lib/people/utils"
+import { isValidEmail } from "@/lib/partners/utils"
 
 export function ApplyLoginForm() {
   const searchParams = useSearchParams()

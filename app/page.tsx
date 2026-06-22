@@ -9,15 +9,15 @@ import { Artists } from "@/components/artists"
 import { Schedule } from "@/components/schedule"
 import { ClosingCta } from "@/components/closing-cta"
 import { Footer } from "@/components/footer"
-import { getPublishedPeople } from "@/lib/people/queries"
+import { getPublishedPartners } from "@/lib/partners/queries"
 import { getPublishedExperiences } from "@/lib/experiences/queries"
 import { FALLBACK_EXPERIENCES } from "@/lib/experiences/fallback"
 import { getPublicScheduleForExperiences } from "@/lib/schedule/public-queries"
 
 export default async function Page() {
   const [guides, artists, experiencesFromDb] = await Promise.all([
-    getPublishedPeople("guide"),
-    getPublishedPeople("artist"),
+    getPublishedPartners("guide"),
+    getPublishedPartners("artist"),
     getPublishedExperiences(),
   ])
 
@@ -41,8 +41,8 @@ export default async function Page() {
         <Philosophy />
         <WhyKorea />
         <Paths />
-        <Guides people={guides} />
-        <Artists people={artists} />
+        <Guides partners={guides} />
+        <Artists partners={artists} />
         <Schedule sessionsByExperience={sessionsByExperience} />
       </ExperienceHomeProvider>
       <ClosingCta />

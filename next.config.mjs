@@ -6,6 +6,20 @@ const supabaseHostname = supabaseUrl
 
 const nextConfig = {
   serverExternalPackages: ["isomorphic-dompurify", "jsdom"],
+  async redirects() {
+    return [
+      {
+        source: "/people/:slug",
+        destination: "/partners/:slug",
+        permanent: true,
+      },
+      {
+        source: "/admin/people/:path*",
+        destination: "/admin/partners/:path*",
+        permanent: true,
+      },
+    ]
+  },
   images: {
     remotePatterns: [
       ...(supabaseHostname

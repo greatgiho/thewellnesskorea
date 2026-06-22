@@ -1,6 +1,6 @@
 import type { ClassItem } from "@/components/schedule/types"
 import { pathLabelKo, type PathKey } from "@/lib/paths/paths-data"
-import { getInitials } from "@/lib/people/utils"
+import { getInitials } from "@/lib/partners/utils"
 import type { SessionWithRelations } from "./types"
 import {
   formatDateKeyInKst,

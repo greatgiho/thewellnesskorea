@@ -48,7 +48,7 @@ Companion docs: [Site map](./site-map-and-flows.md) · [DB schema](./database-sc
 | Role | How set | Access |
 |------|---------|--------|
 | **Admin** | `app_metadata.role = "admin"` (`npm run create-admin`, `set-admin-role`, or `backfill-admin-roles`) | `/admin/*`, full RLS via `is_admin_user()` |
-| **Teacher** | `ensureTeacherRole()` on first profile access; `app_metadata.role = teacher` on account provision | `/apply/profile/*` (registration), `/teacher/*` (portal), own `people` + `person_programs` via RLS |
+| **Teacher** | `ensureTeacherRole()` on first profile access; `app_metadata.role = teacher` on account provision | `/apply/profile/*` (registration), `/teacher/*` (portal), own `partners` + `partner_programs` via RLS |
 
 DB helper `is_admin_user()`: JWT `app_metadata.role = 'admin'` (explicit only; members/teachers/unset do not pass). Middleware and `/admin/login` enforce the same check; legacy unset accounts: `npm run backfill-admin-roles -- --apply`.
 
@@ -59,8 +59,8 @@ DB helper `is_admin_user()`: JWT `app_metadata.role = 'admin'` (explicit only; m
 | Rule | Detail |
 |------|--------|
 | One email, one role | An address is either **admin** or **teacher**, not both |
-| `people.email` | Teacher **login + contact** (admin-only field on forms; not on public site) |
-| Admin email reuse | Must **not** set `people.email` to an address already used by an admin Auth user |
+| `partners.email` | Teacher **login + contact** (admin-only field on forms; not on public site) |
+| Admin email reuse | Must **not** set `partners.email` to an address already used by an admin Auth user |
 | Typical setup | Personal email → `/admin/login` · Studio/teacher email → `/teacher/login` |
 | On conflict | Reject save with explicit message; do not rename teacher Auth to an admin-owned email |
 
@@ -94,7 +94,7 @@ Supabase supports two callback shapes; the app handles **both** in `lib/supabase
 
 **Request flow:** Browser client `signInWithOtp` on `/apply` (not Server Action) — PKCE cookies stored correctly when PKCE path is used.
 
-**Complete flow:** Middleware or `/auth/callback` → session cookies → `/apply/profile` → `linkTeacherPerson` + `ensureTeacherRole`.
+**Complete flow:** Middleware or `/auth/callback` → session cookies → `/apply/profile` → `linkTeacherPartner` + `ensureTeacherRole`.
 
 #### Supabase email template (required for any-device links)
 
@@ -156,9 +156,9 @@ On `code` or `token_hash`+`type` in query: complete auth in middleware → redir
 | Path | Unauthenticated | Teacher | Admin |
 |------|-----------------|---------|-------|
 | `/apply/profile/*` | → `/apply` | ✓ | ✓ |
-| `/teacher/login` | ✓ | → `/teacher` or `/teacher/change-password` | → `/admin/people` |
-| `/teacher/*` (not login) | → `/teacher/login` | ✓ (force change-password if flag) | → `/admin/people` |
-| `/admin/login` | ✓ | → `/teacher` | → `/admin/people` |
+| `/teacher/login` | ✓ | → `/teacher` or `/teacher/change-password` | → `/admin/partners` |
+| `/teacher/*` (not login) | → `/teacher/login` | ✓ (force change-password if flag) | → `/admin/partners` |
+| `/admin/login` | ✓ | → `/teacher` | → `/admin/partners` |
 | `/admin/*` (not login) | → `/admin/login` | → `/teacher` | ✓ |
 
 Middleware complements but does not replace RLS.
@@ -221,7 +221,7 @@ stateDiagram-v2
 
 | Rule | Enforcement |
 |------|-------------|
-| Public homepage | `getPublishedPeople()`: `is_published` + status `admin`\|`approved` |
+| Public homepage | `getPublishedPartners()`: `is_published` + status `admin`\|`approved` |
 | Experiences (hero/schedule) | `getPublishedExperiences()`: `is_published = true`, ordered by `sort_order`; eyebrow via `lib/experiences/copy.ts` |
 | Publish guard | `canPublishPerson()` — only `admin` or `approved` |
 | Teacher cannot publish | `persistTeacherProfile` forces `is_published = false` |
@@ -230,7 +230,7 @@ stateDiagram-v2
 | Delete blocked | if `sessions.instructor_id` references person |
 | Programs optional | 0 programs allowed on submit |
 
-### Teacher account linking (`linkTeacherPerson`)
+### Teacher account linking (`linkTeacherPartner`)
 
 1. Match `user_id` → return row
 2. Match `email` (case-insensitive) → attach `user_id` (error if linked to another user)
@@ -260,7 +260,7 @@ stateDiagram-v2
 
 | Action | `revalidatePath` |
 |--------|------------------|
-| Person save/publish | `/admin/people`, edit page, `/` if published |
+| Person save/publish | `/admin/partners`, edit page, `/partners/[slug]`, `/` if published |
 | Session save/publish | `/admin/schedule`, `/` if published |
 
 ---
@@ -272,19 +272,19 @@ stateDiagram-v2
 | Action | Purpose |
 |--------|---------|
 | `signOut` | Admin session end |
-| `savePerson` / `createPerson` / `updatePerson` | Person + programs CRUD |
+| `savePartner` / `createPerson` / `updatePerson` | Partner + programs CRUD |
 | `updatePersonPhotoPath` | Photo path update + old file cleanup |
 | `approvePerson` | `registration_status → approved`; provision Auth + temp password email |
 | `reissueTeacherPassword` | New random password + email |
 | `rejectPerson` | `→ rejected`, unpublish, reason required |
-| `deletePerson` | Delete if no sessions reference instructor |
+| `deletePartner` | Delete if no sessions reference instructor; removes linked teacher Auth (`role = teacher`) when `user_id` set (`deleteLinkedTeacherAuthUser`) |
 
 ### `app/apply/actions.ts`
 
 | Action | Purpose |
 |--------|---------|
 | `requestTeacherMagicLink` | Validate invite code + send OTP |
-| `getTeacherPerson` | Auth + `linkTeacherPerson` |
+| `getTeacherPerson` | Auth + `linkTeacherPartner` |
 | `saveTeacherProfileDraft` | `draft` status |
 | `submitTeacherProfile` | `submitted` + notify |
 | `signOutTeacher` | Teacher session end |
@@ -354,8 +354,8 @@ stateDiagram-v2
 | `requireAdminSession`, `requireTeacherSession` | Auth session guards (`require-session.ts`) |
 | `assertTeacherEmailAvailable`, `resolveEmailChangeOnAdminSave` | Option A email policy on admin save |
 | `clearMustChangePassword` | Service-role metadata cleanup after password change |
-| `provisionAndEmailTeacherAccount`, `maybeProvisionOnAdminSave`, `linkPersonToAuthUser` | Orchestrate people row + email |
-| `mustChangePassword`, `getTeacherPersonByUserId` | Middleware + layout helpers |
+| `provisionAndEmailTeacherAccount`, `maybeProvisionOnAdminSave`, `linkPartnerToAuthUser`, `deleteLinkedTeacherAuthUser` | Orchestrate partners row + email; cleanup orphan teacher Auth on delete |
+| `mustChangePassword`, `getTeacherPartnerByUserId` | Middleware + layout helpers |
 
 ### `lib/apply/`
 
@@ -363,7 +363,7 @@ stateDiagram-v2
 |--------|------|
 | `teacherApplyCode`, `siteOrigin`, `applyProfileUrl` | Env-based config |
 | `ensureTeacherRole` | Set `app_metadata.role = teacher` |
-| `linkTeacherPerson` | Auth user ↔ `people` row |
+| `linkTeacherPartner` | Auth user ↔ `partners` row |
 
 ### `lib/experiences/`
 
@@ -376,18 +376,18 @@ stateDiagram-v2
 
 Homepage: `ExperienceHomeProvider` syncs hero carousel + schedule horizontal index.
 
-### `lib/people/`
+### `lib/partners/`
 
 | Export | Role |
 |--------|------|
-| `getPublishedPeople`, `getAllPeopleAdmin`, `getPersonById` | Queries |
-| `persistPerson` | Shared admin/teacher profile save (`persist-person.ts`) |
+| `getPublishedPartners`, `getAllPartnersAdmin`, `getPartnerById`, `getPartnerBySlug` | Queries |
+| `persistPartner` | Shared admin/teacher profile save (`persist-partner.ts`) |
 | `emptyPersonInput`, `personInputFromPerson` | Form state (`form-state.ts`) |
 | `uploadPersonPhoto`, `validatePersonPhotoFile` | Client photo upload (`photo-upload.ts`) |
 | `validatePersonInput` | Form validation |
-| `personRowFromInput`, `savePersonPrograms`, `resolvePersonSlug`, `uniqueSlug` | Persist |
+| `personRowFromInput`, `savePartnerPrograms`, `resolvePersonSlug`, `uniqueSlug` | Persist |
 | `isSelfRegistered(status, userId?)` | Registration helpers; legacy `approved` without `user_id` excluded |
-| `slugify`, `getPersonPhotoUrl`, `toPersonCard`, `isValidEmail`, … | Display/utils |
+| `slugify`, `getPartnerPhotoUrl`, `toPartnerCard`, `isValidEmail`, … | Display/utils |
 
 ### `lib/schedule/`
 
@@ -402,6 +402,16 @@ Homepage: `ExperienceHomeProvider` syncs hero carousel + schedule horizontal ind
 | `layoutWidthForSession`, `layoutLeftForSession` | Grid 50%/100% layout |
 | `sessionStatusLabel`, ribbon classes | UI status |
 | `getSessionPhotoUrl`, `normalizeDescriptionBlocks`, storage path helpers | Images/content |
+| Session form | `price_krw` — `0` on-site; `>0` online payment (B7) |
+
+### `lib/bookings/`
+
+| Export | Role |
+|--------|------|
+| `createBookingRpc`, `cancelBookingByTokenRpc`, `cancelBookingForUserRpc` | Free/on-site booking RPC wrappers (`rpc.ts`) |
+| `createBookingHoldRpc`, `confirmBookingPaymentRpc`, `expireStaleBookingHoldsRpc` | Paid hold + webhook + Cron (`hold-rpc.ts`) |
+| `getSessionForBooking`, guest/member/admin booking queries | Read paths |
+| `sendBookingConfirmationEmail`, cancel emails | Resend notifications |
 
 ### `lib/notifications/`
 
@@ -430,10 +440,10 @@ Homepage: `ExperienceHomeProvider` syncs hero carousel + schedule horizontal ind
 
 ## Security summary
 
-- RLS on `people`, `person_programs`, `floors`, `sessions`
+- RLS on `partners`, `partner_programs`, `floors`, `sessions`
 - Service role never exposed to browser
-- Teacher RLS: own `people` + `person_programs`; read own `sessions` (confirmed + published only); cannot set `is_published`
-- Admin RLS: `is_admin_user()` on people/programs
+- Teacher RLS: own `partners` + `partner_programs`; read own `sessions` (confirmed + published only); cannot set `is_published`
+- Admin RLS: `is_admin_user()` on partners/programs
 - Storage: public read; authenticated write per bucket policy
 
 ---
@@ -450,6 +460,7 @@ Homepage: `ExperienceHomeProvider` syncs hero carousel + schedule horizontal ind
 
 - Public homepage schedule from live `sessions` — done (see [booking-requirements § B1](./booking-requirements.md))
 - `bookings` schema + RPC — done (B2); guest UI + emails — done (B3); member auth + account — done (B4–B5)
+- B7 payment schema (`021`) — done; PG webhook + client SDK — TBD
 - Notify processing-session creators on auto-cancel
 - Resend domain verification for production
 - Teacher forgot-password page (unauthenticated)

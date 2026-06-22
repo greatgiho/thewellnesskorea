@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
 
-export async function savePersonActivityRegions(
+export async function savePartnerActivityRegions(
   supabase: SupabaseClient,
   personId: string,
   primaryCode: string,
@@ -10,25 +10,25 @@ export async function savePersonActivityRegions(
   const secondary = secondaryCode.trim()
 
   const { error: deleteError } = await supabase
-    .from("person_activity_regions")
+    .from("partner_activity_regions")
     .delete()
-    .eq("person_id", personId)
+    .eq("partner_id", personId)
 
   if (deleteError) throw new Error(deleteError.message)
 
-  const rows: { person_id: string; priority: number; region_code: string }[] = []
+  const rows: { partner_id: string; priority: number; region_code: string }[] = []
 
   if (primary) {
-    rows.push({ person_id: personId, priority: 1, region_code: primary })
+    rows.push({ partner_id: personId, priority: 1, region_code: primary })
   }
   if (secondary) {
-    rows.push({ person_id: personId, priority: 2, region_code: secondary })
+    rows.push({ partner_id: personId, priority: 2, region_code: secondary })
   }
 
   if (rows.length === 0) return
 
   const { error: insertError } = await supabase
-    .from("person_activity_regions")
+    .from("partner_activity_regions")
     .insert(rows)
 
   if (insertError) throw new Error(insertError.message)

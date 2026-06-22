@@ -123,7 +123,7 @@ export async function updateSession(request: NextRequest) {
     }
     if (role === "admin") {
       const redirectUrl = request.nextUrl.clone()
-      redirectUrl.pathname = "/admin/people"
+      redirectUrl.pathname = "/admin/partners"
       return NextResponse.redirect(redirectUrl)
     }
     if (
@@ -181,7 +181,7 @@ export async function updateSession(request: NextRequest) {
     }
     if (role === "admin") {
       const redirectUrl = request.nextUrl.clone()
-      redirectUrl.pathname = "/admin/people"
+      redirectUrl.pathname = "/admin/partners"
       return NextResponse.redirect(redirectUrl)
     }
   }

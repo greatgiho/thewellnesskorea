@@ -1,5 +1,5 @@
 import { siteOrigin } from "@/lib/apply/config"
-import type { PersonRegistrationStatus } from "@/lib/people/types"
+import type { PartnerRegistrationStatus } from "@/lib/partners/types"
 import { getAdminNotifyEmails } from "@/lib/notifications/admin-recipients"
 
 type ProfileSubmittedPayload = {
@@ -8,11 +8,11 @@ type ProfileSubmittedPayload = {
   nameEn: string
   email: string | null
   kind: string
-  previousStatus: PersonRegistrationStatus
+  previousStatus: PartnerRegistrationStatus
 }
 
 function editUrl(personId: string): string {
-  return `${siteOrigin()}/admin/people/${personId}/edit`
+  return `${siteOrigin()}/admin/partners/${personId}/edit`
 }
 
 export async function notifyAdminProfileSubmitted(

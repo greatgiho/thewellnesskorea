@@ -1,17 +1,17 @@
-import { PersonSection } from "@/components/people/person-section"
-import type { PersonCardData } from "@/lib/people/types"
+import { PartnerSection } from "@/components/partners/partner-section"
+import type { PartnerCardData } from "@/lib/partners/types"
 
 type ArtistsProps = {
-  people: PersonCardData[]
+  partners: PartnerCardData[]
 }
 
-export function Artists({ people }: ArtistsProps) {
+export function Artists({ partners }: ArtistsProps) {
   return (
-    <PersonSection
+    <PartnerSection
       id="arts"
       title="Artist"
       description="Our spaces are also stages. Gugak, Korean dance, and performances that reinterpret tradition bring wellness its pulse — heung."
-      people={people}
+      partners={partners}
       prevLabel="Previous artists"
       nextLabel="Next artists"
       className="bg-background pb-24 lg:pb-32"

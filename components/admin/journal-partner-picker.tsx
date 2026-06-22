@@ -9,9 +9,9 @@ import { PATH_OPTIONS } from "@/lib/paths/paths-data"
 import {
   type PartnerKindFilter,
   partnerKindLabel,
-  personMatchesPartnerKind,
-} from "@/lib/people/partner-kind"
-import { getPersonPhotoUrl } from "@/lib/people/utils"
+  partnerMatchesKind,
+} from "@/lib/partners/partner-kind"
+import { getPartnerPhotoUrl } from "@/lib/partners/utils"
 
 type JournalPartnerPickerProps = {
   partners: JournalPartnerOption[]
@@ -49,7 +49,7 @@ export function JournalPartnerPicker({
     const q = search.trim().toLowerCase()
     return partners.filter((partner) => {
       if (selectedIds.includes(partner.id)) return false
-      if (!personMatchesPartnerKind(partner, kindFilter)) return false
+      if (!partnerMatchesKind(partner, kindFilter)) return false
       if (pathFilters.length > 0) {
         const hasPath = partner.path_keys.some((key) =>
           pathFilters.includes(key as PathKey),
@@ -99,7 +99,7 @@ export function JournalPartnerPicker({
             >
               <div className="relative size-8 overflow-hidden rounded-full bg-muted">
                 <Image
-                  src={getPersonPhotoUrl(partner.photo_path)}
+                  src={getPartnerPhotoUrl(partner.photo_path)}
                   alt=""
                   fill
                   className="object-cover"
@@ -209,7 +209,7 @@ export function JournalPartnerPicker({
                 >
                   <div className="relative size-9 shrink-0 overflow-hidden rounded-full bg-muted">
                     <Image
-                      src={getPersonPhotoUrl(partner.photo_path)}
+                      src={getPartnerPhotoUrl(partner.photo_path)}
                       alt=""
                       fill
                       className="object-cover"

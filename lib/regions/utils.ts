@@ -1,4 +1,4 @@
-import type { PersonActivityRegionRow, RegionRow } from "./types"
+import type { PartnerActivityRegionRow, RegionRow } from "./types"
 
 export function formatRegionLabel(
   sigungu: RegionRow,
@@ -16,7 +16,7 @@ export function formatRegionLabel(
 }
 
 export function formatActivityRegionLabel(
-  entry: PersonActivityRegionRow,
+  entry: PartnerActivityRegionRow,
   sidoByCode: Map<string, RegionRow>,
   locale: "ko" | "en" = "ko",
 ): string | null {
@@ -29,19 +29,19 @@ export function formatActivityRegionLabel(
 }
 
 export function primaryActivityRegion(
-  regions: PersonActivityRegionRow[] | undefined,
-): PersonActivityRegionRow | undefined {
+  regions: PartnerActivityRegionRow[] | undefined,
+): PartnerActivityRegionRow | undefined {
   return regions?.find((r) => r.priority === 1)
 }
 
 export function secondaryActivityRegion(
-  regions: PersonActivityRegionRow[] | undefined,
-): PersonActivityRegionRow | undefined {
+  regions: PartnerActivityRegionRow[] | undefined,
+): PartnerActivityRegionRow | undefined {
   return regions?.find((r) => r.priority === 2)
 }
 
 export function activityRegionCodesFromRows(
-  regions: PersonActivityRegionRow[] | undefined,
+  regions: PartnerActivityRegionRow[] | undefined,
 ): { primary: string; secondary: string } {
   return {
     primary: primaryActivityRegion(regions)?.region_code ?? "",

@@ -90,7 +90,7 @@ Homepage **Discover teaser** (Phase D2) links to `region` and `taste` only. See 
 | Body format | **TipTap WYSIWYG** → sanitized HTML in `body_en` text column |
 | Hero image | Upload to `journal-photos` bucket (`{postId}/hero.*`) |
 | Inline images | Toolbar insert → `journal-photos` (`{postId}/inline/{uuid}.*`) |
-| Partner tags | Multi-select partners (guide / artist / brand) → `journal_post_people` |
+| Partner tags | Multi-select partners (guide / artist / brand) → `journal_post_partners` |
 | Draft | `is_published = false`; live preview via editor |
 | Not v1 | MDX-in-repo, Notion/Sanity |
 
@@ -146,4 +146,4 @@ Storage bucket: `journal-photos` (Phase J3) or public paths initially.
 |------|-------|
 | 2026-06-18 | Journal naming confirmed; J1 scaffold + this doc |
 | 2026-06-18 | Journal deferred — removed from Navbar/Footer until J2/J3 |
-| 2026-06-17 | Partner tags on articles (`journal_post_people`); Admin **Partners** tab with Guide/Artist/Brand + philosophy filters; `brand` person kind |
+| 2026-06-17 | Partner tags on articles (`journal_post_partners`); Admin **Partners** tab with Guide/Artist/Brand + philosophy filters; `brand` person kind |

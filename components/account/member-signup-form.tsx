@@ -46,10 +46,11 @@ export function MemberSignupForm({
       ) : null}
 
       <label className="block space-y-1.5">
-        <span className="text-sm font-medium">Full name</span>
+        <span className="text-sm font-medium">
+          Full name <span className="font-normal text-muted-foreground">(optional)</span>
+        </span>
         <input
           type="text"
-          required
           autoComplete="name"
           className={fieldClass}
           value={name}

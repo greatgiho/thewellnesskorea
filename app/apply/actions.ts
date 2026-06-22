@@ -3,12 +3,12 @@
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
-import { linkTeacherPerson, ensureTeacherRole } from "@/lib/apply/teacher-person"
+import { linkTeacherPartner, ensureTeacherRole } from "@/lib/apply/teacher-partner"
 import { teacherApplyCode, siteOrigin } from "@/lib/apply/config"
 import { requireTeacherSession } from "@/lib/auth/require-session"
-import { persistPerson } from "@/lib/people/persist-person"
-import type { PersonFormInput, PersonRow } from "@/lib/people/types"
-import { isValidEmail } from "@/lib/people/utils"
+import { persistPartner } from "@/lib/partners/persist-partner"
+import type { PartnerFormInput, PartnerRow } from "@/lib/partners/types"
+import { isValidEmail } from "@/lib/partners/utils"
 
 export async function validateTeacherInviteCode(inviteCode: string): Promise<void> {
   if (inviteCode.trim().toLowerCase() !== teacherApplyCode().toLowerCase()) {
@@ -41,14 +41,14 @@ export async function requestTeacherMagicLink(
   if (error) throw new Error(error.message)
 }
 
-export async function getTeacherPerson(): Promise<PersonRow | null> {
+export async function getTeacherPerson(): Promise<PartnerRow | null> {
   const { supabase, user } = await requireTeacherSession()
-  return linkTeacherPerson(supabase, user)
+  return linkTeacherPartner(supabase, user)
 }
 
 async function persistTeacherProfile(
-  input: PersonFormInput,
-  person: PersonRow | null,
+  input: PartnerFormInput,
+  person: PartnerRow | null,
   options: {
     submit: boolean
     newPersonId?: string
@@ -58,7 +58,7 @@ async function persistTeacherProfile(
   const { supabase, user } = await requireTeacherSession()
   await ensureTeacherRole(user.id)
 
-  const result = await persistPerson(supabase, input, {
+  const result = await persistPartner(supabase, input, {
     mode: "teacher",
     person,
     userId: user.id,
@@ -70,13 +70,13 @@ async function persistTeacherProfile(
   })
 
   revalidatePath("/apply/profile")
-  revalidatePath("/admin/people")
+  revalidatePath("/admin/partners")
 
   return result.personId
 }
 
 export async function saveTeacherProfileDraft(
-  input: PersonFormInput,
+  input: PartnerFormInput,
   options?: { newPersonId?: string; photoPath?: string | null },
 ): Promise<string> {
   const person = await getTeacherPerson()
@@ -88,7 +88,7 @@ export async function saveTeacherProfileDraft(
 }
 
 export async function submitTeacherProfile(
-  input: PersonFormInput,
+  input: PartnerFormInput,
   options?: { newPersonId?: string; photoPath?: string | null },
 ): Promise<string> {
   const person = await getTeacherPerson()

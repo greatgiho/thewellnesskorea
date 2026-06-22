@@ -177,4 +177,4 @@ erDiagram
 | 2026-06-16 | Initial requirements; Journey/Space terminology; decisions 1–6 confirmed |
 | 2026-06-16 | Phase 1 migration `011_experiences.sql` |
 | 2026-06-16 | Phase 2 hero carousel + schedule horizontal sync |
-| 2026-06-18 | Phase 2 complete: swipe-only schedule panels, `lib/experiences/*`, Next.js image hostname fix, person-card photo fallback |
+| 2026-06-18 | Phase 2 complete: swipe-only schedule panels, `lib/experiences/*`, Next.js image hostname fix, partner-card photo fallback |

@@ -30,7 +30,7 @@ export async function getMemberBookingsForUser(
         starts_at,
         ends_at,
         floor:floors (name_en),
-        instructor:people (name_en)
+        instructor:partners (name_en)
       )
     `,
     )

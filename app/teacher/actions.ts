@@ -6,7 +6,7 @@ import {
   clearMustChangePassword,
   provisionTeacherAccount,
 } from "@/lib/auth/provision-teacher-account"
-import { getTeacherPersonByUserId } from "@/lib/auth/teacher-account"
+import { getTeacherPartnerByUserId } from "@/lib/auth/teacher-account"
 import { sendTeacherCredentialsEmail } from "@/lib/notifications/teacher-credentials-email"
 import { createClient } from "@/lib/supabase/server"
 
@@ -16,7 +16,7 @@ async function requireTeacher() {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) redirect("/teacher/login")
-  if (user.app_metadata?.role === "admin") redirect("/admin/people")
+  if (user.app_metadata?.role === "admin") redirect("/admin/partners")
   return { supabase, user }
 }
 
@@ -54,7 +54,7 @@ export async function requestTeacherPasswordReissue() {
   const { user } = await requireTeacher()
   if (!user.email) throw new Error("Account email is missing.")
 
-  const person = await getTeacherPersonByUserId(user.id)
+  const person = await getTeacherPartnerByUserId(user.id)
   if (!person) {
     throw new Error("Teacher profile not found.")
   }

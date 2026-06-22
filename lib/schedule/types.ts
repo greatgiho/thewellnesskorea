@@ -25,13 +25,14 @@ export type SessionRow = {
   experience_id: string
   floor_id: string
   instructor_id: string
-  person_program_id: string | null
+  partner_program_id: string | null
   title: string
   path_keys: PathKey[]
   starts_at: string
   ends_at: string
   capacity: number
   booked_count: number
+  price_krw: number
   is_published: boolean
   status: SessionStatus
   slot_lane: number
@@ -62,13 +63,14 @@ export type SessionWithRelations = SessionRow & {
 export type SessionFormInput = {
   floor_id: string
   instructor_id: string
-  person_program_id: string | null
+  partner_program_id: string | null
   title: string
   path_keys: PathKey[]
   date: string
   start_time: string
   end_time: string
   capacity: number
+  price_krw: number
   is_published: boolean
   status: SessionStatus
   image_paths: string[]

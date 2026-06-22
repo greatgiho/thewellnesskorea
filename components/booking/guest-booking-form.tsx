@@ -4,6 +4,7 @@ import { useActionState } from "react"
 import Link from "next/link"
 import { submitGuestBooking, type GuestBookingState } from "@/app/book/actions"
 import type { SessionWithRelations } from "@/lib/schedule/types"
+import { formatKrw } from "@/lib/bookings/format"
 import { BookingSessionSummary } from "./booking-session-summary"
 
 const fieldClass =
@@ -32,6 +33,8 @@ export function GuestBookingForm({
   )
 
   const isMember = Boolean(memberPrefill)
+  const priceKrw = session.price_krw ?? 0
+  const isPaidSession = priceKrw > 0
 
   return (
     <div className="space-y-8">
@@ -94,6 +97,14 @@ export function GuestBookingForm({
             </label>
           </div>
 
+          {isPaidSession ? (
+            <p className="mt-4 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-foreground">
+              Class fee:{" "}
+              <span className="font-medium">{formatKrw(priceKrw)}</span>
+              {" "}— you&apos;ll complete online payment on the next step.
+            </p>
+          ) : null}
+
           {state.error ? (
             <p className="mt-4 text-sm text-destructive">{state.error}</p>
           ) : null}
@@ -103,7 +114,11 @@ export function GuestBookingForm({
             disabled={pending}
             className="mt-6 inline-flex w-full items-center justify-center rounded-full bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-all hover:bg-primary/90 disabled:opacity-60 sm:w-auto"
           >
-            {pending ? "Reserving…" : "Confirm reservation"}
+            {pending
+              ? "Continuing…"
+              : isPaidSession
+                ? "Continue to payment"
+                : "Confirm reservation"}
           </button>
 
           {!isMember ? (
@@ -120,8 +135,9 @@ export function GuestBookingForm({
           ) : null}
 
           <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
-            By reserving, you agree to our on-site payment terms. Online payment
-            is not required at this time.
+            {isPaidSession
+              ? "By continuing, you agree to our online payment and cancellation terms."
+              : "By reserving, you agree to our on-site payment terms."}
           </p>
         </div>
       </form>

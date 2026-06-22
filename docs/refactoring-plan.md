@@ -19,7 +19,7 @@ flowchart LR
     end
 
     subgraph phase2 [Phase 2 — P1 core]
-        P1A[persistPersonCore]
+        P1A[persistPartnerCore]
         P1B[Photo upload hook]
     end
 
@@ -38,7 +38,7 @@ flowchart LR
 |-------|------|-----------|----------------|
 | 1 | P0-A 프로그램 upsert | M | 없음 |
 | 1 | P0-B 이메일 변경 정책 | S–M | 없음 |
-| 2 | P1-A `persistPersonCore` | L | 없음 |
+| 2 | P1-A `persistPartnerCore` | L | 없음 |
 | 2 | P1-B 폼 사진·submit 공통화 | M | 없음 |
 | 3 | P1-C auth/query 유틸 | S | 없음 |
 | 4 | P2 Server Action 에러 UX | S | 없음 |
@@ -48,26 +48,26 @@ flowchart LR
 
 ---
 
-## P0-A — Program upsert (세션 `person_program_id` 보존)
+## P0-A — Program upsert (세션 `partner_program_id` 보존)
 
 ### 현재 동작
 
 ```44:68:lib/people/persist.ts
-export async function savePersonPrograms(...) {
-  await supabase.from("person_programs").delete().eq("person_id", personId)
+export async function savePartnerPrograms(...) {
+  await supabase.from("partner_programs").delete().eq("partner_id", personId)
   // ... insert all rows without id (new UUIDs every save)
 }
 ```
 
 - `PersonProgramFormInput`에 `id` 없음 → 폼이 DB UUID를 모름
 - `program-list-editor`가 `key={index}` 사용
-- `sessions.person_program_id` FK: `ON DELETE SET NULL` → 프로그램 row 삭제 시 세션 링크 즉시 해제
+- `sessions.partner_program_id` FK: `ON DELETE SET NULL` → 프로그램 row 삭제 시 세션 링크 즉시 해제
 
 ### 문제 시나리오
 
 | 행동 | 결과 |
 |------|------|
-| 어드민이 희주 선생님 프로필 저장 (프로그램 내용 동일) | 프로그램 UUID 전부 재발급 → 연결된 세션의 `person_program_id` = NULL |
+| 어드민이 희주 선생님 프로필 저장 (프로그램 내용 동일) | 프로그램 UUID 전부 재발급 → 연결된 세션의 `partner_program_id` = NULL |
 | 프로그램 1개 삭제 후 저장 | 해당 프로그램에 연결된 세션 링크 소실 (의도적일 수 있음) |
 | 프로그램 순서만 변경 | UUID 유지 필요 → 현재는 불필요한 재생성 |
 
@@ -79,8 +79,8 @@ export async function savePersonPrograms(...) {
 | PRG-02 | 폼에서 제거된 프로그램만 DB에서 DELETE 한다 |
 | PRG-03 | 새로 추가된 프로그램만 INSERT 한다 (클라이언트 임시 id 또는 서버 생성) |
 | PRG-04 | `title`, `description`, `path_keys`, `sort_order` 변경은 UPDATE 로 반영한다 |
-| PRG-05 | 삭제된 프로그램을 참조하던 `sessions.person_program_id`는 NULL 유지 (현재 FK 동작과 동일) |
-| PRG-06 | admin 저장·teacher draft/submit **모두** 동일 `savePersonPrograms` 경로 사용 |
+| PRG-05 | 삭제된 프로그램을 참조하던 `sessions.partner_program_id`는 NULL 유지 (현재 FK 동작과 동일) |
+| PRG-06 | admin 저장·teacher draft/submit **모두** 동일 `savePartnerPrograms` 경로 사용 |
 
 ### 요건 (Non-functional)
 
@@ -104,13 +104,13 @@ export type PersonProgramFormInput = {
 }
 ```
 
-**2. Upsert 알고리즘 (`savePersonPrograms`)**
+**2. Upsert 알고리즘 (`savePartnerPrograms`)**
 
 ```
-existing ← SELECT id FROM person_programs WHERE person_id = ?
+existing ← SELECT id FROM partner_programs WHERE partner_id = ?
 incomingIds ← input.programs.map(p => p.id).filter(Boolean)
 
-DELETE WHERE person_id = ? AND id NOT IN incomingIds
+DELETE WHERE partner_id = ? AND id NOT IN incomingIds
 
 FOR each program in input (with sort_order = index):
   IF program.id AND exists in existing:
@@ -123,23 +123,23 @@ FOR each program in input (with sort_order = index):
 
 | 파일 | 변경 |
 |------|------|
-| `person-form.tsx`, `teacher-profile-form.tsx` | `formFromPerson`에서 `id: p.id` 전달 |
+| `partner-form.tsx`, `teacher-profile-form.tsx` | `formFromPerson`에서 `id: p.id` 전달 |
 | `program-list-editor.tsx` | `key={program.id ?? program.clientKey}`; 신규 추가 시 `clientKey: crypto.randomUUID()` |
-| `savePersonPrograms` | 위 upsert 로직 |
+| `savePartnerPrograms` | 위 upsert 로직 |
 
 **4. 대안 (기각)**
 
 | 옵션 | 기각 사유 |
 |------|-----------|
-| 세션만 `person_program_id` 없이 title 매칭 복구 | 이름 변경 시 깨짐, 비결정적 |
+| 세션만 `partner_program_id` 없이 title 매칭 복구 | 이름 변경 시 깨짐, 비결정적 |
 | DB CASCADE로 프로그램 삭제 시 세션도 삭제 | 비즈니스적으로 과함 |
 | PostgreSQL `ON CONFLICT` 단일 upsert | 클라이언트가 stable id를 보내야 함 → 위 설계와 동일 |
 
 ### 인수 조건 (Acceptance)
 
-- [ ] 프로그램 제목만 수정 후 저장 → `person_programs.id` 불변
-- [ ] 동일 상태에서 재저장 → `sessions.person_program_id` 유지
-- [ ] 프로그램 삭제 → 해당 id 참조 세션만 `person_program_id` NULL
+- [ ] 프로그램 제목만 수정 후 저장 → `partner_programs.id` 불변
+- [ ] 동일 상태에서 재저장 → `sessions.partner_program_id` 유지
+- [ ] 프로그램 삭제 → 해당 id 참조 세션만 `partner_program_id` NULL
 - [ ] 신규 person 생성 + 프로그램 추가 → 정상 insert
 - [ ] teacher `/apply/profile` draft/submit 경로 동일 동작
 
@@ -147,7 +147,7 @@ FOR each program in input (with sort_order = index):
 
 | 리스크 | 완화 |
 |--------|------|
-| 이미 NULL로 깨진 `person_program_id` | 일회성 SQL로 수동 재연결 (선택); 자동 복구는 범위 외 |
+| 이미 NULL로 깨진 `partner_program_id` | 일회성 SQL로 수동 재연결 (선택); 자동 복구는 범위 외 |
 | 동시 편집 race | 현재도 last-write-wins; 문서화만 |
 
 ---
@@ -238,20 +238,20 @@ if (previousUserId && previousEmail && email changed) {
 
 ---
 
-## P1-A — `savePerson` vs `persistTeacherProfile` 통합
+## P1-A — `savePartner` vs `persistTeacherProfile` 통합
 
 ### 현재 중복
 
-| 단계 | `savePerson` | `persistTeacherProfile` |
+| 단계 | `savePartner` | `persistTeacherProfile` |
 |------|--------------|-------------------------|
 | validate | `validatePersonInput` | 동일 |
 | slug | `resolvePersonSlug` | 동일 |
 | people row | `personRowFromInput` + admin 필드 | + `user_id`, `registration_status`, `submitted_at` |
-| programs | `savePersonPrograms` | 동일 |
-| regions | `savePersonActivityRegions` | 동일 |
+| programs | `savePartnerPrograms` | 동일 |
+| regions | `savePartnerActivityRegions` | 동일 |
 | auth | `maybeProvisionOnAdminSave` | 없음 |
 | notify | 없음 | `notifyAdminProfileSubmitted` |
-| revalidate | admin paths + `/` | `/apply/profile`, `/admin/people` |
+| revalidate | admin paths + `/` | `/apply/profile`, `/admin/partners` |
 
 공통 ~70줄, 분기 ~30줄.
 
@@ -259,7 +259,7 @@ if (previousUserId && previousEmail && email changed) {
 
 | ID | 요건 |
 |----|------|
-| PER-01 | 단일 `persistPerson(supabase, input, ctx)` — ctx로 admin/teacher 분기 |
+| PER-01 | 단일 `persistPartner(supabase, input, ctx)` — ctx로 admin/teacher 분기 |
 | PER-02 | teacher 경로: `is_published` 항상 false, `user_id` = session user |
 | PER-03 | admin 경로: publish guard, photo cleanup, provision 유지 |
 | PER-04 | 기존 Server Action 시그니처 유지 (breaking change 없음) |
@@ -268,20 +268,20 @@ if (previousUserId && previousEmail && email changed) {
 ### 설계
 
 ```ts
-// lib/people/persist-person.ts
+// lib/people/persist-partner.ts
 
 type PersistPersonContext =
   | { mode: 'admin'; personId?: string; photoPath?: string | null; existing?: ExistingPersonMeta }
   | { mode: 'teacher'; person: PersonRow | null; userId: string; submit: boolean }
 
-export async function persistPerson(
+export async function persistPartner(
   supabase: SupabaseClient,
-  input: PersonFormInput,
+  input: PartnerFormInput,
   ctx: PersistPersonContext,
 ): Promise<{ personId: string; notify: boolean }>
 ```
 
-- `app/admin/actions.ts` → `savePerson`은 thin wrapper
+- `app/admin/actions.ts` → `savePartner`은 thin wrapper
 - `app/apply/actions.ts` → `persistTeacherProfile` 제거, wrapper만
 
 ### 인수 조건
@@ -291,15 +291,15 @@ export async function persistPerson(
 
 ### 선행 조건
 
-- P0-A (`savePersonPrograms` upsert) 완료 권장 — 통합 시 한 번만 테스트
+- P0-A (`savePartnerPrograms` upsert) 완료 권장 — 통합 시 한 번만 테스트
 
 ---
 
-## P1-B — `person-form` / `teacher-profile-form` 사진·저장 중복
+## P1-B — `partner-form` / `teacher-profile-form` 사진·저장 중복
 
 ### 현재 중복 (~60줄 × 2)
 
-| 블록 | person-form | teacher-profile-form |
+| 블록 | partner-form | teacher-profile-form |
 |------|-------------|----------------------|
 | `onFileChange` | EN 메시지 | KO 메시지 |
 | `uploadPhotoFile` | 동일 | 동일 |
@@ -324,7 +324,7 @@ lib/people/
   form-state.ts        # personInputFromRow, defaultPersonInput
 
 components/people/
-  person-photo-field.tsx  # optional: preview + file input UI
+  partner-photo-field.tsx  # optional: preview + file input UI
 ```
 
 - submit orchestration은 P1-A 이후 action이 단순해지면 각 폼에 5–10줄만 유지
@@ -416,7 +416,7 @@ type ActionResult<T> =
   | { ok: true; data: T }
   | { ok: false; error: string }
 
-export async function savePerson(...): Promise<ActionResult<string>> {
+export async function savePartner(...): Promise<ActionResult<string>> {
   try {
     ...
     return { ok: true, data: personId }
@@ -428,7 +428,7 @@ export async function savePerson(...): Promise<ActionResult<string>> {
 }
 ```
 
-- 폼: `const result = await savePerson(...); if (!result.ok) setError(result.error)`
+- 폼: `const result = await savePartner(...); if (!result.ok) setError(result.error)`
 - `UserFacingError` class in `lib/errors.ts`
 
 **Option 2 — `useActionState` (React 19)**
@@ -440,7 +440,7 @@ export async function savePerson(...): Promise<ActionResult<string>> {
 
 - 근본 해결 아님 → 보조만
 
-**권장:** Option 1을 P0-B와 함께 `savePerson` / `maybeProvision`에 먼저 적용 → 점진 확대
+**권장:** Option 1을 P0-B와 함께 `savePartner` / `maybeProvision`에 먼저 적용 → 점진 확대
 
 ### 인수 조건
 
@@ -457,7 +457,7 @@ export async function savePerson(...): Promise<ActionResult<string>> {
 
 | Phase | 테스트 |
 |-------|--------|
-| P0-A | 스크립트: person 저장 전후 `person_programs.id`, `sessions.person_program_id` 비교 |
+| P0-A | 스크립트: person 저장 전후 `partner_programs.id`, `sessions.partner_program_id` 비교 |
 | P0-B | 스크립트: email change 시나리오 4종 (unchanged, free, admin conflict, teacher conflict) |
 | P1 | 기존 수동 체크리스트: admin people CRUD, apply flow, schedule program picker |
 | P2 | prod build `next build && next start`에서 에러 메시지 육안 확인 |
@@ -470,11 +470,11 @@ export async function savePerson(...): Promise<ActionResult<string>> {
 
 | Step | 항목 | 상태 | 완료일 | PR/메모 |
 |------|------|------|--------|---------|
-| 1 | P0-A program upsert | done | 2026-06-16 | `savePersonPrograms` upsert; form `id`/`clientKey` |
+| 1 | P0-A program upsert | done | 2026-06-16 | `savePartnerPrograms` upsert; form `id`/`clientKey` |
 | 2 | P0-B email change policy (Option A) | done | 2026-06-16 | `lib/auth/teacher-email.ts` |
-| 3 | P2 partial (UserFacingError + savePerson Result) | done | 2026-06-16 | `PersonSaveResult` in `savePerson` |
-| 4 | P1-A persistPersonCore | done | 2026-06-16 | `lib/people/persist-person.ts` |
-| 5 | P1-B photo/form-state extract | done | 2026-06-16 | `photo-upload`, `form-state`, `PersonPhotoField` |
+| 3 | P2 partial (UserFacingError + savePartner Result) | done | 2026-06-16 | `PartnerSaveResult` in `savePartner` |
+| 4 | P1-A persistPartnerCore | done | 2026-06-16 | `lib/people/persist-partner.ts` |
+| 5 | P1-B photo/form-state extract | done | 2026-06-16 | `photo-upload`, `form-state`, `PartnerPhotoField` |
 | 6 | P1-C normalizeRelation, requireAuth, upcoming | done | 2026-06-16 | `require-session`, `getUpcomingSessions` |
 | 7 | P2 full (all actions Result) | pending | | |
 
@@ -485,6 +485,6 @@ export async function savePerson(...): Promise<ActionResult<string>> {
 ## Open questions (결정 필요)
 
 1. ~~**이메일 정책:** Option A(strict)~~ → **✅ 확정 (2026-06-16)**
-2. **깨진 `person_program_id` 복구:** 일회성 SQL 지원 여부 — 데이터 팀
-3. **P1-A 범위:** `persistPersonCore`를 P0 직후 할지, P1-B와 묶을지 — 개발 일정
+2. **깨진 `partner_program_id` 복구:** 일회성 SQL 지원 여부 — 데이터 팀
+3. **P1-A 범위:** `persistPartnerCore`를 P0 직후 할지, P1-B와 묶을지 — 개발 일정
 4. **`modalities` deprecate:** program upsert 안정화 후 별도 ticket — Audit D-04

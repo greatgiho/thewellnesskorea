@@ -1,0 +1,37 @@
+import Link from "next/link"
+import { notFound } from "next/navigation"
+import { PartnerDetailView } from "@/components/admin/partner-detail-view"
+import { getPartnerById } from "@/lib/partners/queries"
+import { getRegionsForForms } from "@/lib/regions/queries"
+
+type Props = {
+  params: Promise<{ id: string }>
+}
+
+export default async function PersonDetailPage({ params }: Props) {
+  const { id } = await params
+  const [person, { sido }] = await Promise.all([
+    getPartnerById(id),
+    getRegionsForForms(),
+  ])
+  if (!person) notFound()
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <Link
+            href="/admin/partners"
+            className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+          >
+            ← People
+          </Link>
+          <h1 className="mt-2 font-serif text-3xl font-light text-foreground">
+            Profile
+          </h1>
+        </div>
+      </div>
+      <PartnerDetailView person={person} sido={sido} />
+    </div>
+  )
+}

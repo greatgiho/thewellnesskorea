@@ -197,7 +197,7 @@ begin
     v_email,
     nullif(trim(p_guest_phone), '')
   )
-  returning id, cancel_token into v_booking_id, v_cancel_token;
+  returning public.bookings.id, public.bookings.cancel_token into v_booking_id, v_cancel_token;
 
   update public.sessions
   set booked_count = booked_count + 1

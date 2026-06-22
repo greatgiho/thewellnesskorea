@@ -1,5 +1,5 @@
--- Optional seed: run after migration. Upload photos via /admin/people after.
-insert into public.people (slug, kind, name_ko, name_en, role_ko, role_en, quote, modalities, sort_order, is_published)
+-- Optional seed: run after migrations. Upload photos via /admin/partners after.
+insert into public.partners (slug, kind, name_ko, name_en, role_ko, role_en, quote, modalities, sort_order, is_published)
 values
   ('seo-yeon-han', 'guide', '한서연', 'Seo-yeon Han', '요가 강사', 'Yoga Teacher',
    'Movement is simply breath made visible.',

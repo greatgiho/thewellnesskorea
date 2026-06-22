@@ -3,18 +3,18 @@
 import { useMemo, useState } from "react"
 import Image from "next/image"
 import { Search } from "lucide-react"
-import type { PersonWithPrograms } from "@/lib/people/types"
-import { getPersonPhotoUrl, sortPeopleByName } from "@/lib/people/utils"
+import type { PartnerWithPrograms } from "@/lib/partners/types"
+import { getPartnerPhotoUrl, sortPartnersByName } from "@/lib/partners/utils"
 
 type InstructorSearchPickerProps = {
-  instructors: PersonWithPrograms[]
-  allPeople?: PersonWithPrograms[]
+  instructors: PartnerWithPrograms[]
+  allPartners?: PartnerWithPrograms[]
   value: string
   onChange: (instructorId: string) => void
   disabled?: boolean
 }
 
-function matchesInstructorSearch(person: PersonWithPrograms, query: string) {
+function matchesInstructorSearch(person: PartnerWithPrograms, query: string) {
   const q = query.trim().toLowerCase()
   if (!q) return true
   return (
@@ -28,7 +28,7 @@ function matchesInstructorSearch(person: PersonWithPrograms, query: string) {
 
 export function InstructorSearchPicker({
   instructors,
-  allPeople,
+  allPartners,
   value,
   onChange,
   disabled,
@@ -38,11 +38,11 @@ export function InstructorSearchPicker({
 
   const selected =
     instructors.find((p) => p.id === value) ??
-    allPeople?.find((p) => p.id === value)
+    allPartners?.find((p) => p.id === value)
 
   const results = useMemo(() => {
     const filtered = instructors.filter((p) => matchesInstructorSearch(p, search))
-    return sortPeopleByName(filtered).slice(0, 12)
+    return sortPartnersByName(filtered).slice(0, 12)
   }, [instructors, search])
 
   const fieldClass =
@@ -68,7 +68,7 @@ export function InstructorSearchPicker({
         <div className="flex items-center gap-3 rounded-xl border border-primary/30 bg-primary/5 p-3">
           <div className="relative size-11 shrink-0 overflow-hidden rounded-full bg-secondary">
             <Image
-              src={getPersonPhotoUrl(selected.photo_path)}
+              src={getPartnerPhotoUrl(selected.photo_path)}
               alt=""
               fill
               className="object-cover"
@@ -124,7 +124,7 @@ export function InstructorSearchPicker({
             >
               {instructors.length === 0 ? (
                 <li className="px-3 py-3 text-sm text-muted-foreground">
-                  No instructors yet. Add a guide or artist in People.
+                  No instructors yet. Add a guide or artist in Partners.
                 </li>
               ) : results.length === 0 ? (
                 <li className="px-3 py-3 text-sm text-muted-foreground">
@@ -141,7 +141,7 @@ export function InstructorSearchPicker({
                     >
                       <div className="relative size-9 shrink-0 overflow-hidden rounded-full bg-secondary">
                         <Image
-                          src={getPersonPhotoUrl(person.photo_path)}
+                          src={getPartnerPhotoUrl(person.photo_path)}
                           alt=""
                           fill
                           className="object-cover"

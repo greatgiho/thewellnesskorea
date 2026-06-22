@@ -1,4 +1,4 @@
-import { extFromMime } from "@/lib/people/utils"
+import { extFromMime } from "@/lib/partners/utils"
 import type { SessionDescriptionBlocks } from "./types"
 
 export const SESSION_PHOTOS_BUCKET = "session-photos"

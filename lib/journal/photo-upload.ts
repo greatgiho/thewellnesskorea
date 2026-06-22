@@ -5,7 +5,7 @@ import {
   journalInlineStoragePath,
   validateJournalPhotoFile,
 } from "@/lib/journal/images"
-import { extFromMime } from "@/lib/people/utils"
+import { extFromMime } from "@/lib/partners/utils"
 
 export async function uploadJournalHero(
   postId: string,

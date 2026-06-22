@@ -6,32 +6,32 @@ import { sendTeacherCredentialsEmail } from "@/lib/notifications/teacher-credent
 import { createServiceClient } from "@/lib/supabase/service"
 import type { SupabaseClient } from "@supabase/supabase-js"
 
-type PersonAccountRow = {
+type PartnerAccountRow = {
   id: string
   email: string | null
   name_ko: string
   user_id: string | null
 }
 
-export async function linkPersonToAuthUser(
+export async function linkPartnerToAuthUser(
   supabase: SupabaseClient,
   personId: string,
   userId: string,
 ): Promise<void> {
   const { error } = await supabase
-    .from("people")
+    .from("partners")
     .update({ user_id: userId })
     .eq("id", personId)
 
   if (error) throw new Error(error.message)
 }
 
-async function loadPersonForAccount(
+async function loadPartnerForAccount(
   supabase: SupabaseClient,
   personId: string,
-): Promise<PersonAccountRow> {
+): Promise<PartnerAccountRow> {
   const { data, error } = await supabase
-    .from("people")
+    .from("partners")
     .select("id, email, name_ko, user_id")
     .eq("id", personId)
     .maybeSingle()
@@ -39,7 +39,7 @@ async function loadPersonForAccount(
   if (error) throw new Error(error.message)
   if (!data) throw new Error("Person not found.")
 
-  return data as PersonAccountRow
+  return data as PartnerAccountRow
 }
 
 export async function provisionAndEmailTeacherAccount(
@@ -47,7 +47,7 @@ export async function provisionAndEmailTeacherAccount(
   personId: string,
   options?: { isReissue?: boolean },
 ): Promise<void> {
-  const person = await loadPersonForAccount(supabase, personId)
+  const person = await loadPartnerForAccount(supabase, personId)
   const email = person.email?.trim()
   if (!email) {
     throw new Error("Email is required to provision a teacher account.")
@@ -58,7 +58,7 @@ export async function provisionAndEmailTeacherAccount(
     existingUserId: person.user_id,
   })
 
-  await linkPersonToAuthUser(supabase, personId, userId)
+  await linkPartnerToAuthUser(supabase, personId, userId)
 
   await sendTeacherCredentialsEmail({
     email,
@@ -101,14 +101,33 @@ export async function maybeProvisionOnAdminSave(
   return true
 }
 
-export async function getTeacherPersonByUserId(userId: string) {
+export async function getTeacherPartnerByUserId(userId: string) {
   const admin = createServiceClient()
   const { data, error } = await admin
-    .from("people")
+    .from("partners")
     .select("id, name_ko, name_en, email, user_id, registration_status")
     .eq("user_id", userId)
     .maybeSingle()
 
   if (error) throw new Error(error.message)
   return data
+}
+
+/** Remove Supabase Auth user when admin deletes a linked teacher profile. */
+export async function deleteLinkedTeacherAuthUser(
+  userId: string,
+): Promise<void> {
+  const admin = createServiceClient()
+  const { data, error } = await admin.auth.admin.getUserById(userId)
+  if (error) throw new Error(error.message)
+
+  const role = data.user?.app_metadata?.role
+  if (role !== "teacher") return
+
+  const { error: deleteError } = await admin.auth.admin.deleteUser(userId)
+  if (deleteError) {
+    throw new Error(
+      `Partner profile was deleted, but the teacher login could not be removed: ${deleteError.message}`,
+    )
+  }
 }

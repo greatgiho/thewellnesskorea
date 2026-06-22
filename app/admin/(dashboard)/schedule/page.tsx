@@ -1,4 +1,4 @@
-import { getAllPeopleAdmin } from "@/lib/people/queries"
+import { getAllPartnersAdmin } from "@/lib/partners/queries"
 import { getFloors, getSessionsForRange } from "@/lib/schedule/queries"
 import {
   addDaysToDateKey,
@@ -49,9 +49,9 @@ export default async function AdminSchedulePage({ searchParams }: PageProps) {
     rangeEndExclusive = range.endDateKeyExclusive
   }
 
-  const [sessions, people] = await Promise.all([
+  const [sessions, partners] = await Promise.all([
     getSessionsForRange(rangeStart, rangeEndExclusive),
-    getAllPeopleAdmin(),
+    getAllPartnersAdmin(),
   ])
 
   return (
@@ -68,7 +68,7 @@ export default async function AdminSchedulePage({ searchParams }: PageProps) {
         floorSlug={floorSlug}
         floors={floors}
         sessions={sessions}
-        people={people}
+        partners={partners}
       />
     </div>
   )

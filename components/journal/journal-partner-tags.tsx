@@ -1,7 +1,7 @@
 import Image from "next/image"
 import Link from "next/link"
 import type { JournalPartnerTag } from "@/lib/journal/partners"
-import { partnerKindLabel } from "@/lib/people/partner-kind"
+import { partnerKindLabel } from "@/lib/partners/partner-kind"
 
 type JournalPartnerTagsProps = {
   partners: JournalPartnerTag[]
@@ -22,7 +22,7 @@ export function JournalPartnerTags({ partners }: JournalPartnerTagsProps) {
         {partners.map((partner) => (
           <li key={partner.id}>
             <Link
-              href={`/people/${partner.slug}`}
+              href={`/partners/${partner.slug}`}
               className="group flex items-center gap-4 rounded-2xl border border-border bg-card/40 p-4 transition-colors hover:border-primary/30 hover:bg-card/70"
             >
               <div className="relative size-14 shrink-0 overflow-hidden rounded-full bg-muted">

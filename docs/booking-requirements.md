@@ -1,6 +1,6 @@
 # Booking & Member Auth — Requirements
 
-Last updated: 2026-06-18
+Last updated: 2026-06-17
 
 Companion: [Site map](./site-map-and-flows.md) · [DB schema](./database-schema.md) · [ERD](./database-erd.md) · [Backend](./backend-architecture.md) · [Multi-experience](./multi-venue-requirements.md)
 
@@ -15,7 +15,8 @@ Companion: [Site map](./site-map-and-flows.md) · [DB schema](./database-schema.
 | B-01 | **Hybrid booking** — guest can book without an account |
 | B-02 | After booking, user may **create an account** to attach past guest bookings |
 | B-03 | Logged-in members book with `user_id`; guest fields optional snapshot |
-| B-04 | **v1 payment:** on-site / no online payment (Terms-aligned) |
+| B-04 | **Default v1:** on-site / no online payment when `sessions.price_krw = 0` (Terms-aligned) |
+| B-04b | **B7:** `price_krw > 0` → online PG via `create_booking_hold` + webhook confirm |
 | B-05 | Member accounts use **Supabase Auth** — separate role from admin / teacher |
 
 ---
@@ -252,7 +253,7 @@ From existing schedule logic ([backend-architecture.md](./backend-architecture.m
 | **B4** | Member signup/login (`role: member`) + link guest bookings | **Done** |
 | **B5** | `/account/bookings` + member book while logged in | **Done** (core) |
 | **B6** | Admin booking list / manual cancel | **Done** |
-| **B7** | Online payment (Stripe etc.) | Out of v1 |
+| **B7** | Online payment schema + RPCs (`021` + `022`); PG webhook UI TBD | **Schema done** |
 
 **Journal** and **Admin experience picker** can run in parallel; booking **requires B1** first.
 
@@ -260,7 +261,8 @@ From existing schedule logic ([backend-architecture.md](./backend-architecture.m
 
 ## 11. Out of scope (v1)
 
-- Online payment / refunds automation
+- PG webhook Route Handler + client SDK (schema in `021` — app wiring TBD)
+- Automated refunds after `payments.paid`
 - Waitlist / lottery
 - Multi-seat booking (one booking = one seat v1)
 - Teacher or admin acting as participant on same email without role conflict policy
@@ -268,10 +270,54 @@ From existing schedule logic ([backend-architecture.md](./backend-architecture.m
 
 ---
 
+## 13. B7 — Online payment (`021` + `022`)
+
+### Product rules
+
+| # | Rule |
+|---|------|
+| P-01 | `sessions.price_krw = 0` → existing `create_booking` (immediate `confirmed`, on-site) |
+| P-02 | `sessions.price_krw > 0` → `create_booking_hold` + PG; booking `pending_payment` until webhook |
+| P-03 | Hold TTL default **10 minutes**; Cron `expire_stale_booking_holds()` releases seat |
+| P-04 | PG amount = server `sessions.price_krw` only (webhook verifies against `payments.amount`) |
+| P-05 | Cancel on `pending_payment` (no `pg_tid` yet) releases hold without refund |
+| P-06 | Refund after `paid` → manual/admin v1 |
+
+### Schema
+
+- `sessions.price_krw`
+- `bookings.expires_at`, `booking_status.pending_payment`
+- `payments` + `payment_status`
+- `members.name` nullable (light signup)
+
+### RPCs
+
+| RPC | Caller | Purpose |
+|-----|--------|---------|
+| `create_booking` | service_role | Free / on-site only |
+| `create_booking_hold` | service_role | Paid hold + payment row |
+| `confirm_booking_payment` | service_role (webhook) | PG success → `confirmed` |
+| `expire_stale_booking_holds` | service_role (Cron) | TTL cleanup |
+
+### App (planned)
+
+| URL | Role |
+|-----|------|
+| `POST /api/webhooks/payment` | PG webhook → `confirm_booking_payment` |
+| Vercel Cron | `expire_stale_booking_holds` |
+
+### Light member signup
+
+- `/signup`: email-only magic link (name optional)
+- `members.name` filled JIT via booking form or `inferMemberName`
+
+---
+
 ## 12. Changelog
 
 | Date | Notes |
 |------|-------|
+| 2026-06-17 | B7 schema `021`/`022`: enum split + payments, `price_krw`, hold/confirm/expire RPCs |
 | 2026-06-18 | B6 admin `/admin/bookings`, session dialog reservations, CSV export, admin cancel |
 | 2026-06-18 | B4–B5 member magic-link auth, guest booking link, `/account/bookings`, logged-in book |
 | 2026-06-18 | B3 guest booking: `/book/[sessionId]`, confirm/cancel pages, Resend emails, schedule Book links |

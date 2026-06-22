@@ -65,6 +65,16 @@ Public links, magic links, notification URLs → `NEXT_PUBLIC_SITE_URL`.
 | URL | File | Auth | Description |
 |-----|------|------|-------------|
 | `/` | `app/page.tsx` | Public | Homepage |
+| `/partners/[slug]` | `app/partners/[slug]/page.tsx` | Public | Partner profile + upcoming sessions |
+| `/login` | `app/login/page.tsx` | Public | Member login |
+| `/signup` | `app/signup/page.tsx` | Public | Member signup |
+| `/login/check-email` | `app/login/check-email/page.tsx` | Public | Member magic-link sent |
+| `/account` | `app/account/page.tsx` | Member | Account home |
+| `/account/bookings` | `app/account/bookings/page.tsx` | Member | Member bookings list |
+| `/book/[sessionId]` | `app/book/[sessionId]/page.tsx` | Public | Guest/member booking form |
+| `/book/confirm` | `app/book/confirm/page.tsx` | Public | Booking confirmation |
+| `/book/cancel/[token]` | `app/book/cancel/[token]/page.tsx` | Public | Guest cancel by token |
+| `/book/cancelled` | `app/book/cancelled/page.tsx` | Public | Cancel success |
 | `/journal` | `app/journal/page.tsx` | Public | Journal index (`?category=` filter) |
 | `/journal/[slug]` | `app/journal/[slug]/page.tsx` | Public | Journal article |
 | `/privacy` | `app/privacy/page.tsx` | Public | Privacy policy |
@@ -80,15 +90,18 @@ Public links, magic links, notification URLs → `NEXT_PUBLIC_SITE_URL`.
 | `/teacher/settings` | `app/teacher/(dashboard)/settings/page.tsx` | Teacher | Password change + reissue |
 | `/teacher/change-password` | `app/teacher/change-password/page.tsx` | Teacher | Forced password change after temp login |
 | `/admin/login` | `app/admin/login/page.tsx` | Public | Admin email + password |
-| `/admin` | `app/admin/(dashboard)/page.tsx` | Admin | → redirect `/admin/people` |
-| `/admin/people` | `app/admin/(dashboard)/people/page.tsx` | Admin | People list |
-| `/admin/people/new` | `app/admin/(dashboard)/people/new/page.tsx` | Admin | Manual person create (+ account if email) |
-| `/admin/people/[id]` | `app/admin/(dashboard)/people/[id]/page.tsx` | Admin | Read-only profile (incl. activity regions) |
-| `/admin/people/[id]/edit` | `app/admin/(dashboard)/people/[id]/edit/page.tsx` | Admin | Edit + review + account panel |
+| `/admin` | `app/admin/(dashboard)/page.tsx` | Admin | → redirect `/admin/partners` |
+| `/admin/partners` | `app/admin/(dashboard)/partners/page.tsx` | Admin | Partners list |
+| `/admin/partners/new` | `app/admin/(dashboard)/partners/new/page.tsx` | Admin | Manual partner create (+ account if email) |
+| `/admin/partners/[id]` | `app/admin/(dashboard)/partners/[id]/page.tsx` | Admin | Read-only profile (incl. activity regions) |
+| `/admin/partners/[id]/edit` | `app/admin/(dashboard)/partners/[id]/edit/page.tsx` | Admin | Edit + review + account panel |
 | `/admin/schedule` | `app/admin/(dashboard)/schedule/page.tsx` | Admin | Schedule admin |
+| `/admin/bookings` | `app/admin/(dashboard)/bookings/page.tsx` | Admin | Bookings list |
 | `/admin/journal` | `app/admin/(dashboard)/journal/page.tsx` | Admin | Journal list |
 | `/admin/journal/new` | `app/admin/(dashboard)/journal/new/page.tsx` | Admin | New journal post |
 | `/admin/journal/[id]/edit` | `app/admin/(dashboard)/journal/[id]/edit/page.tsx` | Admin | Edit journal post |
+
+**Legacy redirects (`next.config.mjs`):** `/people/:slug` → `/partners/:slug` · `/admin/people/*` → `/admin/partners/*`
 
 **Homepage anchors (same page):** `/#guides` · `/#artists` · `/#schedule`
 
@@ -109,7 +122,9 @@ app/layout.tsx                    ← root: fonts, metadata, Analytics
 ├── /                             app/page.tsx
 ├── /apply/*                      (no nested layout)
 ├── /auth/callback                route handler
-├── /people/[slug]                public profile + upcoming sessions
+├── /partners/[slug]              public profile + upcoming sessions
+├── /book/*                       guest/member booking flow
+├── /login · /signup · /account/* member auth + bookings
 ├── /privacy · /terms             legal pages
 ├── /teacher/login                app/teacher/login/page.tsx
 ├── /teacher/change-password      app/teacher/change-password/page.tsx
@@ -118,9 +133,9 @@ app/layout.tsx                    ← root: fonts, metadata, Analytics
 │   └── /teacher/settings         password + reissue
 └── /admin/login                  app/admin/login/page.tsx
     └── /admin/(dashboard)/*      app/admin/(dashboard)/layout.tsx
-        ├── /admin/people
-        ├── /admin/people/new
-        ├── /admin/people/[id]/edit
+        ├── /admin/partners
+        ├── /admin/partners/new
+        ├── /admin/partners/[id]/edit
         └── /admin/schedule
 ```
 
@@ -136,11 +151,11 @@ page.tsx
 │   ├── Paths
 │   │   ├── path-section
 │   │   └── path-card
-│   ├── Guides                 ← getPublishedPeople("guide")
-│   │   ├── person-section
-│   │   └── person-card → /people/[slug]
-│   ├── Artists                ← getPublishedPeople("artist")
-│   │   └── person-card → /people/[slug]
+│   ├── Guides                 ← getPublishedPartners("guide")
+│   │   ├── partner-section
+│   │   └── partner-card → /partners/[slug]
+│   ├── Artists                ← getPublishedPartners("artist")
+│   │   └── partner-card → /partners/[slug]
 │   └── Schedule               ← synced horizontal swipe; mock classes for schedule_enabled
 │       ├── schedule-section
 │       ├── schedule-experience-panel (Brickwell)
@@ -176,11 +191,11 @@ page.tsx
 
 | Screen | Components |
 |--------|------------|
-| Layout | nav: People · Schedule · View site · Sign out |
-| `/admin/people` | `admin-people-list` (search, status/path filters, apply link) |
-| `/admin/people/new` | `person-form`, `activity-region-fields`, `program-list-editor` |
-| `/admin/people/[id]` | `person-detail-view` (activity regions) |
-| `/admin/people/[id]/edit` | `person-form`, `activity-region-fields`, `person-review-panel`, `person-account-panel`, `delete-person-button` |
+| Layout | nav: Partners · Schedule · Journal · Bookings · View site · Sign out |
+| `/admin/partners` | `admin-partners-list` (search, status/path filters, apply link) |
+| `/admin/partners/new` | `partner-form`, `activity-region-fields`, `program-list-editor` |
+| `/admin/partners/[id]` | `partner-detail-view` (activity regions) |
+| `/admin/partners/[id]/edit` | `partner-form`, `activity-region-fields`, `partner-review-panel`, `partner-account-panel`, `delete-partner-button` |
 | `/admin/schedule` | `schedule-admin-client` |
 | | → `schedule-period-picker` (month/week jump popover) |
 | | → `schedule-floor-nav`, `schedule-week-grid` / `schedule-day-grid` / `schedule-month-calendar` |
@@ -201,7 +216,7 @@ page.tsx
 ### Flow B — Admin: manual person
 
 ```
-/admin/login → /admin/people → /admin/people/new
+/admin/login → /admin/partners → /admin/partners/new
   → Save with email (registration_status = admin) → Auth account + temp password email
   → Publish optional (no approval required)
 ```
@@ -211,7 +226,7 @@ page.tsx
 ```
 /apply → code + email → /apply/check-email
   → magic link → `/auth/callback?token_hash=…` (any device) or `?code=…` → `/apply/profile`
-  → /apply/profile (linkTeacherPerson by email if exists)
+  → /apply/profile (linkTeacherPartner by email if exists)
   → [임시 저장] draft | [제출하기] submitted + admin notify
   → /apply/profile/submitted
 ```
@@ -221,8 +236,8 @@ Post-approval re-edit → `submitted`, unpublish, re-notify admins.
 ### Flow D — Admin: review teacher
 
 ```
-/admin/people (filter: Pending / Self-registered)
-  → /admin/people/[id]/edit → 승인 | 반려
+/admin/partners (filter: Pending / Self-registered)
+  → /admin/partners/[id]/edit → 승인 | 반려
   → 승인 시: Auth account + temp password email (email required)
   → Publish when admin or approved
 ```
@@ -251,7 +266,7 @@ Post-approval re-edit → `submitted`, unpublish, re-notify admins.
 
 ## Domain enums (UI reference)
 
-### Person `registration_status`
+### Partner `registration_status`
 
 | Status | Homepage visible |
 |--------|------------------|
@@ -308,7 +323,7 @@ http://localhost:3000/auth/callback
 - [ ] Gabia DNS: A + CNAME
 - [ ] Vercel Domains: Valid (`thewellnesskorea.com`, `www`)
 - [ ] Vercel env vars + Redeploy (incl. optional `SITE_ACCESS_PASSWORD` for preview)
-- [ ] Supabase migrations `001`–`010` applied (`007` preferred over `006`; `010` seeds nationwide regions)
+- [ ] Supabase migrations `001`–`022` applied (`021` then `022` for B7 payments)
 - [ ] Supabase redirect URLs
 - [ ] Resend: verify domain for multi-admin production email
 
@@ -322,12 +337,14 @@ http://localhost:3000/auth/callback
 | Auth callback | `app/auth/callback/route.ts` |
 | Middleware | `middleware.ts`, `lib/supabase/middleware.ts`, `lib/site-access.ts` |
 | Site preview lock | `app/site-unlock/`, `components/site-unlock-form.tsx` |
-| Admin people | `app/admin/(dashboard)/people/`, `app/admin/actions.ts` |
-| Admin schedule | `app/admin/(dashboard)/schedule/`, `app/admin/schedule/actions.ts` |
-| Admin partners | `app/admin/(dashboard)/people/` (nav: **Partners**), `components/admin/admin-people-list.tsx` — kind filter: Guide / Artist / Brand + philosophy paths |
+| Admin partners | `app/admin/(dashboard)/partners/`, `app/admin/actions.ts`, `components/admin/admin-partners-list.tsx` — kind filter: Guide / Artist / Brand + philosophy paths |
+| Public partners | `app/partners/[slug]/`, `components/partners/` |
 | Admin journal | `app/admin/(dashboard)/journal/`, `app/admin/journal/actions.ts`, `components/admin/journal-form.tsx`, `components/admin/journal-editor.tsx`, `components/admin/journal-partner-picker.tsx` |
 | Public journal | `app/journal/`, `components/journal/`, `lib/journal/` |
-| Public journal partners | `components/journal/journal-partner-tags.tsx` → links `/people/[slug]` |
+| Public journal partners | `components/journal/journal-partner-tags.tsx` → links `/partners/[slug]` |
+| Admin schedule | `app/admin/(dashboard)/schedule/`, `app/admin/schedule/actions.ts` |
+| Bookings | `app/book/`, `app/account/bookings/`, `app/admin/(dashboard)/bookings/`, `lib/bookings/` |
+| B7 payment (planned) | `POST /api/webhooks/payment` (webhook), Vercel Cron → `expire_stale_booking_holds` |
 | Notifications | `lib/notifications/` |
 | Migrations | `supabase/migrations/` |
 

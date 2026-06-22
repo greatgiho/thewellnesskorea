@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
-import { linkTeacherPerson } from "@/lib/apply/teacher-person"
-import { getPersonById } from "@/lib/people/queries"
+import { linkTeacherPartner } from "@/lib/apply/teacher-partner"
+import { getPartnerById } from "@/lib/partners/queries"
 import { getRegionsForForms } from "@/lib/regions/queries"
 import { TeacherProfileForm } from "@/components/apply/teacher-profile-form"
 
@@ -16,12 +16,12 @@ export default async function ApplyProfilePage() {
   let linkError: string | null = null
   let personRow = null
   try {
-    personRow = await linkTeacherPerson(supabase, user)
+    personRow = await linkTeacherPartner(supabase, user)
   } catch (err) {
     linkError = err instanceof Error ? err.message : "Failed to load profile."
   }
 
-  const person = personRow ? await getPersonById(personRow.id) : null
+  const person = personRow ? await getPartnerById(personRow.id) : null
   const regions = await getRegionsForForms()
 
   return (
