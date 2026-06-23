@@ -1,5 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
+import { assertTeacherEmailAvailable } from "@/lib/auth/teacher-email"
 import { maybeProvisionOnAdminSave } from "@/lib/auth/teacher-account"
+import {
+  assertPartnerEmailUnique,
+  throwPartnerPersistError,
+} from "@/lib/partners/email-uniqueness"
 import { notifyAdminProfileSubmitted } from "@/lib/notifications/admin-alerts"
 import {
   personRowFromInput,
@@ -134,6 +139,11 @@ async function persistAdminPerson(
     await supabase.storage.from("person-photos").remove([existingPhotoPath])
   }
 
+  await assertPartnerEmailUnique(input.email, personId)
+  await assertTeacherEmailAvailable(input.email, {
+    excludeUserId: existingUserId,
+  })
+
   personId = await upsertPeopleRow(supabase, personId, row, options?.newPersonId)
   await savePartnerPrograms(supabase, personId, input)
   await savePartnerActivityRegions(
@@ -194,6 +204,8 @@ async function persistTeacherPerson(
     row.photo_path = options.photoPath
   }
 
+  await assertPartnerEmailUnique(input.email, person?.id)
+
   const personId = await upsertPeopleRow(
     supabase,
     person?.id,
@@ -236,7 +248,7 @@ async function upsertPeopleRow(
 ): Promise<string> {
   if (personId) {
     const { error } = await supabase.from("partners").update(row).eq("id", personId)
-    if (error) throw new Error(error.message)
+    if (error) throwPartnerPersistError(error)
     return personId
   }
 
@@ -247,6 +259,6 @@ async function upsertPeopleRow(
     .select("id")
     .single()
 
-  if (error) throw new Error(error.message)
+  if (error) throwPartnerPersistError(error)
   return data.id as string
 }

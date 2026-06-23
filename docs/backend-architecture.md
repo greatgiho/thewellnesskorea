@@ -1,6 +1,6 @@
 # The Wellness Korea — Backend Architecture & Core Logic
 
-Last updated: 2026-06-17
+Last updated: 2026-06-23
 
 Companion docs: [Site map](./site-map-and-flows.md) · [DB schema](./database-schema.md) · [ERD](./database-erd.md) · [Audit log](./architecture-audit-log.md) · [Refactoring plan](./refactoring-plan.md) · [Multi-experience requirements](./multi-venue-requirements.md) · [Booking requirements](./booking-requirements.md)
 
@@ -225,15 +225,15 @@ stateDiagram-v2
 | Experiences (hero/schedule) | `getPublishedExperiences()`: `is_published = true`, ordered by `sort_order`; eyebrow via `lib/experiences/copy.ts` |
 | Publish guard | `canPublishPerson()` — only `admin` or `approved` |
 | Teacher cannot publish | `persistTeacherProfile` forces `is_published = false` |
-| Email unique | DB index `lower(email)`; link-by-email on login |
+| Email unique | DB index `people_email_unique_idx` on `lower(email)`; `assertPartnerEmailUnique` before save; link-by-email on login |
 | One person per auth user | partial unique on `user_id` |
 | Delete blocked | if `sessions.instructor_id` references person |
 | Programs optional | 0 programs allowed on submit |
 
 ### Teacher account linking (`linkTeacherPartner`)
 
-1. Match `user_id` → return row
-2. Match `email` (case-insensitive) → attach `user_id` (error if linked to another user)
+1. Match `user_id` (user session) → return row
+2. Match `email` via **service client** (admin-precreated rows have email but no `user_id`; teacher RLS cannot see them) → attach `user_id` (error if linked to another user)
 3. No match → `null` (new row on first save)
 
 ### Schedule
@@ -382,6 +382,7 @@ Homepage: `ExperienceHomeProvider` syncs hero carousel + schedule horizontal ind
 |--------|------|
 | `getPublishedPartners`, `getAllPartnersAdmin`, `getPartnerById`, `getPartnerBySlug` | Queries |
 | `persistPartner` | Shared admin/teacher profile save (`persist-partner.ts`) |
+| `assertPartnerEmailUnique`, `throwPartnerPersistError` | Partner email collision checks (`email-uniqueness.ts`) |
 | `emptyPersonInput`, `personInputFromPerson` | Form state (`form-state.ts`) |
 | `uploadPersonPhoto`, `validatePersonPhotoFile` | Client photo upload (`photo-upload.ts`) |
 | `validatePersonInput` | Form validation |

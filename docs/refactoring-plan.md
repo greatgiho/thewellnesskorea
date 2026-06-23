@@ -227,7 +227,7 @@ if (previousUserId && previousEmail && email changed) {
 - [ ] mudrasoil → jueeyipida 저장 시 명시적 에러 (프로덕션 포함)
 - [ ] mudrasoil → unused@gmail.com 저장 시 Auth 이메일 변경 성공
 - [ ] 이메일 불변 저장 시 부작용 없음
-- [ ] `people.email` unique 위반 시 선제 메시지
+- [x] `people.email` unique 위반 시 선제 메시지
 
 ### 리스크
 

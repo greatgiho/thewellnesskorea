@@ -1,4 +1,5 @@
 import type { SupabaseClient, User } from "@supabase/supabase-js"
+import { UserFacingError } from "@/lib/errors"
 import { createServiceClient } from "@/lib/supabase/service"
 import type { PartnerRow } from "@/lib/partners/types"
 
@@ -31,7 +32,9 @@ export async function linkTeacherPartner(
   if (byUserError) throw new Error(byUserError.message)
   if (byUser) return byUser as PartnerRow
 
-  const { data: byEmail, error: byEmailError } = await supabase
+  // Service client: admin-precreated rows have email but no user_id; RLS hides them from teachers.
+  const admin = createServiceClient()
+  const { data: byEmail, error: byEmailError } = await admin
     .from("partners")
     .select("*")
     .ilike("email", email)
@@ -41,11 +44,11 @@ export async function linkTeacherPartner(
 
   if (byEmail) {
     if (byEmail.user_id && byEmail.user_id !== user.id) {
-      throw new Error(
-        "This email is linked to another account. Please contact the admin.",
+      throw new UserFacingError(
+        "이 이메일은 다른 계정에 연결되어 있습니다. 관리자에게 문의해 주세요.",
       )
     }
-    const { data: linked, error: linkError } = await supabase
+    const { data: linked, error: linkError } = await admin
       .from("partners")
       .update({ user_id: user.id })
       .eq("id", byEmail.id)

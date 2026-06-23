@@ -1,6 +1,6 @@
 # The Wellness Korea — Site Map & Flows
 
-Last updated: 2026-06-17
+Last updated: 2026-06-23
 
 Companion docs: [Backend](./backend-architecture.md) · [DB schema](./database-schema.md) · [ERD](./database-erd.md) · [Multi-experience requirements](./multi-venue-requirements.md) · [Journal requirements](./journal-requirements.md) · [Platform Discover plan](./platform-discovery-plan.md) · [Booking requirements](./booking-requirements.md)
 
@@ -226,7 +226,7 @@ page.tsx
 ```
 /apply → code + email → /apply/check-email
   → magic link → `/auth/callback?token_hash=…` (any device) or `?code=…` → `/apply/profile`
-  → /apply/profile (linkTeacherPartner by email if exists)
+  → /apply/profile (`linkTeacherPartner`: service-client email match links admin-precreated profile)
   → [임시 저장] draft | [제출하기] submitted + admin notify
   → /apply/profile/submitted
 ```
