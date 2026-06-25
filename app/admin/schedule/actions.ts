@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
 import { requireAdminSession } from "@/lib/auth/require-session"
+import { UserFacingError, isUserFacingError } from "@/lib/errors"
 import {
   extFromPath,
   SESSION_PHOTOS_BUCKET,
@@ -41,27 +42,27 @@ function validateSessionInput(input: SessionFormInput): {
   starts_at: string
   ends_at: string
 } {
-  if (!input.title.trim()) throw new Error("Session title is required.")
-  if (input.capacity <= 0) throw new Error("Capacity must be greater than 0.")
-  if (input.price_krw < 0) throw new Error("Price cannot be negative.")
+  if (!input.title.trim()) throw new UserFacingError("Session title is required.")
+  if (input.capacity <= 0) throw new UserFacingError("Capacity must be greater than 0.")
+  if (input.price_krw < 0) throw new UserFacingError("Price cannot be negative.")
   if (input.path_keys.length === 0) {
-    throw new Error("Select at least one philosophy path.")
+    throw new UserFacingError("Select at least one philosophy path.")
   }
   if (input.image_paths.length > 3) {
-    throw new Error("Maximum 3 images per session.")
+    throw new UserFacingError("Maximum 3 images per session.")
   }
   if (!isWithinOperatingHours(input.date, input.start_time, input.end_time)) {
-    throw new Error("Session must be within operating hours (06:00–24:00).")
+    throw new UserFacingError("Session must be within operating hours (06:00–24:00).")
   }
   if (input.status === "processing" && input.is_published) {
-    throw new Error("Only confirmed sessions can be published.")
+    throw new UserFacingError("Only confirmed sessions can be published.")
   }
 
   const starts_at = toKstIso(input.date, input.start_time)
   const ends_at = toKstIso(input.date, input.end_time)
 
   if (new Date(ends_at) <= new Date(starts_at)) {
-    throw new Error("End time must be after start time.")
+    throw new UserFacingError("End time must be after start time.")
   }
 
   return { starts_at, ends_at }
@@ -123,7 +124,7 @@ function assignProcessingLane(processingInBucket: SessionConflictRow[]): number 
   const used = new Set(processingInBucket.map((s) => s.slot_lane))
   if (!used.has(0)) return 0
   if (!used.has(1)) return 1
-  throw new Error("Maximum 2 competing sessions in this slot.")
+  throw new UserFacingError("Maximum 2 competing sessions in this slot.")
 }
 
 function assertConfirmedOverlap(
@@ -136,10 +137,10 @@ function assertConfirmedOverlap(
     if (s.status !== "confirmed") continue
     const range = `${formatTimeInKst(s.starts_at)}–${formatTimeInKst(s.ends_at)}`
     if (s.floor_id === input.floor_id) {
-      throw new Error(`Floor conflict: "${s.title}" overlaps (${range}).`)
+      throw new UserFacingError(`Floor conflict: "${s.title}" overlaps (${range}).`)
     }
     if (s.instructor_id === input.instructor_id) {
-      throw new Error(`Instructor conflict: "${s.title}" overlaps (${range}).`)
+      throw new UserFacingError(`Instructor conflict: "${s.title}" overlaps (${range}).`)
     }
   }
 }
@@ -165,7 +166,7 @@ async function resolveSessionSlot(
 
   if (input.status === "processing") {
     if (hasConfirmedInBucket) {
-      throw new Error(
+      throw new UserFacingError(
         "This slot is already confirmed. Add a processing session elsewhere.",
       )
     }
@@ -173,20 +174,20 @@ async function resolveSessionSlot(
       (s) => s.status === "processing",
     )
     if (processingInBucket.length >= 2) {
-      throw new Error("Maximum 2 competing sessions in this slot.")
+      throw new UserFacingError("Maximum 2 competing sessions in this slot.")
     }
     assertConfirmedOverlap(overlapping, input, starts_at, ends_at)
     return { slot_lane: assignProcessingLane(processingInBucket) }
   }
 
   if (hasConfirmedInBucket) {
-    throw new Error("This slot already has a confirmed session.")
+    throw new UserFacingError("This slot already has a confirmed session.")
   }
   const otherProcessing = bucketOverlaps.filter(
     (s) => s.status === "processing",
   )
   if (otherProcessing.length > 0) {
-    throw new Error(
+    throw new UserFacingError(
       "Resolve competing processing sessions with Confirm, or cancel them first.",
     )
   }
@@ -314,7 +315,11 @@ async function cancelCompetingProcessing(
   return losers.length
 }
 
-export async function saveSession(
+export type SessionSaveResult =
+  | { ok: true; sessionId: string }
+  | { ok: false; error: string }
+
+async function saveSessionCore(
   input: SessionFormInput,
   sessionId?: string,
   newSessionId?: string,
@@ -380,14 +385,28 @@ export async function saveSession(
   return data.id
 }
 
-export type ConfirmSessionResult = {
-  sessionId: string
-  cancelledCount: number
+export async function saveSession(
+  input: SessionFormInput,
+  sessionId?: string,
+  newSessionId?: string,
+): Promise<SessionSaveResult> {
+  try {
+    const id = await saveSessionCore(input, sessionId, newSessionId)
+    return { ok: true, sessionId: id }
+  } catch (err) {
+    if (isUserFacingError(err)) return { ok: false, error: err.message }
+    console.error("[saveSession]", err)
+    return { ok: false, error: "Failed to save session. Please try again." }
+  }
 }
 
-export async function confirmSession(
+export type ConfirmSessionResult =
+  | { ok: true; sessionId: string; cancelledCount: number }
+  | { ok: false; error: string }
+
+async function confirmSessionCore(
   sessionId: string,
-): Promise<ConfirmSessionResult> {
+): Promise<{ sessionId: string; cancelledCount: number }> {
   const { supabase, userId } = await requireAuth()
 
   const { data: session, error: fetchError } = await supabase
@@ -452,13 +471,24 @@ export async function confirmSession(
   return { sessionId, cancelledCount }
 }
 
-export type UnconfirmSessionResult = {
-  sessionId: string
+export async function confirmSession(sessionId: string): Promise<ConfirmSessionResult> {
+  try {
+    const result = await confirmSessionCore(sessionId)
+    return { ok: true, ...result }
+  } catch (err) {
+    if (isUserFacingError(err)) return { ok: false, error: err.message }
+    console.error("[confirmSession]", err)
+    return { ok: false, error: "Failed to confirm session. Please try again." }
+  }
 }
 
-export async function unconfirmSession(
+export type UnconfirmSessionResult =
+  | { ok: true; sessionId: string }
+  | { ok: false; error: string }
+
+async function unconfirmSessionCore(
   sessionId: string,
-): Promise<UnconfirmSessionResult> {
+): Promise<{ sessionId: string }> {
   const { supabase } = await requireAuth()
 
   const { data: session, error: fetchError } = await supabase
@@ -520,6 +550,17 @@ export async function unconfirmSession(
   return { sessionId }
 }
 
+export async function unconfirmSession(sessionId: string): Promise<UnconfirmSessionResult> {
+  try {
+    const result = await unconfirmSessionCore(sessionId)
+    return { ok: true, ...result }
+  } catch (err) {
+    if (isUserFacingError(err)) return { ok: false, error: err.message }
+    console.error("[unconfirmSession]", err)
+    return { ok: false, error: "Failed to revert session. Please try again." }
+  }
+}
+
 export type DuplicateSessionInput = {
   date: string
   start_time: string
@@ -527,7 +568,11 @@ export type DuplicateSessionInput = {
   floor_id: string
 }
 
-export async function duplicateSession(
+export type DuplicateSessionResult =
+  | { ok: true; sessionId: string }
+  | { ok: false; error: string }
+
+async function duplicateSessionCore(
   sourceSessionId: string,
   target: DuplicateSessionInput,
 ): Promise<string> {
@@ -603,7 +648,25 @@ export async function duplicateSession(
   return inserted.id
 }
 
-export async function deleteSession(sessionId: string) {
+export async function duplicateSession(
+  sourceSessionId: string,
+  target: DuplicateSessionInput,
+): Promise<DuplicateSessionResult> {
+  try {
+    const id = await duplicateSessionCore(sourceSessionId, target)
+    return { ok: true, sessionId: id }
+  } catch (err) {
+    if (isUserFacingError(err)) return { ok: false, error: err.message }
+    console.error("[duplicateSession]", err)
+    return { ok: false, error: "Failed to duplicate session. Please try again." }
+  }
+}
+
+export type DeleteSessionResult =
+  | { ok: true }
+  | { ok: false; error: string }
+
+async function deleteSessionCore(sessionId: string): Promise<void> {
   const supabase = await requireAuth().then((ctx) => ctx.supabase)
 
   const { data: session, error: fetchError } = await supabase
@@ -621,4 +684,15 @@ export async function deleteSession(sessionId: string) {
   if (error) throw new Error(error.message)
 
   revalidateSessionCaches(session?.is_published ?? false)
+}
+
+export async function deleteSession(sessionId: string): Promise<DeleteSessionResult> {
+  try {
+    await deleteSessionCore(sessionId)
+    return { ok: true }
+  } catch (err) {
+    if (isUserFacingError(err)) return { ok: false, error: err.message }
+    console.error("[deleteSession]", err)
+    return { ok: false, error: "Failed to delete session. Please try again." }
+  }
 }

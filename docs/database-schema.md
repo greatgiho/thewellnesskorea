@@ -1,14 +1,14 @@
 # The Wellness Korea — Database Schema
 
-Last updated: 2026-06-17
+Last updated: 2026-06-26
 
-Source of truth: `supabase/migrations/001`–`022`
+Source of truth: `supabase/migrations/001`–`023`
 
 Companion: [ERD](./database-erd.md) · [Backend logic](./backend-architecture.md) · [Site map](./site-map-and-flows.md) · [Multi-experience requirements](./multi-venue-requirements.md) · [Audit log](./architecture-audit-log.md)
 
 > 목적: 데이터베이스 물리/논리 스키마 명세
 
-**Apply order:** `001` → … → `020` → `021` → `022`  
+**Apply order:** `001` → … → `020` → `021` → `022` → `023`  
 (`021` = enum only — PG requires commit before using new `booking_status` value)
 
 ---
@@ -301,6 +301,27 @@ Online PG attempts linked to a booking (B7). One row per payment try; `merchant_
 
 ---
 
+### `waitlist_entries`
+
+Guests/members waiting for a spot when a session is full. Notified once when a cancellation frees capacity (app layer).
+
+| Column | Type | Constraints / default |
+|--------|------|----------------------|
+| `id` | uuid | PK |
+| `session_id` | uuid | FK → `sessions`, ON DELETE CASCADE |
+| `user_id` | uuid | FK → `auth.users`, nullable |
+| `guest_name` | text | NOT NULL |
+| `guest_email` | text | NOT NULL, normalized via `normalize_email` |
+| `guest_phone` | text | nullable |
+| `notified_at` | timestamptz | nullable — set when spot-available email sent |
+| `created_at` | timestamptz | default `now()` |
+
+**Indexes:** unique active `(session_id, guest_email)` and `(session_id, user_id)` where `notified_at IS NULL`; `(session_id)`; partial `(session_id, notified_at)` where un-notified
+
+**RLS:** member SELECT own (`user_id = auth.uid()`); admin ALL. Inserts via `join_waitlist` RPC (security definer).
+
+---
+
 ## Database functions
 
 | Function | Purpose |
@@ -313,6 +334,9 @@ Online PG attempts linked to a booking (B7). One row per payment try; `merchant_
 | `create_booking_hold(...)` | Paid hold → `pending_payment` + `payments.pending` + increment `booked_count` |
 | `confirm_booking_payment(...)` | Webhook: amount verify → `paid` + booking `confirmed` |
 | `expire_stale_booking_holds()` | Cron: expire stale holds, decrement `booked_count` |
+| `join_waitlist(...)` | Security definer: upsert waitlist entry for full published session |
+| `get_waitlist_entries_to_notify(uuid)` | Atomically mark un-notified entries notified; return for email dispatch |
+| `delete_waitlist_entry(uuid)` | Admin-only waitlist row delete |
 | `cancel_booking_by_token(text)` | Guest cancel (`confirmed` or live `pending_payment`) |
 | `cancel_booking_for_user(uuid, uuid)` | Member cancel own booking |
 | `admin_cancel_booking(uuid)` | Admin cancel (requires admin JWT) |
@@ -321,7 +345,7 @@ Online PG attempts linked to a booking (B7). One row per payment try; `merchant_
 
 ## Row Level Security
 
-RLS **enabled** on all app tables (`partners`, `partner_programs`, `floors`, `sessions`, `regions`, `partner_activity_regions`, `experiences`, `members`, `bookings`, `payments`, `journal_posts`, `journal_post_partners`).
+RLS **enabled** on all app tables (`partners`, `partner_programs`, `floors`, `sessions`, `regions`, `partner_activity_regions`, `experiences`, `members`, `bookings`, `payments`, `waitlist_entries`, `journal_posts`, `journal_post_partners`).
 
 ### `experiences`
 
@@ -470,6 +494,7 @@ Referenced by FK (not created in app migrations):
 | `020_rename_people_to_partners.sql` | `people` → `partners`; enum renames; `partner_program_id`; RLS refresh |
 | `021_booking_status_pending_payment.sql` | Add `booking_status.pending_payment` (separate migration — enum commit rule) |
 | `022_online_payments.sql` | `sessions.price_krw`, `payments`, hold/confirm/expire RPCs, `members.name` nullable |
+| `023_waitlist.sql` | `waitlist_entries`, `join_waitlist`, notify/delete RPCs, RLS |
 
 ---
 
@@ -477,6 +502,5 @@ Referenced by FK (not created in app migrations):
 
 - PG webhook Route Handler + client SDK wiring (schema/RPC ready in `021`–`022`)
 - Automated refunds after `payments.paid`
-- Session waitlist
 - Audit log table
 - Street address + geocoding on activity regions (Phase B)

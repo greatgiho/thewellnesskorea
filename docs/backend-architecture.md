@@ -1,6 +1,6 @@
 # The Wellness Korea — Backend Architecture & Core Logic
 
-Last updated: 2026-06-23
+Last updated: 2026-06-26
 
 Companion docs: [Site map](./site-map-and-flows.md) · [DB schema](./database-schema.md) · [ERD](./database-erd.md) · [Audit log](./architecture-audit-log.md) · [Refactoring plan](./refactoring-plan.md) · [Multi-experience requirements](./multi-venue-requirements.md) · [Booking requirements](./booking-requirements.md)
 
@@ -20,12 +20,13 @@ Companion docs: [Site map](./site-map-and-flows.md) · [DB schema](./database-sc
 | Database | Supabase Postgres | RLS on all app tables |
 | Auth | Supabase Auth | Admin: password · Teacher register: magic link · Teacher portal: password |
 | File storage | Supabase Storage | `person-photos`, `session-photos` |
-| Email | Resend REST API | Admin alerts; teacher credentials on provision/reissue |
+| Email | Resend REST API | React Email templates (`lib/notifications/emails/`); admin alerts; booking/waitlist/teacher credentials |
 | Chat | Slack incoming webhook | Optional |
 | Analytics | @vercel/analytics | Production only |
-| Deploy | Vercel | |
+| Testing | Vitest | `npm test` / `npm run test:run` |
+| Deploy | Vercel | Cron: `vercel.json` → `/api/cron/expire-bookings` every 5 min |
 
-**Mutation pattern:** Server Actions (`"use server"`) in `app/admin/actions.ts`, `app/apply/actions.ts`, `app/admin/schedule/actions.ts`, `app/teacher/actions.ts`. No separate REST API layer for app CRUD.
+**Mutation pattern:** Server Actions (`"use server"`) in `app/admin/actions.ts`, `app/apply/actions.ts`, `app/admin/schedule/actions.ts`, `app/teacher/actions.ts`, `app/book/actions.ts`, `app/book/waitlist-actions.ts`. Route Handler: `app/api/cron/expire-bookings/route.ts`.
 
 ---
 
@@ -249,6 +250,21 @@ stateDiagram-v2
 | Unconfirm | unpublish, clear `confirmed_*`, reassign `slot_lane`; does not restore cancelled competitors |
 | Public read | RLS: `is_published AND status = 'confirmed'` |
 
+### Waitlist
+
+| Rule | Enforcement |
+|------|-------------|
+| Join | `join_waitlist` RPC on full published confirmed session; rejects existing confirmed booking |
+| Uniqueness | One active (un-notified) entry per email or member per session |
+| Notify | On booking cancel (guest/member/admin), `notifyWaitlist` marks entries notified and emails book link |
+| Admin | `/admin/waitlist`, per-session list on `/admin/bookings/sessions/[sessionId]`; `delete_waitlist_entry` RPC |
+
+### Cron (`/api/cron/expire-bookings`)
+
+- Vercel schedule: every 5 minutes (`vercel.json`)
+- Calls `expire_stale_booking_holds()` via service role
+- Secured by `Authorization: Bearer ${CRON_SECRET}` when env set
+
 ### Notifications (`notifyAdminProfileSubmitted`)
 
 - Trigger: new submit or re-submit (incl. post-approval edit)
@@ -413,6 +429,14 @@ Homepage: `ExperienceHomeProvider` syncs hero carousel + schedule horizontal ind
 | `createBookingHoldRpc`, `confirmBookingPaymentRpc`, `expireStaleBookingHoldsRpc` | Paid hold + webhook + Cron (`hold-rpc.ts`) |
 | `getSessionForBooking`, guest/member/admin booking queries | Read paths |
 | `sendBookingConfirmationEmail`, cancel emails | Resend notifications |
+| `notifyWaitlist` on guest/member/admin cancel | Spot-available email to un-notified waitlist (`lib/waitlist/notify.ts`) |
+
+### `lib/waitlist/`
+
+| Export | Role |
+|--------|------|
+| `notifyWaitlist` | RPC `get_waitlist_entries_to_notify` + Resend batch |
+| `getWaitlistByDateRange`, `getWaitlistForSession` | Admin queries (`admin-queries.ts`) |
 
 ### `lib/notifications/`
 
@@ -421,6 +445,8 @@ Homepage: `ExperienceHomeProvider` syncs hero carousel + schedule horizontal ind
 | `getAdminNotifyEmails` | Paginate Auth users, filter admins |
 | `notifyAdminProfileSubmitted`, `applyLinkForTeachers` | Admin alert dispatch |
 | `sendTeacherCredentialsEmail` | Welcome / reissue temp password to teacher |
+| `sendResendEmail` | Shared Resend sender (`resend.ts`) |
+| `render*Email` | React Email render helpers (`email-templates.ts`, `emails/*`) |
 
 ### `lib/paths/`
 

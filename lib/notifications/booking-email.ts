@@ -1,49 +1,25 @@
 import { siteOrigin } from "@/lib/apply/config"
 import { formatBookingDateTime } from "@/lib/bookings/format"
 import type { BookingSummary } from "@/lib/bookings/queries"
+import { sendResendEmail } from "@/lib/notifications/resend"
+import {
+  renderBookingConfirmationEmail,
+  renderBookingCancelledEmail,
+  type SessionDetails,
+} from "@/lib/notifications/email-templates"
 
-async function sendResendEmail(
-  to: string,
-  subject: string,
-  html: string,
-): Promise<void> {
-  const apiKey = process.env.RESEND_API_KEY
-  const from = process.env.NOTIFY_FROM_EMAIL
-  if (!apiKey || !from) {
-    console.warn("[booking-email] RESEND_API_KEY or NOTIFY_FROM_EMAIL missing")
-    return
-  }
-
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ from, to, subject, html }),
-  })
-
-  if (!res.ok) {
-    const body = await res.text()
-    console.error("[booking-email] send failed:", res.status, body)
-    throw new Error("Failed to send booking email.")
-  }
-}
-
-function sessionDetailsHtml(summary: BookingSummary): string {
+function toSessionDetails(summary: BookingSummary): SessionDetails {
   const { heading, timeRange } = formatBookingDateTime(
     summary.sessionStartsAt,
     summary.sessionEndsAt,
   )
-  return `
-    <ul>
-      <li><strong>Class:</strong> ${summary.sessionTitle}</li>
-      <li><strong>When:</strong> ${heading}</li>
-      <li><strong>Time:</strong> ${timeRange}</li>
-      <li><strong>Floor:</strong> ${summary.floorName}</li>
-      <li><strong>Guide:</strong> ${summary.instructorName}</li>
-    </ul>
-  `
+  return {
+    sessionTitle: summary.sessionTitle,
+    heading,
+    timeRange,
+    floorName: summary.floorName,
+    instructorName: summary.instructorName,
+  }
 }
 
 export async function sendBookingConfirmationEmail(
@@ -53,37 +29,36 @@ export async function sendBookingConfirmationEmail(
   const cancelUrl = `${siteOrigin()}/book/cancel/${cancelToken}`
   const scheduleUrl = `${siteOrigin()}/#schedule`
 
-  const subject = "[TWK] Your class reservation is confirmed"
-  const html = `
-    <p>Hi ${summary.guestName},</p>
-    <p>Your reservation at The Wellness Korea is confirmed.</p>
-    ${sessionDetailsHtml(summary)}
-    <p>
-      <a href="${scheduleUrl}">View the schedule</a>
-    </p>
-    <p>
-      Need to cancel?
-      <a href="${cancelUrl}">Cancel this reservation</a>
-    </p>
-    <p>We look forward to welcoming you at Brickwell, Seochon.</p>
-  `
+  const html = await renderBookingConfirmationEmail({
+    guestName: summary.guestName,
+    details: toSessionDetails(summary),
+    cancelUrl,
+    scheduleUrl,
+  })
 
-  await sendResendEmail(summary.guestEmail, subject, html)
+  await sendResendEmail(
+    summary.guestEmail,
+    "[TWK] Your class reservation is confirmed",
+    html,
+    "booking-confirmation",
+  )
 }
 
 export async function sendBookingCancelledEmail(
   summary: BookingSummary,
 ): Promise<void> {
   const scheduleUrl = `${siteOrigin()}/#schedule`
-  const subject = "[TWK] Your class reservation was cancelled"
-  const html = `
-    <p>Hi ${summary.guestName},</p>
-    <p>Your reservation has been cancelled as requested.</p>
-    ${sessionDetailsHtml(summary)}
-    <p>
-      <a href="${scheduleUrl}">Browse upcoming classes</a>
-    </p>
-  `
 
-  await sendResendEmail(summary.guestEmail, subject, html)
+  const html = await renderBookingCancelledEmail({
+    guestName: summary.guestName,
+    details: toSessionDetails(summary),
+    scheduleUrl,
+  })
+
+  await sendResendEmail(
+    summary.guestEmail,
+    "[TWK] Your class reservation was cancelled",
+    html,
+    "booking-cancelled",
+  )
 }

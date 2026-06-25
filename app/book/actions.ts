@@ -20,6 +20,8 @@ import {
   sendBookingConfirmationEmail,
   sendBookingCancelledEmail,
 } from "@/lib/notifications/booking-email"
+import { notifyWaitlist } from "@/lib/waitlist/notify"
+import { formatBookingDateTime } from "@/lib/bookings/format"
 
 export type GuestBookingState = {
   error?: string
@@ -130,6 +132,18 @@ export async function confirmCancelBooking(
     } catch (emailError) {
       console.error("[booking] cancellation email failed:", emailError)
     }
+
+    // Notify waitlist — fire-and-forget, non-blocking
+    const { heading, timeRange } = formatBookingDateTime(
+      summaryBefore.sessionStartsAt,
+      summaryBefore.sessionEndsAt,
+    )
+    notifyWaitlist({
+      sessionId: summaryBefore.sessionId,
+      sessionTitle: summaryBefore.sessionTitle,
+      heading,
+      timeRange,
+    }).catch((err) => console.error("[waitlist] notify failed:", err))
 
     revalidatePath("/")
     redirect("/book/cancelled")

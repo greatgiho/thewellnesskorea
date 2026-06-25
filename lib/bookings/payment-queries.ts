@@ -27,6 +27,7 @@ export async function getPendingBookingPayment(
     .select(
       `
       id,
+      session_id,
       guest_name,
       guest_email,
       status,
@@ -101,6 +102,7 @@ export async function getPendingBookingPayment(
     paymentStatus: payment.status,
     summary: {
       bookingId: data.id as string,
+      sessionId: data.session_id as string,
       guestName: data.guest_name as string,
       guestEmail: data.guest_email as string,
       status: data.status as BookingStatus,

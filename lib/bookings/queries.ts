@@ -8,6 +8,7 @@ import type { BookingStatus } from "./types"
 
 export type BookingSummary = {
   bookingId: string
+  sessionId: string
   guestName: string
   guestEmail: string
   status: BookingStatus
@@ -54,6 +55,7 @@ export async function getBookableSession(
 function toBookingSummary(
   row: {
     id: string
+    session_id: string
     guest_name: string
     guest_email: string
     status: BookingStatus
@@ -82,6 +84,7 @@ function toBookingSummary(
 
   return {
     bookingId: row.id,
+    sessionId: row.session_id,
     guestName: row.guest_name,
     guestEmail: row.guest_email,
     status: row.status,
@@ -104,6 +107,7 @@ export async function getBookingSummaryById(
     .select(
       `
       id,
+      session_id,
       guest_name,
       guest_email,
       status,
@@ -134,6 +138,7 @@ export async function getBookingSummaryByCancelToken(
     .select(
       `
       id,
+      session_id,
       guest_name,
       guest_email,
       status,

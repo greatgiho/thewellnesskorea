@@ -172,14 +172,16 @@ export function SessionFormDialog({
     }))
   }
 
-  const persistSession = async (): Promise<void> => {
+  const persistSession = async (): Promise<string> => {
     const sessionId = session?.id ?? crypto.randomUUID()
     const image_paths = await uploadSessionImageSlots(sessionId, imageSlots)
-    await saveSession(
+    const result = await saveSession(
       { ...input, image_paths },
       session?.id,
       session?.id ? undefined : sessionId,
     )
+    if (!result.ok) throw new Error(result.error)
+    return result.sessionId
   }
 
   const onSubmit = async (e: React.FormEvent) => {
@@ -205,20 +207,19 @@ export function SessionFormDialog({
     if (!session) return
     setError(null)
     setPending(true)
-    try {
-      await duplicateSession(session.id, {
-        date: duplicateDate,
-        floor_id: duplicateFloorId,
-        start_time: duplicateStart,
-        end_time: duplicateEnd,
-      })
+    const result = await duplicateSession(session.id, {
+      date: duplicateDate,
+      floor_id: duplicateFloorId,
+      start_time: duplicateStart,
+      end_time: duplicateEnd,
+    })
+    if (!result.ok) {
+      setError(result.error)
+    } else {
       onSaved()
       onClose()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to duplicate session.")
-    } finally {
-      setPending(false)
     }
+    setPending(false)
   }
 
   const onConfirmStatus = async () => {
@@ -233,17 +234,20 @@ export function SessionFormDialog({
     setError(null)
     setPending(true)
     try {
-      if (isEditing) {
-        await persistSession()
-      }
-      await confirmSession(session.id)
+      if (isEditing) await persistSession()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save session.")
+      setPending(false)
+      return
+    }
+    const result = await confirmSession(session.id)
+    if (!result.ok) {
+      setError(result.error)
+    } else {
       onSaved()
       onClose()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to confirm session.")
-    } finally {
-      setPending(false)
     }
+    setPending(false)
   }
 
   const onRevertStatus = async () => {
@@ -258,17 +262,14 @@ export function SessionFormDialog({
     if (!confirm(lines.join("\n\n"))) return
     setError(null)
     setPending(true)
-    try {
-      await unconfirmSession(session.id)
+    const result = await unconfirmSession(session.id)
+    if (!result.ok) {
+      setError(result.error)
+    } else {
       onSaved()
       onClose()
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to revert session.",
-      )
-    } finally {
-      setPending(false)
     }
+    setPending(false)
   }
 
   const onStatusClick = () => {
@@ -281,15 +282,14 @@ export function SessionFormDialog({
     if (!session) return
     if (!confirm(`Delete "${session.title}"?`)) return
     setPending(true)
-    try {
-      await deleteSession(session.id)
+    const result = await deleteSession(session.id)
+    if (!result.ok) {
+      setError(result.error)
+    } else {
       onSaved()
       onClose()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to delete.")
-    } finally {
-      setPending(false)
     }
+    setPending(false)
   }
 
   if (!open) return null

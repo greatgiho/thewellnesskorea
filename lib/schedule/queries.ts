@@ -31,6 +31,25 @@ export async function getFloors(): Promise<FloorRow[]> {
   return data as FloorRow[]
 }
 
+export async function getSessionById(
+  sessionId: string,
+): Promise<SessionWithRelations | null> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from("sessions")
+    .select(SESSION_WITH_RELATIONS)
+    .eq("id", sessionId)
+    .maybeSingle()
+
+  if (error || !data) return null
+  return toSessionWithRelations(
+    data as SessionRow & {
+      floor?: FloorRow | FloorRow[] | null
+      instructor?: SessionWithRelations["instructor"] | SessionWithRelations["instructor"][] | null
+    },
+  )
+}
+
 export async function getSessionsForDay(dateKey: string): Promise<SessionWithRelations[]> {
   const next = addDaysToDateKey(dateKey, 1)
   return getSessionsForRange(dateKey, next)

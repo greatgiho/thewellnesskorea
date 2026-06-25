@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { BookingPageLayout } from "@/components/booking/booking-page-layout"
 import { GuestBookingForm } from "@/components/booking/guest-booking-form"
+import { WaitlistForm } from "@/components/booking/waitlist-form"
 import { getOptionalMemberSession } from "@/lib/auth/require-session"
 import { isMemberAuthUser } from "@/lib/auth/member-email"
 import { getBookableSession } from "@/lib/bookings/queries"
@@ -35,22 +36,7 @@ export default async function BookSessionPage({ params }: BookSessionPageProps) 
   }
 
   const classItem = mapSessionToClassItem(session)
-  if (classItem.spots === 0) {
-    return (
-      <BookingPageLayout
-        eyebrow="Reservation"
-        title="This class is full."
-        description="There are no spots left for this session. Please choose another class from the schedule."
-      >
-        <a
-          href="/#schedule"
-          className="inline-flex rounded-full bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-        >
-          Back to schedule
-        </a>
-      </BookingPageLayout>
-    )
-  }
+  const isFull = classItem.spots === 0
 
   const memberSession = await getOptionalMemberSession()
   const memberRole = memberSession?.user.app_metadata?.role
@@ -69,6 +55,18 @@ export default async function BookSessionPage({ params }: BookSessionPageProps) 
       email: memberSession.userEmail,
       phone: profile?.phone,
     }
+  }
+
+  if (isFull) {
+    return (
+      <BookingPageLayout
+        eyebrow="Waitlist"
+        title="This class is full."
+        description="Join the waitlist and we'll notify you as soon as a spot opens up."
+      >
+        <WaitlistForm session={session} memberPrefill={memberPrefill} />
+      </BookingPageLayout>
+    )
   }
 
   return (

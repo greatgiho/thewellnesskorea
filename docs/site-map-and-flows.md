@@ -1,6 +1,6 @@
 # The Wellness Korea — Site Map & Flows
 
-Last updated: 2026-06-23
+Last updated: 2026-06-26
 
 Companion docs: [Backend](./backend-architecture.md) · [DB schema](./database-schema.md) · [ERD](./database-erd.md) · [Multi-experience requirements](./multi-venue-requirements.md) · [Journal requirements](./journal-requirements.md) · [Platform Discover plan](./platform-discovery-plan.md) · [Booking requirements](./booking-requirements.md)
 
@@ -71,7 +71,8 @@ Public links, magic links, notification URLs → `NEXT_PUBLIC_SITE_URL`.
 | `/login/check-email` | `app/login/check-email/page.tsx` | Public | Member magic-link sent |
 | `/account` | `app/account/page.tsx` | Member | Account home |
 | `/account/bookings` | `app/account/bookings/page.tsx` | Member | Member bookings list |
-| `/book/[sessionId]` | `app/book/[sessionId]/page.tsx` | Public | Guest/member booking form |
+| `/book/[sessionId]` | `app/book/[sessionId]/page.tsx` | Public | Guest/member booking form (+ waitlist when full) |
+| `/book/pay` | `app/book/pay/page.tsx` | Public | Online payment for `pending_payment` hold |
 | `/book/confirm` | `app/book/confirm/page.tsx` | Public | Booking confirmation |
 | `/book/cancel/[token]` | `app/book/cancel/[token]/page.tsx` | Public | Guest cancel by token |
 | `/book/cancelled` | `app/book/cancelled/page.tsx` | Public | Cancel success |
@@ -96,10 +97,15 @@ Public links, magic links, notification URLs → `NEXT_PUBLIC_SITE_URL`.
 | `/admin/partners/[id]` | `app/admin/(dashboard)/partners/[id]/page.tsx` | Admin | Read-only profile (incl. activity regions) |
 | `/admin/partners/[id]/edit` | `app/admin/(dashboard)/partners/[id]/edit/page.tsx` | Admin | Edit + review + account panel |
 | `/admin/schedule` | `app/admin/(dashboard)/schedule/page.tsx` | Admin | Schedule admin |
-| `/admin/bookings` | `app/admin/(dashboard)/bookings/page.tsx` | Admin | Bookings list |
+| `/admin/bookings` | `app/admin/(dashboard)/bookings/page.tsx` | Admin | Sessions with bookings (date range) |
+| `/admin/bookings/sessions/[sessionId]` | `app/admin/(dashboard)/bookings/sessions/[sessionId]/page.tsx` | Admin | Per-session bookings + waitlist |
+| `/admin/waitlist` | `app/admin/(dashboard)/waitlist/page.tsx` | Admin | Waitlist overview (next 60 days) |
 | `/admin/journal` | `app/admin/(dashboard)/journal/page.tsx` | Admin | Journal list |
 | `/admin/journal/new` | `app/admin/(dashboard)/journal/new/page.tsx` | Admin | New journal post |
 | `/admin/journal/[id]/edit` | `app/admin/(dashboard)/journal/[id]/edit/page.tsx` | Admin | Edit journal post |
+| `/api/cron/expire-bookings` | `app/api/cron/expire-bookings/route.ts` | Cron (`CRON_SECRET`) | Expire stale `pending_payment` holds (Vercel cron */5 min) |
+
+**Global UI:** `app/error.tsx`, `app/loading.tsx`, `app/not-found.tsx`; segment `error.tsx` under `account`, `admin`, `book`.
 
 **Legacy redirects (`next.config.mjs`):** `/people/:slug` → `/partners/:slug` · `/admin/people/*` → `/admin/partners/*`
 
@@ -136,7 +142,10 @@ app/layout.tsx                    ← root: fonts, metadata, Analytics
         ├── /admin/partners
         ├── /admin/partners/new
         ├── /admin/partners/[id]/edit
-        └── /admin/schedule
+        ├── /admin/schedule
+        ├── /admin/bookings
+        ├── /admin/bookings/sessions/[sessionId]
+        └── /admin/waitlist
 ```
 
 ### Public homepage (`/`)
@@ -191,7 +200,7 @@ page.tsx
 
 | Screen | Components |
 |--------|------------|
-| Layout | nav: Partners · Schedule · Journal · Bookings · View site · Sign out |
+| Layout | nav: Partners · Schedule · Bookings · Journal · Waitlist · View site · Sign out |
 | `/admin/partners` | `admin-partners-list` (search, status/path filters, apply link) |
 | `/admin/partners/new` | `partner-form`, `activity-region-fields`, `program-list-editor` |
 | `/admin/partners/[id]` | `partner-detail-view` (activity regions) |
@@ -300,6 +309,7 @@ Post-approval re-edit → `submitted`, unpublish, re-notify admins.
 | `RESEND_API_KEY` | server | Profile submit email |
 | `NOTIFY_FROM_EMAIL` | server | Resend from address |
 | `SLACK_WEBHOOK_URL` | server | Optional Slack alert |
+| `CRON_SECRET` | server | Vercel cron auth for `/api/cron/expire-bookings` |
 | `SITE_ACCESS_PASSWORD` | server | Optional whole-site preview lock (Production); omit locally |
 
 **Production:** same keys; `NEXT_PUBLIC_SITE_URL` = `https://thewellnesskorea.com`. Set `SITE_ACCESS_PASSWORD` until public launch, then remove and redeploy.
@@ -343,7 +353,7 @@ http://localhost:3000/auth/callback
 | Public journal | `app/journal/`, `components/journal/`, `lib/journal/` |
 | Public journal partners | `components/journal/journal-partner-tags.tsx` → links `/partners/[slug]` |
 | Admin schedule | `app/admin/(dashboard)/schedule/`, `app/admin/schedule/actions.ts` |
-| Bookings | `app/book/`, `app/account/bookings/`, `app/admin/(dashboard)/bookings/`, `lib/bookings/` |
+| Bookings | `app/book/`, `app/account/bookings/`, `app/admin/(dashboard)/bookings/`, `lib/bookings/`, `lib/waitlist/` |
 | B7 payment (planned) | `POST /api/webhooks/payment` (webhook), Vercel Cron → `expire_stale_booking_holds` |
 | Notifications | `lib/notifications/` |
 | Migrations | `supabase/migrations/` |

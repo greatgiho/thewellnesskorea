@@ -1,6 +1,6 @@
 # The Wellness Korea — Database ERD
 
-Last updated: 2026-06-17
+Last updated: 2026-06-26
 
 Companion: [Schema reference](./database-schema.md) · [Backend logic](./backend-architecture.md) · [Site map](./site-map-and-flows.md) · [Multi-experience requirements](./multi-venue-requirements.md) · [Audit log](./architecture-audit-log.md)
 
@@ -19,6 +19,7 @@ erDiagram
     AUTH_USERS ||--o{ SESSIONS : "confirmed_by"
     AUTH_USERS ||--o{ SESSIONS : "cancelled_by"
     AUTH_USERS ||--o{ BOOKINGS : "member booking"
+    AUTH_USERS ||--o{ WAITLIST_ENTRIES : "member waitlist"
 
     PARTNERS ||--|{ PARTNER_PROGRAMS : "has"
     PARTNERS ||--o{ PARTNER_ACTIVITY_REGIONS : "activity"
@@ -35,6 +36,7 @@ erDiagram
     FLOORS ||--|{ SESSIONS : "level"
     PARTNER_PROGRAMS ||--o{ SESSIONS : "linked_program"
     SESSIONS ||--o{ BOOKINGS : "reservations"
+    SESSIONS ||--o{ WAITLIST_ENTRIES : "waitlist"
     BOOKINGS ||--o{ PAYMENTS : "pg attempts"
 
     JOURNAL_POSTS ||--|{ JOURNAL_POST_PARTNERS : "partner tags"
@@ -155,6 +157,17 @@ erDiagram
         timestamptz paid_at
     }
 
+    WAITLIST_ENTRIES {
+        uuid id PK
+        uuid session_id FK
+        uuid user_id FK
+        text guest_name
+        text guest_email
+        text guest_phone
+        timestamptz notified_at
+        timestamptz created_at
+    }
+
     JOURNAL_POSTS {
         uuid id PK
         text slug UK
@@ -204,6 +217,8 @@ erDiagram
 | `bookings.session_id` | `sessions` | N : 1 | RESTRICT | |
 | `bookings.user_id` | `auth.users` | N : 0..1 | SET NULL | NULL = guest booking |
 | `payments.booking_id` | `bookings` | N : 1 | CASCADE | PG payment attempts |
+| `waitlist_entries.session_id` | `sessions` | N : 1 | CASCADE | Spot-available notify on cancel |
+| `waitlist_entries.user_id` | `auth.users` | N : 0..1 | SET NULL | Member waitlist link |
 | `journal_posts.experience_id` | `experiences` | N : 0..1 | SET NULL | Optional Space/Journey tag |
 | `journal_post_partners.journal_post_id` | `journal_posts` | N : 1 | CASCADE | Partner footer tags |
 | `journal_post_partners.partner_id` | `partners` | N : 1 | CASCADE | Guide / Artist / Brand profile link |
@@ -310,6 +325,7 @@ flowchart TB
 | `capacity > 0`, `booked_count >= 0` | `sessions` |
 | `session.experience_id = floor.experience_id` | `sessions` (trigger `sessions_floor_experience_match`) |
 | Unique active booking per session + email/user | `bookings` (partial indexes) |
+| Unique active waitlist per session + email/user | `waitlist_entries` (partial indexes) |
 | `UNIQUE (journal_post_id, partner_id)` | `journal_post_partners` |
 
 ---
@@ -357,13 +373,14 @@ flowchart TD
 | `journal_post_partners` | published post + published partner | ✓ journal footer partner cards |
 | `members` | own row only (`id = auth.uid()`) | ✓ `/account/*` |
 | `bookings` | own row only (`user_id = auth.uid()`) | ✓ `/account/bookings` |
+| `waitlist_entries` | own row only (`user_id = auth.uid()`) | — (join via RPC; no direct UI list) |
 | Storage objects | bucket public flag | ✓ photo URLs |
 
 **Teacher read:** own `partners` + `partner_programs` + `partner_activity_regions` via `user_id = auth.uid()`; own `sessions` where confirmed + published (`/teacher` dashboard).
 
 **Admin read/write:** all app tables via `is_admin_user()` (`app_metadata.role = 'admin'`). Floors writes are admin-only (migration `018`).
 
-**Guest booking:** insert via `create_booking` RPC (service role) — no direct anon INSERT on `bookings`.
+**Guest booking:** insert via `create_booking` / `create_booking_hold` RPC. **Waitlist:** insert via `join_waitlist` RPC — no direct anon INSERT on `waitlist_entries`.
 
 ---
 

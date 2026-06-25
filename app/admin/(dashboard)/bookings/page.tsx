@@ -1,10 +1,11 @@
 import type { Metadata } from "next"
 import { AdminBookingsClient } from "@/components/admin/admin-bookings-client"
 import {
-  fetchAdminBookings,
+  fetchAdminSessionList,
   getDefaultBookingsDateRange,
 } from "@/app/admin/bookings/actions"
-import type { BookingStatus } from "@/lib/bookings/types"
+import { getAllPartnersAdmin } from "@/lib/partners/queries"
+import { addDaysToDateKey } from "@/lib/schedule/utils"
 
 export const metadata: Metadata = {
   title: "Bookings — Admin",
@@ -14,7 +15,9 @@ type AdminBookingsPageProps = {
   searchParams: Promise<{
     start?: string
     end?: string
-    status?: string
+    instructor?: string
+    title?: string
+    guest?: string
   }>
 }
 
@@ -26,30 +29,38 @@ export default async function AdminBookingsPage({
 
   const startDateKey = params.start ?? defaults.start
   const endDateKey = params.end ?? defaults.end
-  const statusParam = params.status ?? "all"
-  const status: BookingStatus | "all" =
-    statusParam === "confirmed" ||
-    statusParam === "cancelled" ||
-    statusParam === "no_show"
-      ? statusParam
-      : "all"
+  const instructorId = params.instructor ?? ""
+  const titleSearch = params.title ?? ""
+  const guestSearch = params.guest ?? ""
 
-  const bookings = await fetchAdminBookings(startDateKey, endDateKey, status)
+  const [sessions, partners] = await Promise.all([
+    fetchAdminSessionList({
+      startDateKey,
+      endDateKeyExclusive: addDaysToDateKey(endDateKey, 1),
+      instructorId: instructorId || undefined,
+      titleSearch: titleSearch || undefined,
+      guestSearch: guestSearch || undefined,
+    }),
+    getAllPartnersAdmin(),
+  ])
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="font-serif text-3xl text-foreground">Bookings</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          View reservations by date, export CSV, or cancel on behalf of guests.
+          Search sessions by date, instructor, or class name — or find a guest by name, email, or phone.
         </p>
       </div>
 
       <AdminBookingsClient
-        bookings={bookings}
+        sessions={sessions}
+        partners={partners}
         startDateKey={startDateKey}
         endDateKey={endDateKey}
-        status={status}
+        instructorId={instructorId}
+        titleSearch={titleSearch}
+        guestSearch={guestSearch}
       />
     </div>
   )

@@ -39,6 +39,12 @@ export default function AdminDashboardLayout({
               >
                 Journal
               </Link>
+              <Link
+                href="/admin/waitlist"
+                className="text-muted-foreground transition-colors hover:text-foreground"
+              >
+                Waitlist
+              </Link>
             </nav>
           </div>
           <div className="flex items-center gap-4 text-sm">
