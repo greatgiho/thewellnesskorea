@@ -355,6 +355,7 @@ stateDiagram-v2
 | `sanitizeJournalHtml` (admin save only), `journalBodyToHtml`, `estimateReadMinutes` | HTML sanitize on write; public render skips DOMPurify (Vercel jsdom ESM issue) |
 | `removeJournalPostStorage` | Delete hero + inline files on post delete |
 | `JournalEditor` (`components/admin/journal-editor.tsx`) | TipTap WYSIWYG (StarterKit, Image, Link) |
+| `FocalPointPicker` (`components/admin/focal-point-picker.tsx`) | Hero crop focal point → `journal_posts.focal_point` |
 | `getJournalPartnerTagsForPost`, `syncJournalPostPartners` | Article footer partner tags |
 | `JournalPartnerPicker`, `JournalPartnerTags` | Admin picker + public footer cards |
 | `saveJournalPost`, `deleteJournalPost` | Server Actions (`app/admin/journal/actions.ts`) |

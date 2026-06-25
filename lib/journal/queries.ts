@@ -12,6 +12,7 @@ function toCard(row: JournalPostRow): JournalCardData {
     heroImage: row.hero_image_path
       ? getJournalPhotoUrl(row.hero_image_path)
       : null,
+    focalPoint: row.focal_point || "50% 50%",
     category: row.category,
     publishedAt: row.published_at,
     readMinutes: row.read_minutes,

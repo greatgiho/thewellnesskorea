@@ -175,6 +175,7 @@ erDiagram
         text excerpt_en
         text body_en
         text hero_image_path
+        text focal_point
         journal_category category
         timestamptz published_at
         int read_minutes

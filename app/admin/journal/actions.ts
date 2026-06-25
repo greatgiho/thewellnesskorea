@@ -45,6 +45,7 @@ function rowFromInput(input: JournalFormInput, heroPath: string | null) {
     excerpt_en: input.excerpt_en.trim(),
     body_en: bodyHtml,
     hero_image_path: heroPath,
+    focal_point: input.focal_point || "50% 50%",
     category: input.category,
     published_at: new Date(`${input.published_at}T12:00:00.000Z`).toISOString(),
     read_minutes: readMinutes,

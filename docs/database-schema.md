@@ -2,13 +2,13 @@
 
 Last updated: 2026-06-26
 
-Source of truth: `supabase/migrations/001`–`023`
+Source of truth: `supabase/migrations/001`–`024`
 
 Companion: [ERD](./database-erd.md) · [Backend logic](./backend-architecture.md) · [Site map](./site-map-and-flows.md) · [Multi-experience requirements](./multi-venue-requirements.md) · [Audit log](./architecture-audit-log.md)
 
 > 목적: 데이터베이스 물리/논리 스키마 명세
 
-**Apply order:** `001` → … → `020` → `021` → `022` → `023`  
+**Apply order:** `001` → … → `020` → `021` → `022` → `023` → `024`  
 (`021` = enum only — PG requires commit before using new `booking_status` value)
 
 ---
@@ -152,6 +152,7 @@ Platform Journal (Core region/taste + Space/programs). Admin CRUD; public read w
 | `excerpt_en` | text | NOT NULL |
 | `body_en` | text | default `''` — TipTap HTML (sanitized on save); legacy Markdown converted at render |
 | `hero_image_path` | text | nullable — static path (`/…`) or `journal-photos` key (`{postId}/hero.*`) |
+| `focal_point` | text | NOT NULL, default `'50% 50%'` — CSS `object-position` for hero crop (journal index story cards) |
 | `category` | journal_category | NOT NULL, default `news` |
 | `published_at` | timestamptz | NOT NULL, default now() |
 | `read_minutes` | int | CHECK `> 0`, default 5 |
@@ -495,6 +496,7 @@ Referenced by FK (not created in app migrations):
 | `021_booking_status_pending_payment.sql` | Add `booking_status.pending_payment` (separate migration — enum commit rule) |
 | `022_online_payments.sql` | `sessions.price_krw`, `payments`, hold/confirm/expire RPCs, `members.name` nullable |
 | `023_waitlist.sql` | `waitlist_entries`, `join_waitlist`, notify/delete RPCs, RLS |
+| `024_journal_focal_point.sql` | `journal_posts.focal_point` (CSS object-position, default center) |
 
 ---
 

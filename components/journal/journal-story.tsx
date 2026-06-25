@@ -64,7 +64,7 @@ export function JournalStory({ post, index }: Props) {
             ? `url(${post.heroImage})`
             : "linear-gradient(135deg, oklch(0.22 0.025 155), oklch(0.32 0.035 145))",
           backgroundSize: "cover",
-          backgroundPosition: "center",
+          backgroundPosition: post.focalPoint || "50% 50%",
           willChange: "transform",
         }}
         aria-hidden

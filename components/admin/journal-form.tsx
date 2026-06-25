@@ -1,5 +1,6 @@
 "use client"
 
+import { FocalPointPicker } from "@/components/admin/focal-point-picker"
 import { JournalEditor } from "@/components/admin/journal-editor"
 import { JournalPartnerPicker } from "@/components/admin/journal-partner-picker"
 import { estimateReadMinutes } from "@/lib/journal/body"
@@ -226,6 +227,7 @@ export function JournalForm({
           </p>
         </div>
 
+        {/* Upload area */}
         <div className="relative aspect-[16/10] max-w-lg overflow-hidden rounded-xl border border-border bg-muted/30">
           {preview ? (
             <>
@@ -275,6 +277,17 @@ export function JournalForm({
           disabled={pending}
           onChange={onFileChange}
         />
+
+        {/* Focal point picker — shown only when an image is available */}
+        {preview && (
+          <div className="rounded-xl border border-border bg-card p-5">
+            <FocalPointPicker
+              imageUrl={preview}
+              value={input.focal_point}
+              onChange={(fp) => setInput((v) => ({ ...v, focal_point: fp }))}
+            />
+          </div>
+        )}
       </section>
 
       <section className="space-y-6">

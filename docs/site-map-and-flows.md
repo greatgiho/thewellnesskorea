@@ -349,7 +349,7 @@ http://localhost:3000/auth/callback
 | Site preview lock | `app/site-unlock/`, `components/site-unlock-form.tsx` |
 | Admin partners | `app/admin/(dashboard)/partners/`, `app/admin/actions.ts`, `components/admin/admin-partners-list.tsx` — kind filter: Guide / Artist / Brand + philosophy paths |
 | Public partners | `app/partners/[slug]/`, `components/partners/` |
-| Admin journal | `app/admin/(dashboard)/journal/`, `app/admin/journal/actions.ts`, `components/admin/journal-form.tsx`, `components/admin/journal-editor.tsx`, `components/admin/journal-partner-picker.tsx` |
+| Admin journal | `app/admin/(dashboard)/journal/`, `app/admin/journal/actions.ts`, `components/admin/journal-form.tsx`, `components/admin/focal-point-picker.tsx`, `components/admin/journal-editor.tsx`, `components/admin/journal-partner-picker.tsx` |
 | Public journal | `app/journal/`, `components/journal/` (`journal-view`, `journal-cover`, `journal-story`, `use-reveal`), `lib/journal/` |
 | Public journal partners | `components/journal/journal-partner-tags.tsx` → links `/partners/[slug]` |
 | Admin schedule | `app/admin/(dashboard)/schedule/`, `app/admin/schedule/actions.ts` |

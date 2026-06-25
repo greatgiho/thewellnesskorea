@@ -6,6 +6,7 @@ export const FALLBACK_JOURNAL_POSTS: JournalPostRow[] = JOURNAL_SEED_POSTS.map(
   (post, index) => ({
     id: `fallback-${post.slug}`,
     ...post,
+    focal_point: "50% 50%",
     is_published: true,
     experience_id: null,
     seo_title: null,
