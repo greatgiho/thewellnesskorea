@@ -77,7 +77,7 @@ Companion: [Multi-experience](./multi-venue-requirements.md) · [Journal require
 |---|------|----------------|
 | D2-1 | `DiscoverTeaser` section: 2 cards (Regional Journeys · Local Taste) | `components/discover-teaser.tsx` |
 | D2-2 | Insert after `Artists`, before `Schedule` on `/` | `app/page.tsx` |
-| D2-3 | Cards link to `/journal?category=region` and `/journal?category=taste` | `journal-index.tsx` reads `searchParams` |
+| D2-3 | Cards link to `/journal?category=region` and `/journal?category=taste` | `journal-view.tsx` reads initial category from URL |
 | D2-4 | Optional: show latest published post per category on cards | `lib/journal/queries.ts` |
 
 **Exit criteria:** Homepage shows slim teaser; clicks land on filtered Journal index.

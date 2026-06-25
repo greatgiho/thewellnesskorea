@@ -1,8 +1,6 @@
 import type { Metadata } from "next"
 import { Footer } from "@/components/footer"
-import {
-  JournalIndex,
-} from "@/components/journal/journal-index"
+import { JournalView } from "@/components/journal/journal-view"
 import { Navbar } from "@/components/navbar"
 import { getPublishedJournalPosts } from "@/lib/journal/queries"
 import { parseJournalCategoryParam } from "@/lib/journal/types"
@@ -26,7 +24,7 @@ export default async function JournalPage({ searchParams }: JournalPageProps) {
     <div className="min-h-screen bg-background">
       <Navbar />
       <main>
-        <JournalIndex posts={posts} initialCategory={initialCategory} />
+        <JournalView posts={posts} initialCategory={initialCategory} />
       </main>
       <Footer />
     </div>

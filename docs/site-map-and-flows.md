@@ -76,7 +76,7 @@ Public links, magic links, notification URLs → `NEXT_PUBLIC_SITE_URL`.
 | `/book/confirm` | `app/book/confirm/page.tsx` | Public | Booking confirmation |
 | `/book/cancel/[token]` | `app/book/cancel/[token]/page.tsx` | Public | Guest cancel by token |
 | `/book/cancelled` | `app/book/cancelled/page.tsx` | Public | Cancel success |
-| `/journal` | `app/journal/page.tsx` | Public | Journal index (`?category=` filter) |
+| `/journal` | `app/journal/page.tsx` | Public | Journal index — magazine cover + fullscreen story scroll (`?category=` filter) |
 | `/journal/[slug]` | `app/journal/[slug]/page.tsx` | Public | Journal article |
 | `/privacy` | `app/privacy/page.tsx` | Public | Privacy policy |
 | `/terms` | `app/terms/page.tsx` | Public | Terms of service |
@@ -350,7 +350,7 @@ http://localhost:3000/auth/callback
 | Admin partners | `app/admin/(dashboard)/partners/`, `app/admin/actions.ts`, `components/admin/admin-partners-list.tsx` — kind filter: Guide / Artist / Brand + philosophy paths |
 | Public partners | `app/partners/[slug]/`, `components/partners/` |
 | Admin journal | `app/admin/(dashboard)/journal/`, `app/admin/journal/actions.ts`, `components/admin/journal-form.tsx`, `components/admin/journal-editor.tsx`, `components/admin/journal-partner-picker.tsx` |
-| Public journal | `app/journal/`, `components/journal/`, `lib/journal/` |
+| Public journal | `app/journal/`, `components/journal/` (`journal-view`, `journal-cover`, `journal-story`, `use-reveal`), `lib/journal/` |
 | Public journal partners | `components/journal/journal-partner-tags.tsx` → links `/partners/[slug]` |
 | Admin schedule | `app/admin/(dashboard)/schedule/`, `app/admin/schedule/actions.ts` |
 | Bookings | `app/book/`, `app/account/bookings/`, `app/admin/(dashboard)/bookings/`, `lib/bookings/`, `lib/waitlist/` |
