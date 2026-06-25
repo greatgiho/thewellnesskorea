@@ -103,7 +103,7 @@ Public links, magic links, notification URLs → `NEXT_PUBLIC_SITE_URL`.
 | `/admin/journal` | `app/admin/(dashboard)/journal/page.tsx` | Admin | Journal list |
 | `/admin/journal/new` | `app/admin/(dashboard)/journal/new/page.tsx` | Admin | New journal post |
 | `/admin/journal/[id]/edit` | `app/admin/(dashboard)/journal/[id]/edit/page.tsx` | Admin | Edit journal post |
-| `/api/cron/expire-bookings` | `app/api/cron/expire-bookings/route.ts` | Cron (`CRON_SECRET`) | Expire stale `pending_payment` holds (Vercel cron */5 min) |
+| `/api/cron/expire-bookings` | `app/api/cron/expire-bookings/route.ts` | Cron (`CRON_SECRET`) | Expire stale `pending_payment` holds (Vercel cron daily 03:00 UTC; Hobby plan limit) |
 
 **Global UI:** `app/error.tsx`, `app/loading.tsx`, `app/not-found.tsx`; segment `error.tsx` under `account`, `admin`, `book`.
 

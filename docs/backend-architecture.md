@@ -24,7 +24,7 @@ Companion docs: [Site map](./site-map-and-flows.md) · [DB schema](./database-sc
 | Chat | Slack incoming webhook | Optional |
 | Analytics | @vercel/analytics | Production only |
 | Testing | Vitest | `npm test` / `npm run test:run` |
-| Deploy | Vercel | Cron: `vercel.json` → `/api/cron/expire-bookings` every 5 min |
+| Deploy | Vercel | Cron: `vercel.json` → `/api/cron/expire-bookings` daily (03:00 UTC) |
 
 **Mutation pattern:** Server Actions (`"use server"`) in `app/admin/actions.ts`, `app/apply/actions.ts`, `app/admin/schedule/actions.ts`, `app/teacher/actions.ts`, `app/book/actions.ts`, `app/book/waitlist-actions.ts`. Route Handler: `app/api/cron/expire-bookings/route.ts`.
 
@@ -261,7 +261,7 @@ stateDiagram-v2
 
 ### Cron (`/api/cron/expire-bookings`)
 
-- Vercel schedule: every 5 minutes (`vercel.json`)
+- Vercel schedule: daily `0 3 * * *` UTC (`vercel.json`; Hobby allows once/day — use Pro or external cron for 5‑min holds)
 - Calls `expire_stale_booking_holds()` via service role
 - Secured by `Authorization: Bearer ${CRON_SECRET}` when env set
 
