@@ -17,12 +17,23 @@ type Props = {
 
 export default async function AdminJournalEditPage({ params }: Props) {
   const { id } = await params
-  const [post, experiences, partners, partnerIds] = await Promise.all([
-    getJournalPostByIdAdmin(id),
-    getPublishedExperiencesForJournalForm(),
-    getPartnerOptionsForJournalForm(),
-    getJournalPartnerIdsForPostAdmin(id),
-  ])
+
+  let post, experiences, partners, partnerIds
+  try {
+    ;[post, experiences, partners, partnerIds] = await Promise.all([
+      getJournalPostByIdAdmin(id),
+      getPublishedExperiencesForJournalForm(),
+      getPartnerOptionsForJournalForm(),
+      getJournalPartnerIdsForPostAdmin(id),
+    ])
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    return (
+      <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-6 font-mono text-sm text-destructive whitespace-pre-wrap">
+        <strong>Server error (admin debug):</strong>{"\n"}{msg}
+      </div>
+    )
+  }
 
   if (!post) notFound()
 

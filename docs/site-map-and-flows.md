@@ -105,7 +105,7 @@ Public links, magic links, notification URLs → `NEXT_PUBLIC_SITE_URL`.
 | `/admin/journal/[id]/edit` | `app/admin/(dashboard)/journal/[id]/edit/page.tsx` | Admin | Edit journal post |
 | `/api/cron/expire-bookings` | `app/api/cron/expire-bookings/route.ts` | Cron (`CRON_SECRET`) | Expire stale `pending_payment` holds (Vercel cron daily 03:00 UTC; Hobby plan limit) |
 
-**Global UI:** `app/error.tsx`, `app/loading.tsx`, `app/not-found.tsx`; segment `error.tsx` under `account`, `admin`, `book`.
+**Global UI:** `app/error.tsx`, `app/global-error.tsx`, `app/loading.tsx`, `app/not-found.tsx`; `instrumentation.ts` (`onRequestError` → Vercel Function logs); segment `error.tsx` under `account`, `admin`, `book`.
 
 **Legacy redirects (`next.config.mjs`):** `/people/:slug` → `/partners/:slug` · `/admin/people/*` → `/admin/partners/*`
 

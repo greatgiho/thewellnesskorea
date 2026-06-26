@@ -28,6 +28,8 @@ Companion docs: [Site map](./site-map-and-flows.md) · [DB schema](./database-sc
 
 **Mutation pattern:** Server Actions (`"use server"`) in `app/admin/actions.ts`, `app/apply/actions.ts`, `app/admin/schedule/actions.ts`, `app/teacher/actions.ts`, `app/book/actions.ts`, `app/book/waitlist-actions.ts`. Route Handler: `app/api/cron/expire-bookings/route.ts`.
 
+**Error observability:** `instrumentation.ts` logs full server stack to Vercel Function logs; `app/error.tsx` / `app/global-error.tsx` show digest in production and stack in dev.
+
 ---
 
 ## Supabase clients
