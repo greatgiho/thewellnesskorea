@@ -66,6 +66,8 @@ export async function saveJournalPost(
   postId?: string,
   options?: SaveJournalOptions,
 ): Promise<JournalSaveResult> {
+  console.log("[saveJournalPost] called", { postId, focalPoint: input?.focal_point })
+
   const validationError = validateJournalInput(input)
   if (validationError) return { ok: false, error: validationError }
 
@@ -121,6 +123,7 @@ export async function saveJournalPost(
     revalidateJournalCaches(input.slug.trim())
     return { ok: true, postId: data.id }
   } catch (error) {
+    console.error("[saveJournalPost] error:", error)
     return {
       ok: false,
       error: error instanceof Error ? error.message : "Failed to save post.",
