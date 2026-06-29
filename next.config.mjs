@@ -5,6 +5,11 @@ const supabaseHostname = supabaseUrl
   : undefined
 
 const nextConfig = {
+  // Pin the workspace root: multiple lockfiles exist above this dir
+  // (e.g. ~/pnpm-lock.yaml), which Turbopack would otherwise infer as root.
+  turbopack: {
+    root: import.meta.dirname,
+  },
   serverExternalPackages: ["isomorphic-dompurify", "jsdom"],
   async redirects() {
     return [
