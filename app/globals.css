@@ -5,8 +5,8 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-heading: var(--font-cormorant), 'Cormorant Garamond Fallback';
-  --font-serif: var(--font-cormorant), 'Cormorant Garamond Fallback';
+  --font-heading: var(--font-cormorant), var(--font-gowun-batang), 'Cormorant Garamond Fallback', serif;
+  --font-serif: var(--font-cormorant), var(--font-gowun-batang), 'Cormorant Garamond Fallback', serif;
   --font-sans: var(--font-jakarta), 'Plus Jakarta Sans Fallback';
   --font-mono: var(--font-geist-mono), 'Geist Mono Fallback';
   --color-sidebar-ring: var(--sidebar-ring);
