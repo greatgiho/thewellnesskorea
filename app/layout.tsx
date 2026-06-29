@@ -1,12 +1,22 @@
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata } from 'next'
 import { Cormorant_Garamond, Plus_Jakarta_Sans, Geist_Mono } from 'next/font/google'
+import localFont from 'next/font/local'
 import './globals.css'
 
 const cormorant = Cormorant_Garamond({
   variable: '--font-cormorant',
   subsets: ['latin'],
   weight: ['300', '400', '500', '600'],
+})
+// Korean sans (고딕) to pair with Plus Jakarta Sans for Hangul glyphs.
+// Jakarta has no Hangul, so Korean body text falls back here. Self-hosted
+// variable font (Pretendard) tuned to match Latin weights at small sizes.
+const pretendard = localFont({
+  src: './fonts/PretendardVariable.woff2',
+  variable: '--font-pretendard',
+  weight: '45 920',
+  display: 'swap',
 })
 const jakarta = Plus_Jakarta_Sans({
   variable: '--font-jakarta',
@@ -35,7 +45,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${cormorant.variable} ${jakarta.variable} ${geistMono.variable} bg-background`}
+      className={`${cormorant.variable} ${jakarta.variable} ${geistMono.variable} ${pretendard.variable} bg-background`}
     >
       <body className="font-sans antialiased">
         {children}
