@@ -7,7 +7,7 @@
 @theme inline {
   --font-heading: var(--font-cormorant), var(--font-gowun-batang), 'Cormorant Garamond Fallback', serif;
   --font-serif: var(--font-cormorant), var(--font-gowun-batang), 'Cormorant Garamond Fallback', serif;
-  --font-sans: var(--font-jakarta), 'Plus Jakarta Sans Fallback';
+  --font-sans: var(--font-jakarta), var(--font-pretendard), 'Plus Jakarta Sans Fallback', sans-serif;
   --font-mono: var(--font-geist-mono), 'Geist Mono Fallback';
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
