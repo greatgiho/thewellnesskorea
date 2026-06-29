@@ -1,6 +1,11 @@
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata } from 'next'
-import { Cormorant_Garamond, Plus_Jakarta_Sans, Geist_Mono } from 'next/font/google'
+import {
+  Cormorant_Garamond,
+  Plus_Jakarta_Sans,
+  Geist_Mono,
+  Gowun_Batang,
+} from 'next/font/google'
 import localFont from 'next/font/local'
 import './globals.css'
 
@@ -26,6 +31,15 @@ const geistMono = Geist_Mono({
   variable: '--font-geist-mono',
   subsets: ['latin'],
 })
+// Korean serif (바탕/명조) to pair with Cormorant Garamond for Hangul glyphs.
+// Cormorant has no Hangul, so Korean text in serif headings falls back here.
+const gowunBatang = Gowun_Batang({
+  variable: '--font-gowun-batang',
+  weight: ['400', '700'],
+  subsets: ['latin'],
+  display: 'swap',
+  preload: false,
+})
 
 export const metadata: Metadata = {
   title: 'The Wellness Korea — Live Your Time Fully',
@@ -45,7 +59,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${cormorant.variable} ${jakarta.variable} ${geistMono.variable} ${pretendard.variable} bg-background`}
+      className={`${cormorant.variable} ${jakarta.variable} ${geistMono.variable} ${gowunBatang.variable} ${pretendard.variable} bg-background`}
     >
       <body className="font-sans antialiased">
         {children}
