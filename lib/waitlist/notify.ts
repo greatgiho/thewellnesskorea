@@ -1,5 +1,5 @@
 import { createServiceClient } from "@/lib/supabase/service"
-import { siteOrigin } from "@/lib/apply/config"
+import { siteOrigin } from "@/lib/site-origin"
 import { sendResendEmail } from "@/lib/notifications/resend"
 import { renderWaitlistAvailableEmail } from "@/lib/notifications/email-templates"
 

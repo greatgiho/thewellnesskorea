@@ -1,6 +1,5 @@
 import { getAllPartnersAdmin } from "@/lib/partners/queries"
 import { AdminPartnersList } from "@/components/admin/admin-partners-list"
-import { applyLinkForTeachers } from "@/lib/notifications/admin-alerts"
 
 export default async function AdminPartnersPage() {
   const partners = await getAllPartnersAdmin()
@@ -13,7 +12,7 @@ export default async function AdminPartnersPage() {
           Wellness guides, artists, and brands
         </p>
       </div>
-      <AdminPartnersList partners={partners} applyLink={applyLinkForTeachers()} />
+      <AdminPartnersList partners={partners} />
     </div>
   )
 }

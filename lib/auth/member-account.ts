@@ -2,10 +2,10 @@ import type { User } from "@supabase/supabase-js"
 import { createServiceClient } from "@/lib/supabase/service"
 import {
   assertMemberEmailAvailable,
+  isAdminAuthUser,
   isMemberAuthUser,
   normalizeMemberEmail,
 } from "@/lib/auth/member-email"
-import { isAdminAuthUser } from "@/lib/auth/teacher-email"
 import { UserFacingError } from "@/lib/errors"
 
 export type MemberOnboardingResult = {
@@ -89,10 +89,6 @@ export async function completeMemberOnboarding(
   const appMeta = user.app_metadata as Record<string, unknown> | undefined
   const role = appMeta?.role
 
-  if (role === "teacher") {
-    throw new UserFacingError("Teacher accounts cannot use member sign-in.")
-  }
-
   if (isAdminAuthUser(appMeta)) {
     throw new UserFacingError("Admin accounts cannot use member sign-in.")
   }
@@ -101,7 +97,7 @@ export async function completeMemberOnboarding(
     const signupIntent = user.user_metadata?.signup_intent
     if (signupIntent !== "member") {
       throw new UserFacingError(
-        "This account cannot use member sign-in. Use admin or teacher login instead.",
+        "This account cannot use member sign-in.",
       )
     }
   }

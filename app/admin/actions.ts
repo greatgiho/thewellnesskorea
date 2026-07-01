@@ -4,10 +4,6 @@ import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { requireAdminSession } from "@/lib/auth/require-session"
-import {
-  deleteLinkedTeacherAuthUser,
-  provisionAndEmailTeacherAccount,
-} from "@/lib/auth/teacher-account"
 import { isUserFacingError } from "@/lib/errors"
 import { persistPartner } from "@/lib/partners/persist-partner"
 import type { PartnerFormInput } from "@/lib/partners/types"
@@ -92,64 +88,6 @@ export async function updatePersonPhotoPath(id: string, photoPath: string) {
   revalidatePartnerCaches(existing?.is_published ?? false, id)
 }
 
-export async function approvePerson(personId: string) {
-  const { supabase, user } = await requireAdminSession()
-  const now = new Date().toISOString()
-
-  const { data: person, error: loadError } = await supabase
-    .from("partners")
-    .select("email")
-    .eq("id", personId)
-    .maybeSingle()
-
-  if (loadError) throw new Error(loadError.message)
-  if (!person?.email?.trim()) {
-    throw new Error("Email is required before approval.")
-  }
-
-  const { error } = await supabase
-    .from("partners")
-    .update({
-      registration_status: "approved",
-      reviewed_at: now,
-      reviewed_by: user.id,
-      rejection_reason: null,
-    })
-    .eq("id", personId)
-
-  if (error) throw new Error(error.message)
-
-  await provisionAndEmailTeacherAccount(supabase, personId)
-  revalidatePartnerCaches(false, personId)
-}
-
-export async function reissueTeacherPassword(personId: string) {
-  const { supabase } = await requireAdminSession()
-  await provisionAndEmailTeacherAccount(supabase, personId, {
-    isReissue: true,
-  })
-}
-
-export async function rejectPerson(personId: string, reason: string) {
-  const { supabase, user } = await requireAdminSession()
-  const trimmed = reason.trim()
-  if (!trimmed) throw new Error("Rejection reason is required.")
-
-  const { error } = await supabase
-    .from("partners")
-    .update({
-      registration_status: "rejected",
-      reviewed_at: new Date().toISOString(),
-      reviewed_by: user.id,
-      rejection_reason: trimmed,
-      is_published: false,
-    })
-    .eq("id", personId)
-
-  if (error) throw new Error(error.message)
-  revalidatePartnerCaches(false, personId)
-}
-
 export async function deletePartner(id: string) {
   const { supabase } = await requireAdminSession()
 
@@ -167,7 +105,7 @@ export async function deletePartner(id: string) {
 
   const { data: person } = await supabase
     .from("partners")
-    .select("photo_path, is_published, user_id")
+    .select("photo_path, is_published")
     .eq("id", id)
     .maybeSingle()
 
@@ -175,14 +113,8 @@ export async function deletePartner(id: string) {
     await supabase.storage.from("person-photos").remove([person.photo_path])
   }
 
-  const linkedUserId = person?.user_id ?? null
-
   const { error } = await supabase.from("partners").delete().eq("id", id)
   if (error) throw new Error(error.message)
-
-  if (linkedUserId) {
-    await deleteLinkedTeacherAuthUser(linkedUserId)
-  }
 
   revalidatePartnerCaches(person?.is_published ?? false)
 }

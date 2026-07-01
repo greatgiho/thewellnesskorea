@@ -22,7 +22,6 @@ import { getPartnerPhotoUrl, sortPartnersByName } from "@/lib/partners/utils"
 
 type AdminPartnersListProps = {
   partners: PartnerWithPrograms[]
-  applyLink: string
 }
 
 type StatusFilter = "all" | "submitted" | "self" | PartnerRegistrationStatus
@@ -57,19 +56,12 @@ function personMatchesSearch(person: PartnerWithPrograms, query: string) {
   )
 }
 
-export function AdminPartnersList({ partners, applyLink }: AdminPartnersListProps) {
+export function AdminPartnersList({ partners }: AdminPartnersListProps) {
   const router = useRouter()
   const [search, setSearch] = useState("")
   const [kindFilter, setKindFilter] = useState<PartnerKindFilter>("all")
   const [philosophyFilters, setPhilosophyFilters] = useState<PathKey[]>([])
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all")
-  const [copied, setCopied] = useState(false)
-
-  const copyApplyLink = async () => {
-    await navigator.clipboard.writeText(applyLink)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
 
   const filtered = useMemo(() => {
     const list = partners.filter(
@@ -109,13 +101,6 @@ export function AdminPartnersList({ partners, applyLink }: AdminPartnersListProp
           />
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={copyApplyLink}
-            className="inline-flex h-9 items-center rounded-lg border border-primary/40 px-4 text-sm font-medium text-primary hover:bg-primary/5"
-          >
-            {copied ? "Copied!" : "Copy apply link"}
-          </button>
           <Link
             href="/admin/partners/new"
             className="inline-flex h-9 shrink-0 items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-all hover:bg-primary/90"
@@ -124,11 +109,6 @@ export function AdminPartnersList({ partners, applyLink }: AdminPartnersListProp
           </Link>
         </div>
       </div>
-
-      <p className="text-xs text-muted-foreground">
-        Teacher self-registration: {applyLink} · code{" "}
-        <span className="font-mono">twk2026</span>
-      </p>
 
       <div className="flex flex-wrap gap-2">
         {(

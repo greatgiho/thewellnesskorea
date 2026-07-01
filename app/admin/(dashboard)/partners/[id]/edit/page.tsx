@@ -1,7 +1,5 @@
 import { notFound } from "next/navigation"
 import { PartnerForm } from "@/components/admin/partner-form"
-import { PartnerReviewPanel } from "@/components/admin/partner-review-panel"
-import { PartnerAccountPanel } from "@/components/admin/partner-account-panel"
 import { DeletePartnerButton } from "@/components/admin/delete-partner-button"
 import { getPartnerById } from "@/lib/partners/queries"
 import { getRegionsForForms } from "@/lib/regions/queries"
@@ -27,8 +25,6 @@ export default async function EditPersonPage({ params }: Props) {
         </div>
         <DeletePartnerButton id={person.id} name={person.name_en} />
       </div>
-      <PartnerReviewPanel person={person} />
-      <PartnerAccountPanel person={person} />
       <PartnerForm person={person} regions={regions} />
     </div>
   )

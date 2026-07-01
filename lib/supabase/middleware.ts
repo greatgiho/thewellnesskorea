@@ -1,7 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { createServerClient } from "@supabase/ssr"
 import { completeAuthFromUrl } from "@/lib/supabase/complete-auth-from-url"
-import { mustChangePassword } from "@/lib/auth/must-change-password"
 
 function authRole(user: { app_metadata?: Record<string, unknown> } | null) {
   const role = user?.app_metadata?.role
@@ -57,7 +56,7 @@ export async function updateSession(request: NextRequest) {
 
   if (authCallbackParams(params)) {
     const { ok } = await completeAuthFromUrl(supabase, params)
-    const next = params.get("next") ?? "/apply/profile"
+    const next = params.get("next") ?? "/"
     const redirectUrl = request.nextUrl.clone()
     redirectUrl.pathname = next
     redirectUrl.search = ""
@@ -66,7 +65,7 @@ export async function updateSession(request: NextRequest) {
       return redirectWithSessionCookies(redirectUrl, supabaseResponse)
     }
 
-    redirectUrl.pathname = "/apply"
+    redirectUrl.pathname = "/"
     redirectUrl.search = "error=auth"
     return NextResponse.redirect(redirectUrl)
   }
@@ -77,10 +76,6 @@ export async function updateSession(request: NextRequest) {
 
   const isAdminRoute = pathname.startsWith("/admin")
   const isAdminLoginPage = pathname === "/admin/login"
-  const isApplyProfile = pathname.startsWith("/apply/profile")
-  const isTeacherRoute = pathname.startsWith("/teacher")
-  const isTeacherLoginPage = pathname === "/teacher/login"
-  const isTeacherChangePasswordPage = pathname === "/teacher/change-password"
   const isAccountRoute = pathname.startsWith("/account")
   const isMemberLoginPage = pathname === "/login"
   const isMemberSignupPage = pathname === "/signup"
@@ -91,12 +86,6 @@ export async function updateSession(request: NextRequest) {
       ? user.user_metadata.signup_intent
       : null
   const isMemberIntent = signupIntent === "member" || role === "member"
-
-  if (isApplyProfile && !user) {
-    const redirectUrl = request.nextUrl.clone()
-    redirectUrl.pathname = "/apply"
-    return NextResponse.redirect(redirectUrl)
-  }
 
   if (isAccountRoute && !user) {
     const redirectUrl = request.nextUrl.clone()
@@ -110,49 +99,10 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(redirectUrl)
   }
 
-  if (isTeacherRoute && !isTeacherLoginPage) {
-    if (!user) {
-      const redirectUrl = request.nextUrl.clone()
-      redirectUrl.pathname = "/teacher/login"
-      return NextResponse.redirect(redirectUrl)
-    }
-    if (role === "member" || isMemberIntent) {
-      const redirectUrl = request.nextUrl.clone()
-      redirectUrl.pathname = "/account/bookings"
-      return NextResponse.redirect(redirectUrl)
-    }
-    if (role === "admin") {
-      const redirectUrl = request.nextUrl.clone()
-      redirectUrl.pathname = "/admin/partners"
-      return NextResponse.redirect(redirectUrl)
-    }
-    if (
-      mustChangePassword(user) &&
-      !isTeacherChangePasswordPage
-    ) {
-      const redirectUrl = request.nextUrl.clone()
-      redirectUrl.pathname = "/teacher/change-password"
-      return NextResponse.redirect(redirectUrl)
-    }
-  }
-
-  if (isTeacherLoginPage && user && role === "teacher") {
-    const redirectUrl = request.nextUrl.clone()
-    redirectUrl.pathname = mustChangePassword(user)
-      ? "/teacher/change-password"
-      : "/teacher"
-    return NextResponse.redirect(redirectUrl)
-  }
-
   if (isAdminRoute && !isAdminLoginPage) {
     if (!user) {
       const redirectUrl = request.nextUrl.clone()
       redirectUrl.pathname = "/admin/login"
-      return NextResponse.redirect(redirectUrl)
-    }
-    if (role === "teacher") {
-      const redirectUrl = request.nextUrl.clone()
-      redirectUrl.pathname = "/teacher"
       return NextResponse.redirect(redirectUrl)
     }
     if (isMemberIntent || role === "member") {
@@ -169,11 +119,6 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (isAdminLoginPage && user) {
-    if (role === "teacher") {
-      const redirectUrl = request.nextUrl.clone()
-      redirectUrl.pathname = "/teacher"
-      return NextResponse.redirect(redirectUrl)
-    }
     if (isMemberIntent || role === "member") {
       const redirectUrl = request.nextUrl.clone()
       redirectUrl.pathname = "/account/bookings"

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { isRedirectError } from "next/dist/client/components/redirect-error"
-import { siteOrigin } from "@/lib/apply/config"
+import { siteOrigin } from "@/lib/site-origin"
 import { completeMemberOnboarding, validateMemberSignupEmail } from "@/lib/auth/member-account"
 import { requireMemberSession } from "@/lib/auth/require-session"
 import { cancelBookingForUserRpc } from "@/lib/bookings/rpc"

@@ -1,4 +1,4 @@
-import { siteOrigin } from "@/lib/apply/config"
+import { siteOrigin } from "@/lib/site-origin"
 import { formatBookingDateTime } from "@/lib/bookings/format"
 import type { BookingSummary } from "@/lib/bookings/queries"
 import { sendResendEmail } from "@/lib/notifications/resend"

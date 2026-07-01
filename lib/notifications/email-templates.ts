@@ -1,7 +1,6 @@
 import { render } from "@react-email/render"
 import { BookingConfirmationEmail } from "./emails/booking-confirmation"
 import { BookingCancelledEmail } from "./emails/booking-cancelled"
-import { TeacherCredentialsEmail } from "./emails/teacher-credentials"
 import { WaitlistAvailableEmail } from "./emails/waitlist-available"
 
 export type SessionDetails = {
@@ -43,24 +42,6 @@ export async function renderBookingCancelledEmail(
   data: BookingCancelledData,
 ): Promise<string> {
   return render(BookingCancelledEmail(data))
-}
-
-// ---------------------------------------------------------------------------
-// Teacher Credentials
-// ---------------------------------------------------------------------------
-
-export type TeacherCredentialsData = {
-  nameKo: string
-  email: string
-  tempPassword: string
-  loginUrl: string
-  isReissue: boolean
-}
-
-export async function renderTeacherCredentialsEmail(
-  data: TeacherCredentialsData,
-): Promise<string> {
-  return render(TeacherCredentialsEmail(data))
 }
 
 // ---------------------------------------------------------------------------

@@ -1,4 +1,4 @@
-import { siteOrigin } from "@/lib/apply/config"
+import { siteOrigin } from "@/lib/site-origin"
 import type { PartnerRegistrationStatus } from "@/lib/partners/types"
 import { getAdminNotifyEmails } from "@/lib/notifications/admin-recipients"
 
@@ -92,8 +92,4 @@ async function sendSlackMessage(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ text }),
   })
-}
-
-export function applyLinkForTeachers(): string {
-  return `${siteOrigin()}/apply`
 }
