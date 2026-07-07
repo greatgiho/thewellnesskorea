@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
+import { createServiceClient } from "@/lib/supabase/service"
 import { normalizeRelation } from "@/lib/supabase/normalize-relation"
 import type { BookingStatus } from "./types"
 
@@ -80,13 +81,17 @@ export async function getMemberBookingsForUser(
 }
 
 export async function getMemberProfileForUser(userId: string) {
-  const supabase = await createClient()
-  const { data, error } = await supabase
-    .from("members")
-    .select("id, name, phone, locale")
-    .eq("id", userId)
-    .maybeSingle()
-
+  // Common member profile now lives in auth.users app_metadata.
+  const supabase = createServiceClient()
+  const { data, error } = await supabase.auth.admin.getUserById(userId)
   if (error) throw new Error(error.message)
-  return data
+
+  const meta = data.user?.app_metadata as Record<string, unknown> | undefined
+  if (!meta) return null
+  return {
+    id: userId,
+    name: typeof meta.name === "string" ? meta.name : null,
+    phone: typeof meta.phone === "string" ? meta.phone : null,
+    locale: typeof meta.locale === "string" ? meta.locale : null,
+  }
 }
