@@ -66,14 +66,14 @@ export async function upsertMemberProfile(
   const supabase = createServiceClient()
   const displayName = await inferMemberName(userId, email, name)
 
-  const { error } = await supabase.from("members").upsert(
-    {
-      id: userId,
+  // Common member profile lives in auth.users app_metadata (server-controlled).
+  // updateUserById merges keys into existing app_metadata, so role is preserved.
+  const { error } = await supabase.auth.admin.updateUserById(userId, {
+    app_metadata: {
       name: displayName,
       phone: phone?.trim() || null,
     },
-    { onConflict: "id" },
-  )
+  })
 
   if (error) throw new Error(error.message)
 }
