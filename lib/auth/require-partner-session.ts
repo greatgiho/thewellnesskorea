@@ -8,7 +8,7 @@ export async function requirePartnerSession() {
   } = await supabase.auth.getUser()
 
   if (!user) redirect("/partner/login")
-  if (user.app_metadata?.role !== "teacher") redirect("/partner/login?error=not_teacher")
+  if (user.app_metadata?.role !== "partner") redirect("/partner/login?error=not_partner")
 
   // Load the linked partner profile
   const { data: partner } = await supabase
