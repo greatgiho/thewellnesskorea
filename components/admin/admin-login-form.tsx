@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button"
 
 function adminAccessError(role: string | undefined): string | null {
   if (role === "admin") return null
-  if (role === "teacher") {
-    return "This is a teacher account. Sign in at /teacher/login instead."
+  if (role === "partner") {
+    return "This is a partner account. Sign in at /partner/login instead."
   }
   if (role === "member") {
     return "Member accounts cannot access admin. Use /login for member sign-in."

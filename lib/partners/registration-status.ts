@@ -33,6 +33,17 @@ export function canPublishPerson(status: PartnerRegistrationStatus): boolean {
   return status === "admin" || status === "approved"
 }
 
+/**
+ * Whether a partner may access the partner portal. Admin-created (`admin`) and
+ * approved self-registrations pass; `submitted`/`draft`/`rejected` are blocked
+ * until an admin approves them.
+ */
+export function canAccessPartnerPortal(
+  status: PartnerRegistrationStatus,
+): boolean {
+  return status === "admin" || status === "approved"
+}
+
 export function isSelfRegistered(
   status: PartnerRegistrationStatus,
   userId?: string | null,

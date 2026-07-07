@@ -8,10 +8,15 @@ import { Button } from "@/components/ui/button"
 export function PartnerLoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const errorParam = searchParams.get("error")
   const queryError =
-    searchParams.get("error") === "not_teacher"
+    errorParam === "not_partner"
       ? "파트너 계정이 아닙니다. 관리자에게 문의해 주세요."
-      : null
+      : errorParam === "not_approved"
+        ? "아직 승인 대기 중인 계정입니다. 승인 후 로그인할 수 있습니다."
+        : errorParam === "no_profile"
+          ? "연결된 파트너 프로필이 없습니다. 관리자에게 문의해 주세요."
+          : null
 
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -36,7 +41,7 @@ export function PartnerLoginForm() {
     }
 
     const role = data.user?.app_metadata?.role
-    if (role !== "teacher") {
+    if (role !== "partner") {
       await supabase.auth.signOut()
       setPending(false)
       setError("파트너 계정이 아닙니다. 관리자에게 문의해 주세요.")
