@@ -50,12 +50,11 @@ export async function updatePartnerSession(request: NextRequest) {
     }
   }
 
-  if (isLoginPage && user && user.app_metadata?.role === "partner") {
-    const redirectUrl = request.nextUrl.clone()
-    redirectUrl.pathname = "/partner"
-    redirectUrl.search = ""
-    return NextResponse.redirect(redirectUrl, { headers: supabaseResponse.headers })
-  }
+  // NOTE: no auto-redirect from /partner/login -> /partner here. The login form
+  // navigates to /partner on success, and the approval gate in
+  // requirePartnerSession bounces non-approved partners back to the login page.
+  // Auto-redirecting logged-in partners off the login page would loop with that
+  // bounce for pending/rejected accounts.
 
   return supabaseResponse
 }

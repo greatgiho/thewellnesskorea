@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
+import { canAccessPartnerPortal } from "@/lib/partners/registration-status"
 
 export async function requirePartnerSession() {
   const supabase = await createClient()
@@ -18,6 +19,11 @@ export async function requirePartnerSession() {
     .maybeSingle()
 
   if (!partner) redirect("/partner/login?error=no_profile")
+
+  // Approval gate: pending/rejected self-registrations cannot access the portal.
+  if (!canAccessPartnerPortal(partner.registration_status)) {
+    redirect("/partner/login?error=not_approved")
+  }
 
   return { supabase, user, partner }
 }
