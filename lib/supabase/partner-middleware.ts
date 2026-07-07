@@ -41,16 +41,16 @@ export async function updatePartnerSession(request: NextRequest) {
     }
 
     const role = user.app_metadata?.role
-    if (role !== "teacher") {
-      // Not a teacher — redirect to login with error
+    if (role !== "partner") {
+      // Not a partner — redirect to login with error
       const redirectUrl = request.nextUrl.clone()
       redirectUrl.pathname = "/partner/login"
-      redirectUrl.search = "error=not_teacher"
+      redirectUrl.search = "error=not_partner"
       return NextResponse.redirect(redirectUrl, { headers: supabaseResponse.headers })
     }
   }
 
-  if (isLoginPage && user && user.app_metadata?.role === "teacher") {
+  if (isLoginPage && user && user.app_metadata?.role === "partner") {
     const redirectUrl = request.nextUrl.clone()
     redirectUrl.pathname = "/partner"
     redirectUrl.search = ""

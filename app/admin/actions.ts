@@ -132,7 +132,7 @@ export async function provisionPartnerAccount(
         email,
         password: tempPassword,
         email_confirm: true,
-        app_metadata: { role: "teacher" },
+        app_metadata: { role: "partner" },
         user_metadata: { name: partner.name_ko },
       })
       if (createError) throw new Error(createError.message)

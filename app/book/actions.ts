@@ -46,7 +46,7 @@ export async function submitGuestBooking(
     const memberSession = await getOptionalMemberSession()
     const memberRole = memberSession?.user.app_metadata?.role
     const userId =
-      memberSession && memberRole !== "teacher" ? memberSession.userId : null
+      memberSession && memberRole !== "partner" ? memberSession.userId : null
 
     const session = await getBookableSession(sessionId)
     if (!session) {
