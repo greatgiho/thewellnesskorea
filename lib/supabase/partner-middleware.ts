@@ -31,9 +31,10 @@ export async function updatePartnerSession(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname
   // pathname here is already /partner/... (rewritten by middleware)
-  const isLoginPage = pathname === "/partner/login"
+  const isPublicPage =
+    pathname === "/partner/login" || pathname === "/partner/signup"
 
-  if (!isLoginPage) {
+  if (!isPublicPage) {
     if (!user) {
       const redirectUrl = request.nextUrl.clone()
       redirectUrl.pathname = "/partner/login"
