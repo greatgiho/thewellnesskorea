@@ -4,7 +4,7 @@ import { useActionState } from "react"
 import Link from "next/link"
 import { submitGuestBooking, type GuestBookingState } from "@/app/book/actions"
 import type { SessionWithRelations } from "@/lib/schedule/types"
-import { formatKrw } from "@/lib/bookings/format"
+import { formatMoney } from "@/lib/bookings/format"
 import { BookingSessionSummary } from "./booking-session-summary"
 
 const fieldClass =
@@ -33,8 +33,9 @@ export function GuestBookingForm({
   )
 
   const isMember = Boolean(memberPrefill)
-  const priceKrw = session.price_krw ?? 0
-  const isPaidSession = priceKrw > 0
+  const priceAmount = Number(session.price_amount ?? 0)
+  const priceCurrency = session.price_currency ?? "USD"
+  const isPaidSession = priceAmount > 0
 
   return (
     <div className="space-y-8">
@@ -100,7 +101,7 @@ export function GuestBookingForm({
           {isPaidSession ? (
             <p className="mt-4 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-foreground">
               Class fee:{" "}
-              <span className="font-medium">{formatKrw(priceKrw)}</span>
+              <span className="font-medium">{formatMoney(priceAmount, priceCurrency)}</span>
               {" "}— you&apos;ll complete online payment on the next step.
             </p>
           ) : null}

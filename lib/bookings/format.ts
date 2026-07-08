@@ -1,11 +1,13 @@
 import { formatScheduleDayHeading } from "@/lib/schedule/public-week"
 import { formatTimeInKst } from "@/lib/schedule/utils"
 
-export function formatKrw(amount: number): string {
-  return new Intl.NumberFormat("ko-KR", {
+/** Format a price in its own currency (KRW = no decimals, USD = 2 decimals). */
+export function formatMoney(amount: number, currency: string): string {
+  const isKrw = currency === "KRW"
+  return new Intl.NumberFormat(isKrw ? "ko-KR" : "en-US", {
     style: "currency",
-    currency: "KRW",
-    maximumFractionDigits: 0,
+    currency,
+    ...(isKrw ? { maximumFractionDigits: 0 } : {}),
   }).format(amount)
 }
 

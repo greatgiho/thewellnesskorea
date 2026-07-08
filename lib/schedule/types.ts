@@ -2,6 +2,8 @@ import type { PathKey } from "@/lib/paths/paths-data"
 
 export type SessionStatus = "processing" | "confirmed" | "cancelled"
 
+export type Currency = "KRW" | "USD"
+
 export type ScheduleViewMode = "week" | "month"
 
 export type SessionDescriptionBlocks = {
@@ -32,7 +34,8 @@ export type SessionRow = {
   ends_at: string
   capacity: number
   booked_count: number
-  price_krw: number
+  price_currency: Currency
+  price_amount: number
   is_published: boolean
   status: SessionStatus
   slot_lane: number
@@ -70,7 +73,8 @@ export type SessionFormInput = {
   start_time: string
   end_time: string
   capacity: number
-  price_krw: number
+  price_currency: Currency
+  price_amount: number
   is_published: boolean
   status: SessionStatus
   image_paths: string[]

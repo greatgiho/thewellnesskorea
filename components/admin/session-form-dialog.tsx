@@ -57,7 +57,8 @@ const defaultInput = (
   start_time: startTime,
   end_time: defaultEndTime(startTime, 60),
   capacity: 12,
-  price_krw: 0,
+  price_currency: "USD",
+  price_amount: 0,
   is_published: false,
   status: "processing",
   image_paths: [],
@@ -125,7 +126,8 @@ export function SessionFormDialog({
         start_time: formatTimeInKst(session.starts_at),
         end_time: formatTimeInKst(session.ends_at),
         capacity: session.capacity,
-        price_krw: session.price_krw ?? 0,
+        price_currency: session.price_currency ?? "USD",
+        price_amount: Number(session.price_amount ?? 0),
         is_published: session.is_published,
         status: session.status ?? "confirmed",
         image_paths: session.image_paths ?? [],
@@ -535,20 +537,36 @@ export function SessionFormDialog({
             </label>
 
             <label className="block space-y-1.5">
-              <span className="text-sm font-medium">Price (KRW)</span>
-              <input
-                type="number"
-                min={0}
-                step={1000}
-                className={fieldClass}
-                value={input.price_krw}
-                onChange={(e) =>
-                  setInput((v) => ({
-                    ...v,
-                    price_krw: Math.max(0, Number(e.target.value) || 0),
-                  }))
-                }
-              />
+              <span className="text-sm font-medium">Price</span>
+              <div className="flex gap-2">
+                <select
+                  className={fieldClass}
+                  style={{ width: "6rem" }}
+                  value={input.price_currency}
+                  onChange={(e) =>
+                    setInput((v) => ({
+                      ...v,
+                      price_currency: e.target.value as "USD" | "KRW",
+                    }))
+                  }
+                >
+                  <option value="USD">USD</option>
+                  <option value="KRW">KRW</option>
+                </select>
+                <input
+                  type="number"
+                  min={0}
+                  step={input.price_currency === "KRW" ? 1000 : 1}
+                  className={fieldClass}
+                  value={input.price_amount}
+                  onChange={(e) =>
+                    setInput((v) => ({
+                      ...v,
+                      price_amount: Math.max(0, Number(e.target.value) || 0),
+                    }))
+                  }
+                />
+              </div>
               <p className="text-xs text-muted-foreground">
                 0 = free / on-site payment. Above 0 requires online payment at
                 booking (B7).
