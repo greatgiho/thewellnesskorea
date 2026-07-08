@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation"
 import { BookingPageLayout } from "@/components/booking/booking-page-layout"
 import { BookingSessionSummary } from "@/components/booking/booking-session-summary"
 import { DevMockPaymentButton } from "@/components/booking/dev-mock-payment-button"
+import { PaypalCheckoutButton } from "@/components/booking/paypal-checkout-button"
 import { formatMoney } from "@/lib/bookings/format"
 import { getPendingBookingPayment } from "@/lib/bookings/payment-queries"
 
@@ -80,11 +81,15 @@ export default async function BookPayPage({ searchParams }: BookPayPageProps) {
     process.env.NODE_ENV === "development" &&
     process.env.PAYMENT_DEV_MOCK === "true"
 
+  const paypalClientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID
+  const currency = pending.summary.priceCurrency
+  const showPaypal = Boolean(paypalClientId) && currency === "USD"
+
   return (
     <BookingPageLayout
       eyebrow="Payment"
       title="Complete your payment."
-      description="Your spot is held temporarily. Online checkout (PortOne / Toss) will open here once integrated."
+      description="Your spot is held temporarily. Complete online payment to confirm your reservation."
     >
       <div className="space-y-8">
         <BookingSessionSummary summary={pending.summary} />
@@ -109,6 +114,20 @@ export default async function BookPayPage({ searchParams }: BookPayPageProps) {
             </span>
           </p>
         </div>
+
+        {showPaypal ? (
+          <PaypalCheckoutButton
+            bookingId={bookingId}
+            clientId={paypalClientId as string}
+            currency={currency}
+          />
+        ) : (
+          <p className="rounded-2xl border border-dashed border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
+            {currency === "USD"
+              ? "Online payment is temporarily unavailable. Please contact us to complete your booking."
+              : "This class is paid on-site."}
+          </p>
+        )}
 
         {showDevMock ? <DevMockPaymentButton bookingId={bookingId} /> : null}
 
