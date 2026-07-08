@@ -3,9 +3,10 @@
 import { revalidatePath } from "next/cache"
 import { createOrder, captureOrder } from "@/lib/payments/paypal"
 import { getPendingBookingPayment } from "@/lib/bookings/payment-queries"
-import { getBookingSummaryById } from "@/lib/bookings/queries"
-import { confirmBookingPaymentRpc } from "@/lib/bookings/hold-rpc"
-import { sendBookingConfirmationEmail } from "@/lib/notifications/booking-email"
+import {
+  finalizePaidBooking,
+  recordPendingCapture,
+} from "@/lib/bookings/finalize-payment"
 
 /**
  * Create a PayPal order for a held booking. The held payment row carries the
@@ -37,11 +38,18 @@ export async function createBookingPaypalOrder(
   return order.id
 }
 
-export type CaptureBookingResult = { ok: boolean; status: string }
+export type CaptureBookingResult =
+  | { ok: true; status: "COMPLETED" }
+  | { ok: false; pending: true; status: "PENDING" }
+  | { ok: false; pending?: false; status: string }
 
 /**
- * Capture an approved PayPal order and, on success, confirm the booking
- * (mark payment paid + booking confirmed) and send the confirmation email.
+ * Capture an approved PayPal order. Decisions are based on the CAPTURE status,
+ * not the order status:
+ * - COMPLETED -> confirm the booking + send email.
+ * - PENDING   -> money captured but held for review; keep the hold and wait for
+ *   the webhook (PAYMENT.CAPTURE.COMPLETED/DENIED) to finalize.
+ * - otherwise -> treated as not paid.
  */
 export async function captureBookingPaypalOrder(
   bookingId: string,
@@ -52,26 +60,19 @@ export async function captureBookingPaypalOrder(
   if (pending.status === "confirmed") return { ok: true, status: "COMPLETED" }
 
   const result = await captureOrder(orderId)
-  if (result.status !== "COMPLETED") {
-    return { ok: false, status: result.status }
+  const captureId = result.captureId ?? orderId
+
+  if (result.captureStatus === "COMPLETED") {
+    await finalizePaidBooking(bookingId, captureId)
+    revalidatePath("/")
+    return { ok: true, status: "COMPLETED" }
   }
 
-  await confirmBookingPaymentRpc(
-    pending.merchantUid,
-    result.captureId ?? orderId,
-    "paypal",
-    pending.amount,
-  )
-
-  const summary = await getBookingSummaryById(bookingId)
-  if (summary) {
-    try {
-      await sendBookingConfirmationEmail(summary, pending.cancelToken)
-    } catch (emailError) {
-      console.error("[booking] confirmation email failed:", emailError)
-    }
+  if (result.captureStatus === "PENDING") {
+    await recordPendingCapture(bookingId, captureId)
+    revalidatePath("/")
+    return { ok: false, pending: true, status: "PENDING" }
   }
 
-  revalidatePath("/")
-  return { ok: true, status: result.status }
+  return { ok: false, status: result.captureStatus ?? result.status ?? "UNKNOWN" }
 }
