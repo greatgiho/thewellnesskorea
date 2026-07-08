@@ -68,7 +68,7 @@ export async function recordPendingCapture(
   if (info) {
     await service
       .from("payments")
-      .update({ pg_tid: captureId })
+      .update({ pg_tid: captureId, pg_provider: "paypal" })
       .eq("merchant_uid", info.merchantUid)
   }
   await service.from("bookings").update({ expires_at: null }).eq("id", bookingId)
