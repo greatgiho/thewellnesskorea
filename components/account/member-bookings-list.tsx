@@ -2,7 +2,7 @@
 
 import { useActionState } from "react"
 import { cancelMemberBooking, type MemberCancelState } from "@/app/account/actions"
-import { formatBookingDateTime } from "@/lib/bookings/format"
+import { formatBookingDateTime, formatMoney } from "@/lib/bookings/format"
 import type { MemberBookingItem } from "@/lib/bookings/member-queries"
 
 const initialState: MemberCancelState = {}
@@ -66,6 +66,29 @@ function MemberBookingCard({ booking }: { booking: MemberBookingItem }) {
           </p>
         </div>
       </div>
+
+      {booking.payment ? (
+        <div className="mt-5 rounded-2xl border border-border bg-muted/30 px-4 py-3 text-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground">
+              {booking.payment.status === "paid" ? "결제 완료" : "결제 상태"}
+            </span>
+            <span className="font-medium text-foreground">
+              {formatMoney(booking.payment.amount, booking.payment.currency)}
+              {booking.payment.status === "paid" ? "" : ` · ${booking.payment.status}`}
+            </span>
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {booking.payment.provider.toUpperCase()} · 주문번호{" "}
+            <span className="font-mono">{booking.payment.merchantUid}</span>
+          </p>
+          {booking.payment.pgTid ? (
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              거래번호 <span className="font-mono">{booking.payment.pgTid}</span>
+            </p>
+          ) : null}
+        </div>
+      ) : null}
 
       {isConfirmed ? (
         <form action={formAction} className="mt-6">
