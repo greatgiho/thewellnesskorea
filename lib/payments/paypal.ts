@@ -70,7 +70,8 @@ export async function createOrder(input: {
 
 export type CaptureResult = {
   orderId: string
-  status: string
+  status: string // order-level status
+  captureStatus?: string // capture-level status: COMPLETED | PENDING | DECLINED | ...
   captureId?: string
   amount?: string
   currency?: string
@@ -94,8 +95,52 @@ export async function captureOrder(orderId: string): Promise<CaptureResult> {
   return {
     orderId: data.id,
     status: data.status,
+    captureStatus: capture?.status,
     captureId: capture?.id,
     amount: capture?.amount?.value,
     currency: capture?.amount?.currency_code,
   }
+}
+
+export type WebhookHeaders = {
+  transmissionId: string
+  transmissionTime: string
+  certUrl: string
+  authAlgo: string
+  transmissionSig: string
+}
+
+/**
+ * Verify a PayPal webhook signature via the PayPal API. Requires
+ * PAYPAL_WEBHOOK_ID (from the webhook registered in the PayPal dashboard).
+ * Returns false if not configured or verification fails.
+ */
+export async function verifyWebhookSignature(
+  headers: WebhookHeaders,
+  rawBody: string,
+): Promise<boolean> {
+  const webhookId = process.env.PAYPAL_WEBHOOK_ID
+  if (!webhookId) return false
+
+  const token = await accessToken()
+  const res = await fetch(`${BASE}/v1/notifications/verify-webhook-signature`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      transmission_id: headers.transmissionId,
+      transmission_time: headers.transmissionTime,
+      cert_url: headers.certUrl,
+      auth_algo: headers.authAlgo,
+      transmission_sig: headers.transmissionSig,
+      webhook_id: webhookId,
+      webhook_event: JSON.parse(rawBody),
+    }),
+    cache: "no-store",
+  })
+  if (!res.ok) return false
+  const data = (await res.json()) as { verification_status?: string }
+  return data.verification_status === "SUCCESS"
 }

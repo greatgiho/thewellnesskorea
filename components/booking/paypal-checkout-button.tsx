@@ -46,6 +46,10 @@ export function PaypalCheckoutButton({ bookingId, clientId, currency }: Props) {
               if (res.ok) {
                 router.push(`/book/confirm?booking=${bookingId}`)
                 router.refresh()
+              } else if (res.pending) {
+                setError(
+                  "결제가 접수되어 검토 중입니다. 확정되면 이메일로 안내드립니다. (예약 내역에서 상태를 확인할 수 있어요.)",
+                )
               } else {
                 setError(`결제가 완료되지 않았습니다 (${res.status}).`)
               }
