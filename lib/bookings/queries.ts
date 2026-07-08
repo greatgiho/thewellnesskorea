@@ -17,7 +17,8 @@ export type BookingSummary = {
   sessionEndsAt: string
   floorName: string
   instructorName: string
-  priceKrw: number
+  priceCurrency: string
+  priceAmount: number
 }
 
 export async function getBookableSession(
@@ -63,14 +64,16 @@ function toBookingSummary(
       title: string
       starts_at: string
       ends_at: string
-      price_krw?: number
+      price_currency?: string
+      price_amount?: number
       floor?: { name_en: string } | { name_en: string }[] | null
       instructor?: { name_en: string } | { name_en: string }[] | null
     } | {
       title: string
       starts_at: string
       ends_at: string
-      price_krw?: number
+      price_currency?: string
+      price_amount?: number
       floor?: { name_en: string } | { name_en: string }[] | null
       instructor?: { name_en: string } | { name_en: string }[] | null
     }[] | null
@@ -93,7 +96,8 @@ function toBookingSummary(
     sessionEndsAt: session.ends_at,
     floorName: floor?.name_en ?? "Brickwell",
     instructorName: instructor?.name_en ?? "Wellness Guide",
-    priceKrw: session.price_krw ?? 0,
+    priceCurrency: session.price_currency ?? "USD",
+    priceAmount: Number(session.price_amount ?? 0),
   }
 }
 
@@ -115,7 +119,8 @@ export async function getBookingSummaryById(
         title,
         starts_at,
         ends_at,
-        price_krw,
+        price_currency,
+        price_amount,
         floor:floors (name_en),
         instructor:partners (name_en)
       )
@@ -146,7 +151,8 @@ export async function getBookingSummaryByCancelToken(
         title,
         starts_at,
         ends_at,
-        price_krw,
+        price_currency,
+        price_amount,
         floor:floors (name_en),
         instructor:partners (name_en)
       )

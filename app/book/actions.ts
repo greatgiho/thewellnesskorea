@@ -57,9 +57,9 @@ export async function submitGuestBooking(
       return { error: "This class is full." }
     }
 
-    const priceKrw = session.price_krw ?? 0
+    const priceAmount = Number(session.price_amount ?? 0)
 
-    if (priceKrw > 0) {
+    if (priceAmount > 0) {
       const hold = await createBookingHoldRpc({
         sessionId,
         guestName,

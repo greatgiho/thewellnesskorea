@@ -37,7 +37,8 @@ export async function getPendingBookingPayment(
         title,
         starts_at,
         ends_at,
-        price_krw,
+        price_currency,
+        price_amount,
         floor:floors (name_en),
         instructor:partners (name_en)
       ),
@@ -59,14 +60,16 @@ export async function getPendingBookingPayment(
       title: string
       starts_at: string
       ends_at: string
-      price_krw: number
+      price_currency: string
+      price_amount: number
       floor?: { name_en: string } | { name_en: string }[] | null
       instructor?: { name_en: string } | { name_en: string }[] | null
     } | {
       title: string
       starts_at: string
       ends_at: string
-      price_krw: number
+      price_currency: string
+      price_amount: number
       floor?: { name_en: string } | { name_en: string }[] | null
       instructor?: { name_en: string } | { name_en: string }[] | null
     }[] | null,
@@ -97,7 +100,7 @@ export async function getPendingBookingPayment(
     guestName: data.guest_name as string,
     guestEmail: data.guest_email as string,
     merchantUid: payment.merchant_uid,
-    amount: payment.amount,
+    amount: Number(payment.amount),
     pgProvider: payment.pg_provider,
     paymentStatus: payment.status,
     summary: {
@@ -111,7 +114,8 @@ export async function getPendingBookingPayment(
       sessionEndsAt: session.ends_at,
       floorName: floor?.name_en ?? "Brickwell",
       instructorName: instructor?.name_en ?? "Wellness Guide",
-      priceKrw: session.price_krw ?? 0,
+      priceCurrency: session.price_currency ?? "USD",
+      priceAmount: Number(session.price_amount ?? 0),
     },
   }
 }

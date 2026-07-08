@@ -4,7 +4,7 @@ import { notFound, redirect } from "next/navigation"
 import { BookingPageLayout } from "@/components/booking/booking-page-layout"
 import { BookingSessionSummary } from "@/components/booking/booking-session-summary"
 import { DevMockPaymentButton } from "@/components/booking/dev-mock-payment-button"
-import { formatKrw } from "@/lib/bookings/format"
+import { formatMoney } from "@/lib/bookings/format"
 import { getPendingBookingPayment } from "@/lib/bookings/payment-queries"
 
 export const metadata: Metadata = {
@@ -94,7 +94,7 @@ export default async function BookPayPage({ searchParams }: BookPayPageProps) {
             Amount due
           </p>
           <p className="mt-3 font-serif text-3xl font-light text-foreground">
-            {formatKrw(pending.amount)}
+            {formatMoney(pending.amount, pending.summary.priceCurrency)}
           </p>
           {pending.expiresAt ? (
             <p className="mt-3 text-sm text-muted-foreground">

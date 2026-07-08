@@ -44,7 +44,7 @@ function validateSessionInput(input: SessionFormInput): {
 } {
   if (!input.title.trim()) throw new UserFacingError("Session title is required.")
   if (input.capacity <= 0) throw new UserFacingError("Capacity must be greater than 0.")
-  if (input.price_krw < 0) throw new UserFacingError("Price cannot be negative.")
+  if (input.price_amount < 0) throw new UserFacingError("Price cannot be negative.")
   if (input.path_keys.length === 0) {
     throw new UserFacingError("Select at least one philosophy path.")
   }
@@ -222,7 +222,8 @@ function sessionRowFromInput(
     starts_at,
     ends_at,
     capacity: input.capacity,
-    price_krw: input.price_krw,
+    price_currency: input.price_currency,
+    price_amount: input.price_amount,
     is_published: input.status === "confirmed" ? input.is_published : false,
     status: input.status,
     slot_lane,
@@ -434,7 +435,8 @@ async function confirmSessionCore(
     start_time: formatTimeInKst(session.starts_at),
     end_time: formatTimeInKst(session.ends_at),
     capacity: session.capacity,
-    price_krw: session.price_krw ?? 0,
+    price_currency: session.price_currency ?? "USD",
+    price_amount: session.price_amount ?? 0,
     is_published: session.is_published,
     status: "confirmed",
     image_paths: session.image_paths ?? [],
@@ -516,7 +518,8 @@ async function unconfirmSessionCore(
     start_time: formatTimeInKst(session.starts_at),
     end_time: formatTimeInKst(session.ends_at),
     capacity: session.capacity,
-    price_krw: session.price_krw ?? 0,
+    price_currency: session.price_currency ?? "USD",
+    price_amount: session.price_amount ?? 0,
     is_published: false,
     status: "processing",
     image_paths: session.image_paths ?? [],
@@ -597,7 +600,8 @@ async function duplicateSessionCore(
     start_time: target.start_time,
     end_time: target.end_time,
     capacity: source.capacity,
-    price_krw: source.price_krw ?? 0,
+    price_currency: source.price_currency ?? "USD",
+    price_amount: source.price_amount ?? 0,
     is_published: false,
     status: "processing",
     image_paths: [],

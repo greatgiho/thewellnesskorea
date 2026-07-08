@@ -7,7 +7,7 @@ import { getSessionById } from "@/lib/schedule/queries"
 import { getBookingsForSessionAdmin } from "@/lib/bookings/admin-queries"
 import { getWaitlistForSession } from "@/lib/waitlist/admin-queries"
 import { formatBookingDateTime } from "@/lib/bookings/format"
-import { formatKrw } from "@/lib/bookings/format"
+import { formatMoney } from "@/lib/bookings/format"
 import { sessionStatusLabel } from "@/lib/schedule/session-status"
 import { SessionBookingDetail } from "@/components/admin/session-booking-detail"
 
@@ -40,7 +40,7 @@ export default async function AdminSessionBookingsPage({ params }: Props) {
     session.ends_at,
   )
 
-  const isPaid = (session.price_krw ?? 0) > 0
+  const isPaid = Number(session.price_amount ?? 0) > 0
 
   return (
     <div className="space-y-8">
@@ -103,7 +103,9 @@ export default async function AdminSessionBookingsPage({ params }: Props) {
           <div>
             <p className="text-xs text-muted-foreground">Price</p>
             <p className="mt-0.5 font-medium text-foreground">
-              {isPaid ? formatKrw(session.price_krw ?? 0) : "Free (on-site)"}
+              {isPaid
+                ? formatMoney(Number(session.price_amount ?? 0), session.price_currency ?? "USD")
+                : "Free (on-site)"}
             </p>
           </div>
         </div>

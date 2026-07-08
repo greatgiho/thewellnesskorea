@@ -46,7 +46,7 @@ export default async function BookConfirmPage({
             See you at Brickwell, Seochon.
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
-            {summary.priceKrw > 0
+            {summary.priceAmount > 0
               ? "Your online payment is confirmed. Please arrive a few minutes early and wear comfortable clothing."
               : "Payment is on-site. Please arrive a few minutes early and wear comfortable clothing."}
           </p>
