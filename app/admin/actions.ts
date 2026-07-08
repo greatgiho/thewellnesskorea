@@ -1,11 +1,13 @@
 "use server"
 
+import { randomBytes, createHash } from "crypto"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { createServiceClient } from "@/lib/supabase/service"
 import { requireAdminSession } from "@/lib/auth/require-session"
 import { isUserFacingError } from "@/lib/errors"
+import { sendResendEmail } from "@/lib/notifications/resend"
 import { persistPartner } from "@/lib/partners/persist-partner"
 import type { PartnerFormInput } from "@/lib/partners/types"
 
@@ -93,10 +95,13 @@ export type PartnerAccountResult =
   | { ok: true; isNew: boolean }
   | { ok: false; error: string }
 
+const INVITE_TTL_DAYS = 7
+
 /**
- * 파트너(선생님) Auth 계정 생성 또는 비밀번호 재발급.
- * - 계정이 없으면 신규 생성 + partners.user_id 연결
- * - 이미 있으면 임시 비밀번호 재발급
+ * 파트너(선생님) 초대. 임시 비밀번호 대신 토큰이 담긴 초대 링크를 이메일로 보냄.
+ * - 계정이 없으면 신규 Auth 계정 생성(비밀번호 미설정) + partners.user_id 연결
+ * - 이미 있으면 기존 계정에 초대 링크 재발급
+ * 파트너는 링크를 열어 본인 비밀번호를 직접 설정한다.
  */
 export async function provisionPartnerAccount(
   personId: string,
@@ -105,53 +110,54 @@ export async function provisionPartnerAccount(
     await requireAdminSession()
     const service = createServiceClient()
 
-    const { data: partner, error: loadError } = await service
-      .from("partners")
-      .select("id, email, user_id, name_ko")
-      .eq("id", personId)
-      .maybeSingle()
-
-    if (loadError) throw new Error(loadError.message)
+    const { data: infoRows, error: infoError } = await service.rpc(
+      "get_partner_account_info",
+      { p_person_id: personId },
+    )
+    if (infoError) throw new Error(infoError.message)
+    const partner = infoRows?.[0]
     if (!partner?.email?.trim()) {
       throw new Error("이메일을 먼저 입력해 주세요.")
     }
 
     const email = partner.email.trim()
-    const tempPassword = generateTempPassword()
+    let userId = partner.user_id as string | null
     let isNew = false
 
-    if (partner.user_id) {
-      // 기존 계정 — 비밀번호만 재설정
-      const { error } = await service.auth.admin.updateUserById(partner.user_id, {
-        password: tempPassword,
-      })
-      if (error) throw new Error(error.message)
-    } else {
-      // 신규 계정 생성
+    if (!userId) {
+      // 신규 계정 — 비밀번호 없이 생성(초대 수락 시 파트너가 설정)
       const { data: created, error: createError } = await service.auth.admin.createUser({
         email,
-        password: tempPassword,
         email_confirm: true,
         app_metadata: { role: "partner" },
         user_metadata: { name: partner.name_ko },
       })
       if (createError) throw new Error(createError.message)
-
-      const { error: linkError } = await service
-        .from("partners")
-        .update({ user_id: created.user.id })
-        .eq("id", personId)
-      if (linkError) throw new Error(linkError.message)
+      userId = created.user.id
       isNew = true
     }
 
-    // 이메일 발송
-    const partnerHost = process.env.NEXT_PUBLIC_PARTNER_HOST ?? "partner.thewellnesskorea.com"
-    await sendPartnerCredentialsEmail({
+    // 단일 사용 초대 토큰: 원문은 링크로만 전달, DB엔 SHA-256 해시만 저장
+    const rawToken = randomBytes(32).toString("base64url")
+    const tokenHash = createHash("sha256").update(rawToken).digest("hex")
+    const expiresAt = new Date(
+      Date.now() + INVITE_TTL_DAYS * 24 * 60 * 60 * 1000,
+    ).toISOString()
+
+    const { error: setError } = await service.rpc("set_partner_invite", {
+      p_person_id: personId,
+      p_user_id: userId,
+      p_token_hash: tokenHash,
+      p_expires_at: expiresAt,
+    })
+    if (setError) throw new Error(setError.message)
+
+    const partnerHost =
+      process.env.NEXT_PUBLIC_PARTNER_HOST ?? "partner.thewellnesskorea.com"
+    await sendPartnerInviteEmail({
       email,
       nameKo: partner.name_ko,
-      tempPassword,
-      loginUrl: `https://${partnerHost}/login`,
+      inviteUrl: `https://${partnerHost}/accept-invite?token=${rawToken}`,
       isNew,
     })
 
@@ -160,52 +166,32 @@ export async function provisionPartnerAccount(
   } catch (error) {
     return {
       ok: false,
-      error: error instanceof Error ? error.message : "계정 생성에 실패했습니다.",
+      error: error instanceof Error ? error.message : "초대 발송에 실패했습니다.",
     }
   }
 }
 
-function generateTempPassword(): string {
-  const chars = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789"
-  return Array.from({ length: 12 }, () =>
-    chars[Math.floor(Math.random() * chars.length)],
-  ).join("")
-}
-
-async function sendPartnerCredentialsEmail(opts: {
+async function sendPartnerInviteEmail(opts: {
   email: string
   nameKo: string
-  tempPassword: string
-  loginUrl: string
+  inviteUrl: string
   isNew: boolean
 }): Promise<void> {
-  const apiKey = process.env.RESEND_API_KEY
-  const from = process.env.NOTIFY_FROM_EMAIL
-  if (!apiKey || !from) return
-
-  const subject = opts.isNew
-    ? "[TWK] 파트너 포털 계정이 생성되었습니다"
-    : "[TWK] 파트너 포털 임시 비밀번호"
-
+  const subject = "[TWK] 파트너 포털 초대 — 비밀번호를 설정해 주세요"
   const html = `
     <p>${opts.nameKo} 선생님, 안녕하세요.</p>
-    <p>${opts.isNew ? "파트너 포털 계정이 생성되었습니다." : "임시 비밀번호가 발급되었습니다."}</p>
-    <ul>
-      <li><strong>이메일:</strong> ${opts.email}</li>
-      <li><strong>임시 비밀번호:</strong> <code>${opts.tempPassword}</code></li>
-      <li><strong>로그인 주소:</strong> <a href="${opts.loginUrl}">${opts.loginUrl}</a></li>
-    </ul>
-    <p>로그인 후 비밀번호를 변경해 주세요.</p>
+    <p>파트너 포털 계정 초대가 도착했습니다. 아래 버튼을 눌러 비밀번호를 설정하면 로그인할 수 있습니다.</p>
+    <p style="margin:24px 0">
+      <a href="${opts.inviteUrl}"
+         style="display:inline-block;padding:12px 20px;background:#111;color:#fff;border-radius:8px;text-decoration:none">
+        비밀번호 설정하기
+      </a>
+    </p>
+    <p style="color:#666;font-size:13px">버튼이 안 되면 아래 주소를 브라우저에 붙여넣어 주세요:<br>
+      <a href="${opts.inviteUrl}">${opts.inviteUrl}</a></p>
+    <p style="color:#666;font-size:13px">이 링크는 ${INVITE_TTL_DAYS}일간 유효하며 한 번만 사용할 수 있습니다.</p>
   `
-
-  await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ from, to: [opts.email], subject, html }),
-  })
+  await sendResendEmail(opts.email, subject, html, "partner-invite")
 }
 
 export async function deletePartner(id: string) {

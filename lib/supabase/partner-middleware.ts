@@ -32,7 +32,9 @@ export async function updatePartnerSession(request: NextRequest) {
   const pathname = request.nextUrl.pathname
   // pathname here is already /partner/... (rewritten by middleware)
   const isPublicPage =
-    pathname === "/partner/login" || pathname === "/partner/signup"
+    pathname === "/partner/login" ||
+    pathname === "/partner/signup" ||
+    pathname === "/partner/accept-invite"
 
   if (!isPublicPage) {
     if (!user) {
