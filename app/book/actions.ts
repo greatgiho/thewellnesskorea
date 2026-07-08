@@ -66,6 +66,7 @@ export async function submitGuestBooking(
         guestEmail,
         guestPhone: guestPhone || null,
         userId,
+        pgProvider: "paypal",
       })
 
       revalidatePath("/")
