@@ -152,12 +152,13 @@ export async function provisionPartnerAccount(
     })
     if (setError) throw new Error(setError.message)
 
-    const partnerHost =
-      process.env.NEXT_PUBLIC_PARTNER_HOST ?? "partner.thewellnesskorea.com"
+    const siteUrl = (
+      process.env.NEXT_PUBLIC_SITE_URL ?? "https://thewellnesskorea.com"
+    ).replace(/\/$/, "")
     await sendPartnerInviteEmail({
       email,
       nameKo: partner.name_ko,
-      inviteUrl: `https://${partnerHost}/accept-invite?token=${rawToken}`,
+      inviteUrl: `${siteUrl}/partner/accept-invite?token=${rawToken}`,
       isNew,
     })
 

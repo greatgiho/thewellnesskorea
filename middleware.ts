@@ -3,25 +3,19 @@ import { enforceSiteAccess } from "@/lib/site-access"
 import { updateSession } from "@/lib/supabase/middleware"
 import { updatePartnerSession } from "@/lib/supabase/partner-middleware"
 
-function isPartnerSubdomain(request: NextRequest): boolean {
-  const host = request.headers.get("host") ?? ""
-  const partnerHost = process.env.NEXT_PUBLIC_PARTNER_HOST
-  if (partnerHost && host === partnerHost) return true
-  // Local dev: partner.localhost or partner.localhost:3000
-  return host.startsWith("partner.")
-}
-
-function rewriteToPartner(request: NextRequest): NextRequest {
-  const url = request.nextUrl.clone()
-  // /foo → /partner/foo, / → /partner
-  url.pathname = url.pathname === "/" ? "/partner" : `/partner${url.pathname}`
-  return new NextRequest(url, request)
+// The partner portal lives at /partner/* on the main domain. Auth is the access
+// boundary (no account = no entry), so a separate subdomain adds friction
+// (extra public hostname + cert per environment) without any security benefit.
+function isPartnerPath(pathname: string): boolean {
+  // Exact "/partner" or "/partner/..." — NOT the public "/partners/[slug]" pages.
+  return pathname === "/partner" || pathname.startsWith("/partner/")
 }
 
 export async function middleware(request: NextRequest) {
-  if (isPartnerSubdomain(request)) {
-    const rewritten = rewriteToPartner(request)
-    return updatePartnerSession(rewritten)
+  if (isPartnerPath(request.nextUrl.pathname)) {
+    // Partner portal gets its own auth guard and skips the site-access gate,
+    // so partners can sign in even while the public site is locked pre-launch.
+    return updatePartnerSession(request)
   }
 
   const gateResponse = await enforceSiteAccess(request)
