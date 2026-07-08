@@ -30,7 +30,7 @@ export async function updatePartnerSession(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   const pathname = request.nextUrl.pathname
-  // pathname here is already /partner/... (rewritten by middleware)
+  // pathname is /partner/... — the portal is served on the main domain.
   const isPublicPage =
     pathname === "/partner/login" ||
     pathname === "/partner/signup" ||
