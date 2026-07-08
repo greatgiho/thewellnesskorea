@@ -3,6 +3,15 @@ import { createServiceClient } from "@/lib/supabase/service"
 import { normalizeRelation } from "@/lib/supabase/normalize-relation"
 import type { BookingStatus } from "./types"
 
+export type MemberBookingPayment = {
+  status: string
+  amount: number
+  currency: string
+  provider: string
+  merchantUid: string
+  pgTid: string | null
+}
+
 export type MemberBookingItem = {
   id: string
   status: BookingStatus
@@ -12,6 +21,7 @@ export type MemberBookingItem = {
   sessionEndsAt: string
   floorName: string
   instructorName: string
+  payment: MemberBookingPayment | null
 }
 
 export async function getMemberBookingsForUser(
@@ -32,6 +42,14 @@ export async function getMemberBookingsForUser(
         ends_at,
         floor:floors (name_en),
         instructor:partners (name_en)
+      ),
+      payments (
+        status,
+        amount,
+        currency,
+        pg_provider,
+        merchant_uid,
+        pg_tid
       )
     `,
     )
@@ -66,6 +84,17 @@ export async function getMemberBookingsForUser(
       const floor = normalizeRelation(session.floor)
       const instructor = normalizeRelation(session.instructor)
 
+      const paymentsArr = (row.payments ?? []) as Array<{
+        status: string
+        amount: number | string
+        currency: string
+        pg_provider: string
+        merchant_uid: string
+        pg_tid: string | null
+      }>
+      const pay =
+        paymentsArr.find((p) => p.status === "paid") ?? paymentsArr[0] ?? null
+
       return {
         id: row.id as string,
         status: row.status as BookingStatus,
@@ -75,6 +104,16 @@ export async function getMemberBookingsForUser(
         sessionEndsAt: session.ends_at,
         floorName: floor?.name_en ?? "Brickwell",
         instructorName: instructor?.name_en ?? "Wellness Guide",
+        payment: pay
+          ? {
+              status: pay.status,
+              amount: Number(pay.amount),
+              currency: pay.currency,
+              provider: pay.pg_provider,
+              merchantUid: pay.merchant_uid,
+              pgTid: pay.pg_tid,
+            }
+          : null,
       }
     })
     .filter((item): item is MemberBookingItem => item != null)
