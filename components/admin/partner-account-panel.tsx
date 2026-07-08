@@ -14,13 +14,13 @@ export function PartnerAccountPanel({ person }: Props) {
   const hasEmail = !!person.email?.trim()
 
   const handleProvision = async () => {
-    if (!confirm(hasAccount ? "임시 비밀번호를 재발급하고 이메일로 전송하시겠습니까?" : "파트너 포털 계정을 생성하시겠습니까?")) return
+    if (!confirm(hasAccount ? "초대 링크를 다시 보내시겠습니까?" : "파트너 포털 계정을 만들고 초대 링크를 보내시겠습니까?")) return
     setStatus("pending")
     setMessage(null)
     const result = await provisionPartnerAccount(person.id)
     if (result.ok) {
       setStatus("ok")
-      setMessage(result.isNew ? "계정이 생성되고 이메일로 발송되었습니다." : "임시 비밀번호가 이메일로 발송되었습니다.")
+      setMessage(result.isNew ? "계정을 만들고 초대 링크를 이메일로 보냈습니다." : "초대 링크를 이메일로 다시 보냈습니다.")
     } else {
       setStatus("error")
       setMessage(result.error)
@@ -51,8 +51,8 @@ export function PartnerAccountPanel({ person }: Props) {
             {status === "pending"
               ? "처리 중…"
               : hasAccount
-              ? "비밀번호 재발급"
-              : "계정 생성"}
+              ? "초대 링크 재전송"
+              : "계정 생성 · 초대"}
           </button>
         ) : (
           <p className="ml-auto text-xs text-muted-foreground">
