@@ -1,6 +1,10 @@
 import { createClient } from "@/lib/supabase/server"
 import { createServiceClient } from "@/lib/supabase/service"
-import { normalizeRelation } from "@/lib/supabase/normalize-relation"
+import {
+  SESSION_SUMMARY_SELECT,
+  mapSessionSummary,
+  type SessionSummaryRelation,
+} from "./session-summary"
 import { SESSION_WITH_RELATIONS } from "@/lib/schedule/constants"
 import { toSessionWithRelations } from "@/lib/schedule/queries"
 import type { FloorRow, SessionRow, SessionWithRelations } from "@/lib/schedule/types"
@@ -60,30 +64,11 @@ function toBookingSummary(
     guest_name: string
     guest_email: string
     status: BookingStatus
-    session: {
-      title: string
-      starts_at: string
-      ends_at: string
-      price_currency?: string
-      price_amount?: number
-      floor?: { name_en: string } | { name_en: string }[] | null
-      instructor?: { name_en: string } | { name_en: string }[] | null
-    } | {
-      title: string
-      starts_at: string
-      ends_at: string
-      price_currency?: string
-      price_amount?: number
-      floor?: { name_en: string } | { name_en: string }[] | null
-      instructor?: { name_en: string } | { name_en: string }[] | null
-    }[] | null
+    session: SessionSummaryRelation
   },
 ): BookingSummary | null {
-  const session = normalizeRelation(row.session)
-  if (!session) return null
-
-  const floor = normalizeRelation(session.floor)
-  const instructor = normalizeRelation(session.instructor)
+  const summary = mapSessionSummary(row.session)
+  if (!summary) return null
 
   return {
     bookingId: row.id,
@@ -91,13 +76,13 @@ function toBookingSummary(
     guestName: row.guest_name,
     guestEmail: row.guest_email,
     status: row.status,
-    sessionTitle: session.title,
-    sessionStartsAt: session.starts_at,
-    sessionEndsAt: session.ends_at,
-    floorName: floor?.name_en ?? "Brickwell",
-    instructorName: instructor?.name_en ?? "Wellness Guide",
-    priceCurrency: session.price_currency ?? "USD",
-    priceAmount: Number(session.price_amount ?? 0),
+    sessionTitle: summary.title,
+    sessionStartsAt: summary.startsAt,
+    sessionEndsAt: summary.endsAt,
+    floorName: summary.floorName,
+    instructorName: summary.instructorName,
+    priceCurrency: summary.priceCurrency,
+    priceAmount: summary.priceAmount,
   }
 }
 
@@ -115,15 +100,7 @@ export async function getBookingSummaryById(
       guest_name,
       guest_email,
       status,
-      session:sessions (
-        title,
-        starts_at,
-        ends_at,
-        price_currency,
-        price_amount,
-        floor:floors (name_en),
-        instructor:partners (name_en)
-      )
+      session:sessions (${SESSION_SUMMARY_SELECT})
     `,
     )
     .eq("id", bookingId)
@@ -147,15 +124,7 @@ export async function getBookingSummaryByCancelToken(
       guest_name,
       guest_email,
       status,
-      session:sessions (
-        title,
-        starts_at,
-        ends_at,
-        price_currency,
-        price_amount,
-        floor:floors (name_en),
-        instructor:partners (name_en)
-      )
+      session:sessions (${SESSION_SUMMARY_SELECT})
     `,
     )
     .eq("cancel_token", cancelToken.trim())

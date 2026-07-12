@@ -1,5 +1,9 @@
 import { createServiceClient } from "@/lib/supabase/service"
-import { normalizeRelation } from "@/lib/supabase/normalize-relation"
+import {
+  SESSION_SUMMARY_SELECT,
+  mapSessionSummary,
+  type SessionSummaryRelation,
+} from "./session-summary"
 import type { BookingStatus } from "./types"
 import type { BookingSummary } from "./queries"
 
@@ -33,15 +37,7 @@ export async function getPendingBookingPayment(
       status,
       expires_at,
       cancel_token,
-      session:sessions (
-        title,
-        starts_at,
-        ends_at,
-        price_currency,
-        price_amount,
-        floor:floors (name_en),
-        instructor:partners (name_en)
-      ),
+      session:sessions (${SESSION_SUMMARY_SELECT}),
       payments (
         merchant_uid,
         amount,
@@ -55,26 +51,8 @@ export async function getPendingBookingPayment(
 
   if (error || !data) return null
 
-  const session = normalizeRelation(
-    data.session as {
-      title: string
-      starts_at: string
-      ends_at: string
-      price_currency: string
-      price_amount: number
-      floor?: { name_en: string } | { name_en: string }[] | null
-      instructor?: { name_en: string } | { name_en: string }[] | null
-    } | {
-      title: string
-      starts_at: string
-      ends_at: string
-      price_currency: string
-      price_amount: number
-      floor?: { name_en: string } | { name_en: string }[] | null
-      instructor?: { name_en: string } | { name_en: string }[] | null
-    }[] | null,
-  )
-  if (!session) return null
+  const summary = mapSessionSummary(data.session as SessionSummaryRelation)
+  if (!summary) return null
 
   const payments = (data.payments ?? []) as {
     merchant_uid: string
@@ -88,9 +66,6 @@ export async function getPendingBookingPayment(
     payments[0]
 
   if (!payment) return null
-
-  const floor = normalizeRelation(session.floor)
-  const instructor = normalizeRelation(session.instructor)
 
   return {
     bookingId: data.id as string,
@@ -109,13 +84,13 @@ export async function getPendingBookingPayment(
       guestName: data.guest_name as string,
       guestEmail: data.guest_email as string,
       status: data.status as BookingStatus,
-      sessionTitle: session.title,
-      sessionStartsAt: session.starts_at,
-      sessionEndsAt: session.ends_at,
-      floorName: floor?.name_en ?? "Brickwell",
-      instructorName: instructor?.name_en ?? "Wellness Guide",
-      priceCurrency: session.price_currency ?? "USD",
-      priceAmount: Number(session.price_amount ?? 0),
+      sessionTitle: summary.title,
+      sessionStartsAt: summary.startsAt,
+      sessionEndsAt: summary.endsAt,
+      floorName: summary.floorName,
+      instructorName: summary.instructorName,
+      priceCurrency: summary.priceCurrency,
+      priceAmount: summary.priceAmount,
     },
   }
 }

@@ -1,5 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
 import { normalizeRelation } from "@/lib/supabase/normalize-relation"
+import {
+  SESSION_SUMMARY_SELECT,
+  mapSessionSummary,
+  type SessionSummaryRelation,
+} from "./session-summary"
 import { kstDayRange } from "@/lib/schedule/utils"
 import type { BookingStatus } from "./types"
 
@@ -56,22 +61,7 @@ type BookingQueryRow = {
   status: BookingStatus
   cancelled_at: string | null
   created_at: string
-  session:
-    | {
-        title: string
-        starts_at: string
-        ends_at: string
-        floor?: { name_en: string } | { name_en: string }[] | null
-        instructor?: { name_en: string } | { name_en: string }[] | null
-      }
-    | {
-        title: string
-        starts_at: string
-        ends_at: string
-        floor?: { name_en: string } | { name_en: string }[] | null
-        instructor?: { name_en: string } | { name_en: string }[] | null
-      }[]
-    | null
+  session: SessionSummaryRelation
 }
 
 const BOOKING_WITH_SESSION = `
@@ -84,21 +74,15 @@ const BOOKING_WITH_SESSION = `
   status,
   cancelled_at,
   created_at,
-  session:sessions (
-    title,
-    starts_at,
-    ends_at,
-    floor:floors (name_en),
-    instructor:partners (name_en)
-  )
+  session:sessions (${SESSION_SUMMARY_SELECT})
 `
 
 function mapAdminBookingRow(row: BookingQueryRow): AdminBookingItem | null {
-  const session = normalizeRelation(row.session)
-  if (!session) return null
-
-  const floor = normalizeRelation(session.floor)
-  const instructor = normalizeRelation(session.instructor)
+  const summary = mapSessionSummary(row.session, {
+    floor: "—",
+    instructor: "—",
+  })
+  if (!summary) return null
 
   return {
     id: row.id,
@@ -110,11 +94,11 @@ function mapAdminBookingRow(row: BookingQueryRow): AdminBookingItem | null {
     cancelledAt: row.cancelled_at,
     createdAt: row.created_at,
     userId: row.user_id,
-    sessionTitle: session.title,
-    sessionStartsAt: session.starts_at,
-    sessionEndsAt: session.ends_at,
-    floorName: floor?.name_en ?? "—",
-    instructorName: instructor?.name_en ?? "—",
+    sessionTitle: summary.title,
+    sessionStartsAt: summary.startsAt,
+    sessionEndsAt: summary.endsAt,
+    floorName: summary.floorName,
+    instructorName: summary.instructorName,
   }
 }
 
