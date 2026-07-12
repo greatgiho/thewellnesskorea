@@ -1,6 +1,10 @@
 import { createClient } from "@/lib/supabase/server"
 import { createServiceClient } from "@/lib/supabase/service"
-import { normalizeRelation } from "@/lib/supabase/normalize-relation"
+import {
+  SESSION_SUMMARY_SELECT,
+  mapSessionSummary,
+  type SessionSummaryRelation,
+} from "./session-summary"
 import type { BookingStatus } from "./types"
 
 export type MemberBookingPayment = {
@@ -36,13 +40,7 @@ export async function getMemberBookingsForUser(
       id,
       status,
       guest_name,
-      session:sessions (
-        title,
-        starts_at,
-        ends_at,
-        floor:floors (name_en),
-        instructor:partners (name_en)
-      ),
+      session:sessions (${SESSION_SUMMARY_SELECT}),
       payments (
         status,
         amount,
@@ -61,28 +59,8 @@ export async function getMemberBookingsForUser(
 
   return data
     .map((row) => {
-      const session = normalizeRelation(
-        row.session as
-          | {
-              title: string
-              starts_at: string
-              ends_at: string
-              floor?: { name_en: string } | { name_en: string }[] | null
-              instructor?: { name_en: string } | { name_en: string }[] | null
-            }
-          | {
-              title: string
-              starts_at: string
-              ends_at: string
-              floor?: { name_en: string } | { name_en: string }[] | null
-              instructor?: { name_en: string } | { name_en: string }[] | null
-            }[]
-          | null,
-      )
-      if (!session) return null
-
-      const floor = normalizeRelation(session.floor)
-      const instructor = normalizeRelation(session.instructor)
+      const summary = mapSessionSummary(row.session as SessionSummaryRelation)
+      if (!summary) return null
 
       const paymentsArr = (row.payments ?? []) as Array<{
         status: string
@@ -99,11 +77,11 @@ export async function getMemberBookingsForUser(
         id: row.id as string,
         status: row.status as BookingStatus,
         guestName: row.guest_name as string,
-        sessionTitle: session.title,
-        sessionStartsAt: session.starts_at,
-        sessionEndsAt: session.ends_at,
-        floorName: floor?.name_en ?? "Brickwell",
-        instructorName: instructor?.name_en ?? "Wellness Guide",
+        sessionTitle: summary.title,
+        sessionStartsAt: summary.startsAt,
+        sessionEndsAt: summary.endsAt,
+        floorName: summary.floorName,
+        instructorName: summary.instructorName,
         payment: pay
           ? {
               status: pay.status,
