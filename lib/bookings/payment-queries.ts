@@ -89,8 +89,7 @@ export async function getPendingBookingPayment(
       sessionEndsAt: summary.endsAt,
       floorName: summary.floorName,
       instructorName: summary.instructorName,
-      priceCurrency: summary.priceCurrency,
-      priceAmount: summary.priceAmount,
+      price: summary.price,
     },
   }
 }

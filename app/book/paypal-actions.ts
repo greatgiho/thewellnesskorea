@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { createOrder, captureOrder } from "@/lib/payments/paypal"
 import { getPendingBookingPayment } from "@/lib/bookings/payment-queries"
+import { money, toPaypalAmount } from "@/lib/payments/money"
 import {
   finalizePaidBooking,
   recordPendingCapture,
@@ -25,14 +26,14 @@ export async function createBookingPaypalOrder(
     throw new Error("Payment window expired.")
   }
 
-  const currency = pending.summary.priceCurrency
-  if (currency !== "USD") {
+  const price = money(pending.summary.price.currency, pending.amount)
+  if (price.currency !== "USD") {
     throw new Error("Online card payment is only available in USD.")
   }
 
   const order = await createOrder({
-    amount: pending.amount.toFixed(2),
-    currency,
+    amount: toPaypalAmount(price),
+    currency: price.currency,
     reference: bookingId,
   })
   return order.id

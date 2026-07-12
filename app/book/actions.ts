@@ -16,6 +16,7 @@ import {
   getBookingSummaryByCancelToken,
 } from "@/lib/bookings/queries"
 import { validateGuestBookingInput } from "@/lib/bookings/validate"
+import { money, isPaid } from "@/lib/payments/money"
 import {
   sendBookingConfirmationEmail,
   sendBookingCancelledEmail,
@@ -57,9 +58,7 @@ export async function submitGuestBooking(
       return { error: "This class is full." }
     }
 
-    const priceAmount = Number(session.price_amount ?? 0)
-
-    if (priceAmount > 0) {
+    if (isPaid(money(session.price_currency, session.price_amount))) {
       const hold = await createBookingHoldRpc({
         sessionId,
         guestName,
