@@ -2,7 +2,8 @@
 
 import { useActionState } from "react"
 import { cancelMemberBooking, type MemberCancelState } from "@/app/account/actions"
-import { formatBookingDateTime, formatMoney } from "@/lib/bookings/format"
+import { formatBookingDateTime } from "@/lib/bookings/format"
+import { money, formatMoney } from "@/lib/payments/money"
 import type { MemberBookingItem } from "@/lib/bookings/member-queries"
 
 const initialState: MemberCancelState = {}
@@ -74,7 +75,7 @@ function MemberBookingCard({ booking }: { booking: MemberBookingItem }) {
               {booking.payment.status === "paid" ? "결제 완료" : "결제 상태"}
             </span>
             <span className="font-medium text-foreground">
-              {formatMoney(booking.payment.amount, booking.payment.currency)}
+              {formatMoney(money(booking.payment.currency, booking.payment.amount))}
               {booking.payment.status === "paid" ? "" : ` · ${booking.payment.status}`}
             </span>
           </div>

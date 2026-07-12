@@ -5,7 +5,7 @@ import { BookingPageLayout } from "@/components/booking/booking-page-layout"
 import { BookingSessionSummary } from "@/components/booking/booking-session-summary"
 import { DevMockPaymentButton } from "@/components/booking/dev-mock-payment-button"
 import { PaypalCheckoutButton } from "@/components/booking/paypal-checkout-button"
-import { formatMoney } from "@/lib/bookings/format"
+import { money, formatMoney } from "@/lib/payments/money"
 import { getPendingBookingPayment } from "@/lib/bookings/payment-queries"
 
 export const metadata: Metadata = {
@@ -82,7 +82,7 @@ export default async function BookPayPage({ searchParams }: BookPayPageProps) {
     process.env.PAYMENT_DEV_MOCK === "true"
 
   const paypalClientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID
-  const currency = pending.summary.priceCurrency
+  const currency = pending.summary.price.currency
   const showPaypal = Boolean(paypalClientId) && currency === "USD"
 
   return (
@@ -99,7 +99,7 @@ export default async function BookPayPage({ searchParams }: BookPayPageProps) {
             Amount due
           </p>
           <p className="mt-3 font-serif text-3xl font-light text-foreground">
-            {formatMoney(pending.amount, pending.summary.priceCurrency)}
+            {formatMoney(money(currency, pending.amount))}
           </p>
           {pending.expiresAt ? (
             <p className="mt-3 text-sm text-muted-foreground">

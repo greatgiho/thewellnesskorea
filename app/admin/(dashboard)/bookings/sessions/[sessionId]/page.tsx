@@ -7,7 +7,7 @@ import { getSessionById } from "@/lib/schedule/queries"
 import { getBookingsForSessionAdmin } from "@/lib/bookings/admin-queries"
 import { getWaitlistForSession } from "@/lib/waitlist/admin-queries"
 import { formatBookingDateTime } from "@/lib/bookings/format"
-import { formatMoney } from "@/lib/bookings/format"
+import { money, formatMoney, isPaid } from "@/lib/payments/money"
 import { sessionStatusLabel } from "@/lib/schedule/session-status"
 import { SessionBookingDetail } from "@/components/admin/session-booking-detail"
 
@@ -40,7 +40,7 @@ export default async function AdminSessionBookingsPage({ params }: Props) {
     session.ends_at,
   )
 
-  const isPaid = Number(session.price_amount ?? 0) > 0
+  const price = money(session.price_currency, session.price_amount)
 
   return (
     <div className="space-y-8">
@@ -103,9 +103,7 @@ export default async function AdminSessionBookingsPage({ params }: Props) {
           <div>
             <p className="text-xs text-muted-foreground">Price</p>
             <p className="mt-0.5 font-medium text-foreground">
-              {isPaid
-                ? formatMoney(Number(session.price_amount ?? 0), session.price_currency ?? "USD")
-                : "Free (on-site)"}
+              {isPaid(price) ? formatMoney(price) : "Free (on-site)"}
             </p>
           </div>
         </div>

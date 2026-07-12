@@ -1,4 +1,5 @@
 import { normalizeRelation } from "@/lib/supabase/normalize-relation"
+import { money, type Money } from "@/lib/payments/money"
 
 /**
  * Shared "booking -> session" summary embed. Used by every query that lists
@@ -34,8 +35,7 @@ export type SessionSummary = {
   endsAt: string
   floorName: string
   instructorName: string
-  priceCurrency: string
-  priceAmount: number
+  price: Money
 }
 
 const DEFAULT_FALLBACK = { floor: "Brickwell", instructor: "Wellness Guide" }
@@ -56,7 +56,6 @@ export function mapSessionSummary(
     endsAt: session.ends_at,
     floorName: floor?.name_en ?? fallback.floor,
     instructorName: instructor?.name_en ?? fallback.instructor,
-    priceCurrency: session.price_currency ?? "USD",
-    priceAmount: Number(session.price_amount ?? 0),
+    price: money(session.price_currency, session.price_amount),
   }
 }

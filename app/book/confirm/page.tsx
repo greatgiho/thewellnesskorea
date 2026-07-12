@@ -4,6 +4,7 @@ import { notFound } from "next/navigation"
 import { BookingPageLayout } from "@/components/booking/booking-page-layout"
 import { BookingSessionSummary } from "@/components/booking/booking-session-summary"
 import { getBookingSummaryById } from "@/lib/bookings/queries"
+import { isPaid } from "@/lib/payments/money"
 
 export const metadata: Metadata = {
   title: "Reservation confirmed — The Wellness Korea",
@@ -46,7 +47,7 @@ export default async function BookConfirmPage({
             See you at Brickwell, Seochon.
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
-            {summary.priceAmount > 0
+            {isPaid(summary.price)
               ? "Your online payment is confirmed. Please arrive a few minutes early and wear comfortable clothing."
               : "Payment is on-site. Please arrive a few minutes early and wear comfortable clothing."}
           </p>
