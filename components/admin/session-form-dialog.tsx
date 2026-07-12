@@ -14,7 +14,6 @@ import {
 } from "@/lib/schedule/utils"
 import {
   deleteSession,
-  duplicateSession,
   confirmSession,
   saveSession,
   unconfirmSession,
@@ -23,6 +22,7 @@ import { sessionStatusLabel, SESSION_STATUS_RIBBON_CLASS } from "@/lib/schedule/
 import { PhilosophyPathPicker } from "@/components/admin/philosophy-path-picker"
 import { InstructorSearchPicker } from "@/components/admin/instructor-search-picker"
 import { SessionDescriptionFields } from "@/components/admin/session-description-fields"
+import { SessionDuplicateForm } from "@/components/admin/session-duplicate-form"
 import {
   SessionImageUpload,
   slotsFromPaths,
@@ -87,12 +87,6 @@ export function SessionFormDialog({
   const [imageSlots, setImageSlots] = useState<SessionImageSlot[]>(
     slotsFromPaths([]),
   )
-  const [duplicateDate, setDuplicateDate] = useState(dateKey)
-  const [duplicateFloorId, setDuplicateFloorId] = useState(
-    floors[0]?.id ?? "",
-  )
-  const [duplicateStart, setDuplicateStart] = useState("09:00")
-  const [duplicateEnd, setDuplicateEnd] = useState(defaultEndTime("09:00", 60))
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
@@ -136,10 +130,6 @@ export function SessionFormDialog({
         },
       })
       setImageSlots(slotsFromPaths(session.image_paths ?? []))
-      setDuplicateDate(dateKey)
-      setDuplicateFloorId(session.floor_id)
-      setDuplicateStart(formatTimeInKst(session.starts_at))
-      setDuplicateEnd(formatTimeInKst(session.ends_at))
     } else {
       const floorId = presetFloorId ?? floors[0]?.id ?? ""
       const start = presetStartTime ?? "09:00"
@@ -203,25 +193,6 @@ export function SessionFormDialog({
     } finally {
       setPending(false)
     }
-  }
-
-  const onDuplicate = async () => {
-    if (!session) return
-    setError(null)
-    setPending(true)
-    const result = await duplicateSession(session.id, {
-      date: duplicateDate,
-      floor_id: duplicateFloorId,
-      start_time: duplicateStart,
-      end_time: duplicateEnd,
-    })
-    if (!result.ok) {
-      setError(result.error)
-    } else {
-      onSaved()
-      onClose()
-    }
-    setPending(false)
   }
 
   const onConfirmStatus = async () => {
@@ -603,78 +574,20 @@ export function SessionFormDialog({
             </label>
 
             {session && (
-              <div className="rounded-xl border border-border bg-secondary/20 p-4 space-y-4">
-                <div>
-                  <p className="text-sm font-medium text-foreground">
-                    Duplicate to another slot
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Copies title, photos, and class details. New session is unpublished.
-                    Images are copied to new files.
-                  </p>
-                </div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <label className="block space-y-1.5">
-                    <span className="text-xs font-medium">Date</span>
-                    <input
-                      type="date"
-                      className={fieldClass}
-                      value={duplicateDate}
-                      onChange={(e) => setDuplicateDate(e.target.value)}
-                    />
-                  </label>
-                  <label className="block space-y-1.5">
-                    <span className="text-xs font-medium">Floor</span>
-                    <select
-                      className={fieldClass}
-                      value={duplicateFloorId}
-                      onChange={(e) => setDuplicateFloorId(e.target.value)}
-                    >
-                      {floors.map((f) => (
-                        <option key={f.id} value={f.id}>
-                          {f.name_en}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="block space-y-1.5">
-                    <span className="text-xs font-medium">Start</span>
-                    <select
-                      className={fieldClass}
-                      value={duplicateStart}
-                      onChange={(e) => {
-                        const start = e.target.value
-                        setDuplicateStart(start)
-                        setDuplicateEnd(defaultEndTime(start, 60))
-                      }}
-                    >
-                      {startOptions.map((t) => (
-                        <option key={t} value={t}>{t}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="block space-y-1.5">
-                    <span className="text-xs font-medium">End</span>
-                    <select
-                      className={fieldClass}
-                      value={duplicateEnd}
-                      onChange={(e) => setDuplicateEnd(e.target.value)}
-                    >
-                      {endOptions.map((t) => (
-                        <option key={t} value={t}>{t}</option>
-                      ))}
-                    </select>
-                  </label>
-                </div>
-                <button
-                  type="button"
-                  disabled={pending}
-                  onClick={onDuplicate}
-                  className="inline-flex h-9 items-center rounded-lg border border-primary/40 px-4 text-sm font-medium text-primary hover:bg-primary/5 disabled:opacity-50"
-                >
-                  Duplicate session
-                </button>
-              </div>
+              <SessionDuplicateForm
+                sessionId={session.id}
+                initialDate={dateKey}
+                initialFloorId={session.floor_id}
+                initialStart={formatTimeInKst(session.starts_at)}
+                initialEnd={formatTimeInKst(session.ends_at)}
+                floors={floors}
+                fieldClass={fieldClass}
+                disabled={pending}
+                onDone={() => {
+                  onSaved()
+                  onClose()
+                }}
+              />
             )}
             </fieldset>
           </div>
