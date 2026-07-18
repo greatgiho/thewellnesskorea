@@ -1,6 +1,7 @@
 "use client"
 
-import type { SessionWithRelations } from "@/lib/schedule/types"
+import type { FloorRow, SessionWithRelations } from "@/lib/schedule/types"
+import { floorSwatch } from "@/lib/schedule/floor-colors"
 import {
   buildMonthCalendarDays,
   formatTimeInKst,
@@ -13,7 +14,8 @@ import {
 type ScheduleMonthCalendarProps = {
   year: number
   month: number
-  floorId: string
+  floors: FloorRow[]
+  visibleFloorIds: Set<string>
   sessions: SessionWithRelations[]
   onDayClick: (dateKey: string) => void
   onSessionClick: (session: SessionWithRelations) => void
@@ -22,7 +24,8 @@ type ScheduleMonthCalendarProps = {
 export function ScheduleMonthCalendar({
   year,
   month,
-  floorId,
+  floors,
+  visibleFloorIds,
   sessions,
   onDayClick,
   onSessionClick,
@@ -30,8 +33,12 @@ export function ScheduleMonthCalendar({
   const cells = buildMonthCalendarDays(year, month)
   const today = todayDateKeyInKst()
 
+  const levelById = new Map(floors.map((f) => [f.id, f.level]))
+  const anyFloorVisible = visibleFloorIds.size > 0
+
   const floorSessions = sessions.filter(
-    (s) => s.floor_id === floorId || s.is_all_floors,
+    (s) =>
+      visibleFloorIds.has(s.floor_id) || (s.is_all_floors && anyFloorVisible),
   )
   const byDate = groupSessionsByDateKey(floorSessions)
 
@@ -105,10 +112,18 @@ export function ScheduleMonthCalendar({
                       }`}
                     >
                       <p className="truncate text-[10px] font-medium leading-tight text-foreground">
-                        {session.is_all_floors && (
+                        {session.is_all_floors ? (
                           <span className="mr-1 rounded-sm bg-pink-500/15 px-1 text-[8px] font-semibold text-pink-700 dark:text-pink-300">
                             전층
                           </span>
+                        ) : (
+                          <span
+                            className={`mr-1 inline-block size-2 rounded-full align-middle ${
+                              floorSwatch(levelById.get(session.floor_id) ?? 1)
+                                .dot
+                            }`}
+                            aria-hidden
+                          />
                         )}
                         <span className="text-muted-foreground">
                           {formatTimeInKst(session.starts_at)}

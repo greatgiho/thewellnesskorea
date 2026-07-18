@@ -9,6 +9,7 @@ import {
   groupSessionsByFloor,
 } from "@/lib/schedule/utils"
 import { SLOT_HEIGHT_PX } from "@/lib/schedule/constants"
+import { floorSwatch } from "@/lib/schedule/floor-colors"
 import type { FloorRow } from "@/lib/schedule/types"
 import { ScheduleSessionBlock } from "@/components/admin/schedule-session-block"
 
@@ -42,7 +43,13 @@ export function ScheduleDayGrid({
               key={floor.id}
               className="border-l border-border px-3 py-3 text-center"
             >
-              <p className="font-medium text-foreground">{floor.name_en}</p>
+              <p className="flex items-center justify-center gap-1.5 font-medium text-foreground">
+                <span
+                  className={`size-2 rounded-full ${floorSwatch(floor.level).dot}`}
+                  aria-hidden
+                />
+                {floor.name_en}
+              </p>
               <p className="text-xs text-muted-foreground">{floor.name_ko}</p>
             </div>
           ))}
