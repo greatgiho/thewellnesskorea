@@ -26,6 +26,7 @@ export type SessionRow = {
   id: string
   experience_id: string
   floor_id: string
+  is_all_floors: boolean
   instructor_id: string
   partner_program_id: string | null
   title: string
@@ -65,6 +66,7 @@ export type SessionWithRelations = SessionRow & {
 
 export type SessionFormInput = {
   floor_id: string
+  is_all_floors: boolean
   instructor_id: string
   partner_program_id: string | null
   title: string

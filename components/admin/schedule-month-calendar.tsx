@@ -30,7 +30,9 @@ export function ScheduleMonthCalendar({
   const cells = buildMonthCalendarDays(year, month)
   const today = todayDateKeyInKst()
 
-  const floorSessions = sessions.filter((s) => s.floor_id === floorId)
+  const floorSessions = sessions.filter(
+    (s) => s.floor_id === floorId || s.is_all_floors,
+  )
   const byDate = groupSessionsByDateKey(floorSessions)
 
   return (
@@ -91,16 +93,23 @@ export function ScheduleMonthCalendar({
                       type="button"
                       onClick={() => onSessionClick(session)}
                       className={`w-full rounded-md border px-1.5 py-1 text-left transition-colors hover:brightness-95 ${
-                        session.status === "processing"
-                          ? "border-dashed border-amber-400/60 bg-amber-50/70 dark:bg-amber-950/20"
-                          : session.is_published
-                            ? "border-primary/25 bg-primary/10"
-                            : session.status === "confirmed"
-                              ? "border-blue-600/25 bg-blue-50/60 dark:bg-blue-950/20"
-                              : "border-border bg-secondary/60"
+                        session.is_all_floors
+                          ? "border-pink-500/40 bg-pink-50/70 dark:bg-pink-950/25"
+                          : session.status === "processing"
+                            ? "border-dashed border-amber-400/60 bg-amber-50/70 dark:bg-amber-950/20"
+                            : session.is_published
+                              ? "border-primary/25 bg-primary/10"
+                              : session.status === "confirmed"
+                                ? "border-blue-600/25 bg-blue-50/60 dark:bg-blue-950/20"
+                                : "border-border bg-secondary/60"
                       }`}
                     >
                       <p className="truncate text-[10px] font-medium leading-tight text-foreground">
+                        {session.is_all_floors && (
+                          <span className="mr-1 rounded-sm bg-pink-500/15 px-1 text-[8px] font-semibold text-pink-700 dark:text-pink-300">
+                            전층
+                          </span>
+                        )}
                         <span className="text-muted-foreground">
                           {formatTimeInKst(session.starts_at)}
                         </span>

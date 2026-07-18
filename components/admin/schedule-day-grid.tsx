@@ -28,6 +28,7 @@ export function ScheduleDayGrid({
   const slots = buildTimeSlots()
   const totalHeight = gridTotalHeightPx()
   const byFloor = groupSessionsByFloor(sessions)
+  const allFloorSessions = sessions.filter((s) => s.is_all_floors)
 
   return (
     <div className="overflow-x-auto rounded-2xl border border-border bg-card">
@@ -61,7 +62,10 @@ export function ScheduleDayGrid({
           </div>
 
           {floors.map((floor) => {
-            const floorSessions = byFloor.get(floor.id) ?? []
+            const floorSessions = [
+              ...(byFloor.get(floor.id) ?? []).filter((s) => !s.is_all_floors),
+              ...allFloorSessions,
+            ]
             return (
               <div
                 key={floor.id}

@@ -112,6 +112,7 @@ export function ScheduleSessionBlock({
     (session.path_keys?.length ?? 0) > 1 && height >= SLOT_HEIGHT_PX * 1.75
   const isProcessing = session.status === "processing"
   const isConfirmed = session.status === "confirmed"
+  const isAllFloors = session.is_all_floors
   const enteredBy = session.created_by_email
 
   const blockStyle = {
@@ -140,13 +141,15 @@ export function ScheduleSessionBlock({
         className={`relative h-full w-full overflow-hidden border shadow-sm ${
           variant === "week" ? "rounded-md" : "rounded-lg"
         } ${
-          isProcessing
-            ? "border-dashed border-amber-400/70 bg-amber-50/80 dark:bg-amber-950/20"
-            : isConfirmed && session.is_published
-              ? "border-primary/30 bg-primary/15"
-              : isConfirmed
-                ? "border-blue-600/30 bg-blue-50/60 dark:bg-blue-950/20"
-                : "border-border bg-secondary/80"
+          isAllFloors
+            ? "border-pink-500/50 bg-pink-50/75 dark:bg-pink-950/25"
+            : isProcessing
+              ? "border-dashed border-amber-400/70 bg-amber-50/80 dark:bg-amber-950/20"
+              : isConfirmed && session.is_published
+                ? "border-primary/30 bg-primary/15"
+                : isConfirmed
+                  ? "border-blue-600/30 bg-blue-50/60 dark:bg-blue-950/20"
+                  : "border-border bg-secondary/80"
         }`}
       >
         {photoUrl && (
@@ -167,6 +170,11 @@ export function ScheduleSessionBlock({
           {variant === "week" ? (
             <>
               <p className="truncate text-[10px] font-medium text-foreground">
+                {isAllFloors && (
+                  <span className="mr-1 rounded-sm bg-pink-500/15 px-1 text-[8px] font-semibold text-pink-700 dark:text-pink-300">
+                    전층
+                  </span>
+                )}
                 {session.title}
               </p>
               <p className="truncate text-[9px] text-muted-foreground">
@@ -192,6 +200,11 @@ export function ScheduleSessionBlock({
           ) : (
             <>
               <p className="truncate text-xs font-medium text-foreground">
+                {isAllFloors && (
+                  <span className="mr-1 rounded-sm bg-pink-500/15 px-1 text-[9px] font-semibold text-pink-700 dark:text-pink-300">
+                    전층
+                  </span>
+                )}
                 {session.title}
               </p>
               <p className="truncate text-[10px] text-muted-foreground">

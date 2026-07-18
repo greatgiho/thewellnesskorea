@@ -35,7 +35,9 @@ export function ScheduleWeekGrid({
   const weekDays = buildWeekDateKeys(weekAnchorDateKey)
   const today = todayDateKeyInKst()
 
-  const floorSessions = sessions.filter((s) => s.floor_id === floorId)
+  const floorSessions = sessions.filter(
+    (s) => s.floor_id === floorId || s.is_all_floors,
+  )
 
   return (
     <div className="overflow-x-auto rounded-2xl border border-border bg-card">

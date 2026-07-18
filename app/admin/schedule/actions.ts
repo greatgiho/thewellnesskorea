@@ -12,7 +12,6 @@ import {
 import type {
   SessionDescriptionBlocks,
   SessionFormInput,
-  SessionStatus,
 } from "@/lib/schedule/types"
 import {
   formatTimeInKst,
@@ -21,17 +20,10 @@ import {
   sessionsOverlap,
   toKstIso,
 } from "@/lib/schedule/utils"
-
-type SessionConflictRow = {
-  id: string
-  floor_id: string
-  instructor_id: string
-  starts_at: string
-  ends_at: string
-  title: string
-  status: SessionStatus
-  slot_lane: number
-}
+import {
+  resolveSlotLane,
+  type SessionConflictRow,
+} from "@/lib/schedule/conflicts"
 
 async function requireAuth() {
   const { supabase, userId, userEmail } = await requireAdminSession()
@@ -100,17 +92,17 @@ async function fetchOverlappingSessions(
 ): Promise<SessionConflictRow[]> {
   const { start, end } = kstDayRange(input.date)
 
+  // Fetch every non-cancelled session in the day. All-floor sessions can
+  // conflict across floors, so we can't pre-filter by floor_id here; the
+  // day-scoped set is tiny, so we resolve conflicts in memory below.
   const { data, error } = await supabase
     .from("sessions")
     .select(
-      "id, floor_id, instructor_id, starts_at, ends_at, title, status, slot_lane",
+      "id, experience_id, floor_id, is_all_floors, instructor_id, starts_at, ends_at, title, status, slot_lane",
     )
     .gte("starts_at", start)
     .lt("starts_at", end)
     .neq("status", "cancelled")
-    .or(
-      `floor_id.eq.${input.floor_id},instructor_id.eq.${input.instructor_id}`,
-    )
 
   if (error) throw new Error(error.message)
 
@@ -120,34 +112,10 @@ async function fetchOverlappingSessions(
   }) as SessionConflictRow[]
 }
 
-function assignProcessingLane(processingInBucket: SessionConflictRow[]): number {
-  const used = new Set(processingInBucket.map((s) => s.slot_lane))
-  if (!used.has(0)) return 0
-  if (!used.has(1)) return 1
-  throw new UserFacingError("Maximum 2 competing sessions in this slot.")
-}
-
-function assertConfirmedOverlap(
-  overlapping: SessionConflictRow[],
-  input: SessionFormInput,
-  starts_at: string,
-  ends_at: string,
-) {
-  for (const s of overlapping) {
-    if (s.status !== "confirmed") continue
-    const range = `${formatTimeInKst(s.starts_at)}–${formatTimeInKst(s.ends_at)}`
-    if (s.floor_id === input.floor_id) {
-      throw new UserFacingError(`Floor conflict: "${s.title}" overlaps (${range}).`)
-    }
-    if (s.instructor_id === input.instructor_id) {
-      throw new UserFacingError(`Instructor conflict: "${s.title}" overlaps (${range}).`)
-    }
-  }
-}
-
 async function resolveSessionSlot(
   supabase: Awaited<ReturnType<typeof createClient>>,
   input: SessionFormInput,
+  experienceId: string,
   starts_at: string,
   ends_at: string,
   excludeId?: string,
@@ -159,40 +127,7 @@ async function resolveSessionSlot(
     ends_at,
     excludeId,
   )
-  const bucketOverlaps = overlapping.filter((s) => s.floor_id === input.floor_id)
-  const hasConfirmedInBucket = bucketOverlaps.some(
-    (s) => s.status === "confirmed",
-  )
-
-  if (input.status === "processing") {
-    if (hasConfirmedInBucket) {
-      throw new UserFacingError(
-        "This slot is already confirmed. Add a processing session elsewhere.",
-      )
-    }
-    const processingInBucket = bucketOverlaps.filter(
-      (s) => s.status === "processing",
-    )
-    if (processingInBucket.length >= 2) {
-      throw new UserFacingError("Maximum 2 competing sessions in this slot.")
-    }
-    assertConfirmedOverlap(overlapping, input, starts_at, ends_at)
-    return { slot_lane: assignProcessingLane(processingInBucket) }
-  }
-
-  if (hasConfirmedInBucket) {
-    throw new UserFacingError("This slot already has a confirmed session.")
-  }
-  const otherProcessing = bucketOverlaps.filter(
-    (s) => s.status === "processing",
-  )
-  if (otherProcessing.length > 0) {
-    throw new UserFacingError(
-      "Resolve competing processing sessions with Confirm, or cancel them first.",
-    )
-  }
-  assertConfirmedOverlap(overlapping, input, starts_at, ends_at)
-  return { slot_lane: 0 }
+  return resolveSlotLane(input, experienceId, overlapping)
 }
 
 function trimDescriptionBlocks(
@@ -215,6 +150,7 @@ function sessionRowFromInput(
   return {
     experience_id,
     floor_id: input.floor_id,
+    is_all_floors: input.is_all_floors,
     instructor_id: input.instructor_id,
     partner_program_id: input.partner_program_id || null,
     title: input.title.trim(),
@@ -271,7 +207,7 @@ async function copySessionPhotos(
 async function cancelCompetingProcessing(
   supabase: Awaited<ReturnType<typeof createClient>>,
   winnerId: string,
-  floorId: string,
+  scope: { isAllFloors: boolean; floorId: string; experienceId: string },
   starts_at: string,
   ends_at: string,
   cancelledBy: string,
@@ -279,14 +215,21 @@ async function cancelCompetingProcessing(
   const date = starts_at.slice(0, 10)
   const { start, end } = kstDayRange(date)
 
-  const { data, error } = await supabase
+  // A confirmed all-floor winner clears competing processing sessions on every
+  // floor of its experience; a normal winner only clears its own floor.
+  let query = supabase
     .from("sessions")
     .select("id, starts_at, ends_at")
-    .eq("floor_id", floorId)
     .eq("status", "processing")
     .neq("id", winnerId)
     .gte("starts_at", start)
     .lt("starts_at", end)
+
+  query = scope.isAllFloors
+    ? query.eq("experience_id", scope.experienceId)
+    : query.eq("floor_id", scope.floorId)
+
+  const { data, error } = await query
 
   if (error) throw new Error(error.message)
 
@@ -327,15 +270,16 @@ async function saveSessionCore(
 ): Promise<string> {
   const { supabase, userId, userEmail } = await requireAuth()
   const { starts_at, ends_at } = validateSessionInput(input)
+  const experience_id = await resolveExperienceIdForFloor(supabase, input.floor_id)
   const { slot_lane } = await resolveSessionSlot(
     supabase,
     input,
+    experience_id,
     starts_at,
     ends_at,
     sessionId,
   )
 
-  const experience_id = await resolveExperienceIdForFloor(supabase, input.floor_id)
   const row = sessionRowFromInput(input, starts_at, ends_at, slot_lane, experience_id)
 
   if (sessionId) {
@@ -427,6 +371,7 @@ async function confirmSessionCore(
 
   const input: SessionFormInput = {
     floor_id: session.floor_id,
+    is_all_floors: session.is_all_floors,
     instructor_id: session.instructor_id,
     partner_program_id: session.partner_program_id,
     title: session.title,
@@ -444,7 +389,14 @@ async function confirmSessionCore(
   }
 
   const { starts_at, ends_at } = validateSessionInput(input)
-  await resolveSessionSlot(supabase, input, starts_at, ends_at, sessionId)
+  await resolveSessionSlot(
+    supabase,
+    input,
+    session.experience_id,
+    starts_at,
+    ends_at,
+    sessionId,
+  )
 
   const now = new Date().toISOString()
   const { error: updateError } = await supabase
@@ -463,7 +415,11 @@ async function confirmSessionCore(
   const cancelledCount = await cancelCompetingProcessing(
     supabase,
     sessionId,
-    session.floor_id,
+    {
+      isAllFloors: session.is_all_floors,
+      floorId: session.floor_id,
+      experienceId: session.experience_id,
+    },
     session.starts_at,
     session.ends_at,
     userId,
@@ -510,6 +466,7 @@ async function unconfirmSessionCore(
 
   const input: SessionFormInput = {
     floor_id: session.floor_id,
+    is_all_floors: session.is_all_floors,
     instructor_id: session.instructor_id,
     partner_program_id: session.partner_program_id,
     title: session.title,
@@ -530,6 +487,7 @@ async function unconfirmSessionCore(
   const { slot_lane } = await resolveSessionSlot(
     supabase,
     input,
+    session.experience_id,
     starts_at,
     ends_at,
     sessionId,
@@ -592,6 +550,7 @@ async function duplicateSessionCore(
 
   const input: SessionFormInput = {
     floor_id: target.floor_id,
+    is_all_floors: source.is_all_floors,
     instructor_id: source.instructor_id,
     partner_program_id: source.partner_program_id,
     title: source.title,
@@ -609,14 +568,15 @@ async function duplicateSessionCore(
   }
 
   const { starts_at, ends_at } = validateSessionInput(input)
+  const experience_id = await resolveExperienceIdForFloor(supabase, input.floor_id)
   const { slot_lane } = await resolveSessionSlot(
     supabase,
     input,
+    experience_id,
     starts_at,
     ends_at,
   )
 
-  const experience_id = await resolveExperienceIdForFloor(supabase, input.floor_id)
   const row = sessionRowFromInput(input, starts_at, ends_at, slot_lane, experience_id)
   row.image_paths = []
 
