@@ -102,7 +102,7 @@ export function AdminPartnersList({ partners }: AdminPartnersListProps) {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Link
-            href="/admin/partners/new"
+            href="/a/partners/new"
             className="inline-flex h-9 shrink-0 items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-all hover:bg-primary/90"
           >
             Add partner
@@ -210,7 +210,7 @@ export function AdminPartnersList({ partners }: AdminPartnersListProps) {
         <div className="rounded-2xl border border-dashed border-border px-6 py-16 text-center text-muted-foreground">
           No partners yet.{" "}
           <Link
-            href="/admin/partners/new"
+            href="/a/partners/new"
             className="text-primary underline-offset-4 hover:underline"
           >
             Add the first profile
@@ -248,7 +248,7 @@ export function AdminPartnersList({ partners }: AdminPartnersListProps) {
                   <tr
                     key={p.id}
                     className="cursor-pointer bg-card transition-colors hover:bg-muted/40"
-                    onClick={() => router.push(`/admin/partners/${p.id}`)}
+                    onClick={() => router.push(`/a/partners/${p.id}`)}
                   >
                     <td className="px-4 py-3">
                       <div className="relative size-10 overflow-hidden rounded-lg bg-secondary">
@@ -312,7 +312,7 @@ export function AdminPartnersList({ partners }: AdminPartnersListProps) {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <Link
-                        href={`/admin/partners/${p.id}/edit`}
+                        href={`/a/partners/${p.id}/edit`}
                         onClick={(e) => e.stopPropagation()}
                         className="text-primary underline-offset-4 hover:underline"
                       >

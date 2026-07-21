@@ -6,8 +6,8 @@ export async function requireAdminSession() {
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user) redirect("/admin/login")
-  if (user.app_metadata?.role !== "admin") redirect("/admin/login")
+  if (!user) redirect("/a/login")
+  if (user.app_metadata?.role !== "admin") redirect("/a/login")
   return { supabase, user, userId: user.id, userEmail: user.email }
 }
 

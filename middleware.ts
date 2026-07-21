@@ -3,12 +3,12 @@ import { enforceSiteAccess } from "@/lib/site-access"
 import { updateSession } from "@/lib/supabase/middleware"
 import { updatePartnerSession } from "@/lib/supabase/partner-middleware"
 
-// The partner portal lives at /partner/* on the main domain. Auth is the access
+// The partner portal lives at /p/* on the main domain. Auth is the access
 // boundary (no account = no entry), so a separate subdomain adds friction
 // (extra public hostname + cert per environment) without any security benefit.
 function isPartnerPath(pathname: string): boolean {
-  // Exact "/partner" or "/partner/..." — NOT the public "/partners/[slug]" pages.
-  return pathname === "/partner" || pathname.startsWith("/partner/")
+  // Exact "/p" or "/p/..." — NOT the public "/partners/[slug]" pages.
+  return pathname === "/p" || pathname.startsWith("/p/")
 }
 
 export async function middleware(request: NextRequest) {

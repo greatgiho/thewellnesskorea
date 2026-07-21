@@ -12,7 +12,7 @@ type ProfileSubmittedPayload = {
 }
 
 function editUrl(personId: string): string {
-  return `${siteOrigin()}/admin/partners/${personId}/edit`
+  return `${siteOrigin()}/a/partners/${personId}/edit`
 }
 
 export async function notifyAdminProfileSubmitted(

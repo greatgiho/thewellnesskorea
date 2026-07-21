@@ -186,13 +186,13 @@ export function PartnerDetailView({ person, sido }: PartnerDetailViewProps) {
 
       <div className="flex flex-wrap gap-3 border-t border-border pt-6">
         <Link
-          href={`/admin/partners/${person.id}/edit`}
+          href={`/a/partners/${person.id}/edit`}
           className="inline-flex h-9 items-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
         >
           Edit profile
         </Link>
         <Link
-          href="/admin/partners"
+          href="/a/partners"
           className="inline-flex h-9 items-center rounded-lg border border-border px-4 text-sm text-foreground hover:bg-muted"
         >
           Back to list

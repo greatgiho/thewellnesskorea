@@ -57,7 +57,7 @@ export function AdminBookingsClient({
     if (localInstructor) params.set("instructor", localInstructor)
     if (localTitle.trim()) params.set("title", localTitle.trim())
     if (localGuest.trim()) params.set("guest", localGuest.trim())
-    router.push(`/admin/bookings?${params.toString()}`)
+    router.push(`/a/bookings?${params.toString()}`)
   }
 
   const totalConfirmed = sessions.reduce((s, r) => s + r.confirmedCount, 0)
@@ -201,7 +201,7 @@ export function AdminBookingsClient({
             return (
               <Link
                 key={session.sessionId}
-                href={`/admin/bookings/sessions/${session.sessionId}`}
+                href={`/a/bookings/sessions/${session.sessionId}`}
                 className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-border bg-card px-5 py-4 transition-colors hover:bg-muted/40"
               >
                 <div className="min-w-0 space-y-0.5">

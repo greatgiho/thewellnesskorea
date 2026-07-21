@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { duplicateSession } from "@/app/admin/schedule/actions"
+import { duplicateSession } from "@/app/a/schedule/actions"
 import type { FloorRow } from "@/lib/schedule/types"
 import { buildTimeOptions, defaultEndTime } from "@/lib/schedule/utils"
 

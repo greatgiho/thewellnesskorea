@@ -17,7 +17,7 @@ export type PortalNavGroup = {
 
 function isActive(pathname: string, href: string, roots: string[]): boolean {
   if (pathname === href) return true
-  // 포털 루트(/admin, /partner)는 정확히 일치할 때만 active
+  // 포털 루트(/a, /p)는 정확히 일치할 때만 active
   if (roots.includes(href)) return false
   return pathname.startsWith(href + "/") || pathname.startsWith(href)
 }

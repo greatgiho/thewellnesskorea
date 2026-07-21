@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
-import { cancelBookingAsAdmin, deleteWaitlistEntryAsAdmin } from "@/app/admin/bookings/actions"
+import { cancelBookingAsAdmin, deleteWaitlistEntryAsAdmin } from "@/app/a/bookings/actions"
 import { formatBookingDateTime } from "@/lib/bookings/format"
 import type { AdminBookingItem } from "@/lib/bookings/admin-queries"
 import type { WaitlistEntry } from "@/lib/waitlist/admin-queries"

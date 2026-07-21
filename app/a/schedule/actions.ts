@@ -1,0 +1,662 @@
+"use server"
+
+import { revalidatePath } from "next/cache"
+import { createClient } from "@/lib/supabase/server"
+import { requireAdminSession } from "@/lib/auth/require-session"
+import { UserFacingError, isUserFacingError } from "@/lib/errors"
+import {
+  extFromPath,
+  SESSION_PHOTOS_BUCKET,
+  sessionPhotoStoragePath,
+} from "@/lib/schedule/images"
+import type {
+  SessionDescriptionBlocks,
+  SessionFormInput,
+} from "@/lib/schedule/types"
+import {
+  formatTimeInKst,
+  isWithinOperatingHours,
+  kstDayRange,
+  sessionsOverlap,
+  toKstIso,
+} from "@/lib/schedule/utils"
+import {
+  resolveSlotLane,
+  type SessionConflictRow,
+} from "@/lib/schedule/conflicts"
+
+async function requireAuth() {
+  const { supabase, userId, userEmail } = await requireAdminSession()
+  return { supabase, userId, userEmail }
+}
+
+function validateSessionInput(input: SessionFormInput): {
+  starts_at: string
+  ends_at: string
+} {
+  if (!input.title.trim()) throw new UserFacingError("Session title is required.")
+  if (input.capacity <= 0) throw new UserFacingError("Capacity must be greater than 0.")
+  if (input.price_amount < 0) throw new UserFacingError("Price cannot be negative.")
+  if (input.path_keys.length === 0) {
+    throw new UserFacingError("Select at least one philosophy path.")
+  }
+  if (input.image_paths.length > 3) {
+    throw new UserFacingError("Maximum 3 images per session.")
+  }
+  if (!isWithinOperatingHours(input.date, input.start_time, input.end_time)) {
+    throw new UserFacingError("Session must be within operating hours (06:00–24:00).")
+  }
+  if (input.status === "processing" && input.is_published) {
+    throw new UserFacingError("Only confirmed sessions can be published.")
+  }
+
+  const starts_at = toKstIso(input.date, input.start_time)
+  const ends_at = toKstIso(input.date, input.end_time)
+
+  if (new Date(ends_at) <= new Date(starts_at)) {
+    throw new UserFacingError("End time must be after start time.")
+  }
+
+  return { starts_at, ends_at }
+}
+
+function revalidateSessionCaches(isPublished: boolean) {
+  revalidatePath("/a/schedule")
+  if (isPublished) revalidatePath("/")
+}
+
+async function resolveExperienceIdForFloor(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  floorId: string,
+): Promise<string> {
+  const { data, error } = await supabase
+    .from("floors")
+    .select("experience_id")
+    .eq("id", floorId)
+    .maybeSingle()
+
+  if (error) throw new Error(error.message)
+  if (!data?.experience_id) {
+    throw new Error("Selected floor is missing an experience. Check Floors in the database.")
+  }
+
+  return data.experience_id as string
+}
+
+async function fetchOverlappingSessions(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  input: SessionFormInput,
+  starts_at: string,
+  ends_at: string,
+  excludeId?: string,
+): Promise<SessionConflictRow[]> {
+  const { start, end } = kstDayRange(input.date)
+
+  // Fetch every non-cancelled session in the day. All-floor sessions can
+  // conflict across floors, so we can't pre-filter by floor_id here; the
+  // day-scoped set is tiny, so we resolve conflicts in memory below.
+  const { data, error } = await supabase
+    .from("sessions")
+    .select(
+      "id, experience_id, floor_id, is_all_floors, instructor_id, starts_at, ends_at, title, status, slot_lane",
+    )
+    .gte("starts_at", start)
+    .lt("starts_at", end)
+    .neq("status", "cancelled")
+
+  if (error) throw new Error(error.message)
+
+  return (data ?? []).filter((row) => {
+    if (excludeId && row.id === excludeId) return false
+    return sessionsOverlap(starts_at, ends_at, row.starts_at, row.ends_at)
+  }) as SessionConflictRow[]
+}
+
+async function resolveSessionSlot(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  input: SessionFormInput,
+  experienceId: string,
+  starts_at: string,
+  ends_at: string,
+  excludeId?: string,
+): Promise<{ slot_lane: number }> {
+  const overlapping = await fetchOverlappingSessions(
+    supabase,
+    input,
+    starts_at,
+    ends_at,
+    excludeId,
+  )
+  return resolveSlotLane(input, experienceId, overlapping)
+}
+
+function trimDescriptionBlocks(
+  blocks: SessionDescriptionBlocks,
+): SessionDescriptionBlocks {
+  return {
+    intro: blocks.intro.trim(),
+    progress: blocks.progress.trim(),
+    preparation: blocks.preparation.trim(),
+  }
+}
+
+function sessionRowFromInput(
+  input: SessionFormInput,
+  starts_at: string,
+  ends_at: string,
+  slot_lane: number,
+  experience_id: string,
+) {
+  return {
+    experience_id,
+    floor_id: input.floor_id,
+    is_all_floors: input.is_all_floors,
+    instructor_id: input.instructor_id,
+    partner_program_id: input.partner_program_id || null,
+    title: input.title.trim(),
+    path_keys: input.path_keys,
+    starts_at,
+    ends_at,
+    capacity: input.capacity,
+    price_currency: input.price_currency,
+    price_amount: input.price_amount,
+    is_published: input.status === "confirmed" ? input.is_published : false,
+    status: input.status,
+    slot_lane,
+    image_paths: input.image_paths,
+    description_blocks: trimDescriptionBlocks(input.description_blocks),
+  }
+}
+
+async function removeSessionPhotos(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  paths: string[],
+) {
+  if (paths.length === 0) return
+  await supabase.storage.from(SESSION_PHOTOS_BUCKET).remove(paths)
+}
+
+async function copySessionPhotos(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  sourcePaths: string[],
+  targetSessionId: string,
+): Promise<string[]> {
+  const copied: string[] = []
+
+  for (let i = 0; i < sourcePaths.length; i++) {
+    const src = sourcePaths[i]
+    const ext = extFromPath(src)
+    const dest = sessionPhotoStoragePath(targetSessionId, i, ext)
+
+    const { data, error } = await supabase.storage
+      .from(SESSION_PHOTOS_BUCKET)
+      .download(src)
+
+    if (error || !data) continue
+
+    const { error: uploadError } = await supabase.storage
+      .from(SESSION_PHOTOS_BUCKET)
+      .upload(dest, data, { upsert: true, contentType: data.type || undefined })
+
+    if (!uploadError) copied.push(dest)
+  }
+
+  return copied
+}
+
+async function cancelCompetingProcessing(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  winnerId: string,
+  scope: { isAllFloors: boolean; floorId: string; experienceId: string },
+  starts_at: string,
+  ends_at: string,
+  cancelledBy: string,
+): Promise<number> {
+  const date = starts_at.slice(0, 10)
+  const { start, end } = kstDayRange(date)
+
+  // A confirmed all-floor winner clears competing processing sessions on every
+  // floor of its experience; a normal winner only clears its own floor.
+  let query = supabase
+    .from("sessions")
+    .select("id, starts_at, ends_at")
+    .eq("status", "processing")
+    .neq("id", winnerId)
+    .gte("starts_at", start)
+    .lt("starts_at", end)
+
+  query = scope.isAllFloors
+    ? query.eq("experience_id", scope.experienceId)
+    : query.eq("floor_id", scope.floorId)
+
+  const { data, error } = await query
+
+  if (error) throw new Error(error.message)
+
+  const losers = (data ?? []).filter((s) =>
+    sessionsOverlap(starts_at, ends_at, s.starts_at, s.ends_at),
+  )
+  if (losers.length === 0) return 0
+
+  const now = new Date().toISOString()
+  const { error: updateError } = await supabase
+    .from("sessions")
+    .update({
+      status: "cancelled",
+      cancelled_at: now,
+      cancelled_by: cancelledBy,
+      cancel_reason: "competition_lost",
+    })
+    .in(
+      "id",
+      losers.map((s) => s.id),
+    )
+
+  if (updateError) throw new Error(updateError.message)
+
+  // TODO: notify each cancelled session's created_by
+
+  return losers.length
+}
+
+export type SessionSaveResult =
+  | { ok: true; sessionId: string }
+  | { ok: false; error: string }
+
+async function saveSessionCore(
+  input: SessionFormInput,
+  sessionId?: string,
+  newSessionId?: string,
+): Promise<string> {
+  const { supabase, userId, userEmail } = await requireAuth()
+  const { starts_at, ends_at } = validateSessionInput(input)
+  const experience_id = await resolveExperienceIdForFloor(supabase, input.floor_id)
+  const { slot_lane } = await resolveSessionSlot(
+    supabase,
+    input,
+    experience_id,
+    starts_at,
+    ends_at,
+    sessionId,
+  )
+
+  const row = sessionRowFromInput(input, starts_at, ends_at, slot_lane, experience_id)
+
+  if (sessionId) {
+    const { data: existing, error: fetchError } = await supabase
+      .from("sessions")
+      .select("image_paths, status")
+      .eq("id", sessionId)
+      .maybeSingle()
+
+    if (fetchError) throw new Error(fetchError.message)
+    if (existing?.status === "cancelled") {
+      throw new Error("Cancelled sessions cannot be edited.")
+    }
+    if (existing?.status === "confirmed" && input.status === "processing") {
+      throw new Error("Confirmed sessions cannot revert to processing.")
+    }
+
+    const oldPaths = (existing?.image_paths as string[] | undefined) ?? []
+    const removed = oldPaths.filter((p) => !input.image_paths.includes(p))
+    if (removed.length > 0) await removeSessionPhotos(supabase, removed)
+
+    const { error } = await supabase
+      .from("sessions")
+      .update(row)
+      .eq("id", sessionId)
+    if (error) throw new Error(error.message)
+
+    revalidateSessionCaches(row.is_published)
+    return sessionId
+  }
+
+  const insertRow = {
+    ...(newSessionId ? { id: newSessionId } : {}),
+    ...row,
+    created_by: userId,
+    created_by_email: userEmail ?? null,
+  }
+
+  const { data, error } = await supabase
+    .from("sessions")
+    .insert(insertRow)
+    .select("id")
+    .single()
+
+  if (error) throw new Error(error.message)
+
+  revalidateSessionCaches(row.is_published)
+  return data.id
+}
+
+export async function saveSession(
+  input: SessionFormInput,
+  sessionId?: string,
+  newSessionId?: string,
+): Promise<SessionSaveResult> {
+  try {
+    const id = await saveSessionCore(input, sessionId, newSessionId)
+    return { ok: true, sessionId: id }
+  } catch (err) {
+    if (isUserFacingError(err)) return { ok: false, error: err.message }
+    console.error("[saveSession]", err)
+    return { ok: false, error: "Failed to save session. Please try again." }
+  }
+}
+
+export type ConfirmSessionResult =
+  | { ok: true; sessionId: string; cancelledCount: number }
+  | { ok: false; error: string }
+
+async function confirmSessionCore(
+  sessionId: string,
+): Promise<{ sessionId: string; cancelledCount: number }> {
+  const { supabase, userId } = await requireAuth()
+
+  const { data: session, error: fetchError } = await supabase
+    .from("sessions")
+    .select("*")
+    .eq("id", sessionId)
+    .maybeSingle()
+
+  if (fetchError) throw new Error(fetchError.message)
+  if (!session) throw new Error("Session not found.")
+  if (session.status === "cancelled") {
+    throw new Error("Cancelled sessions cannot be confirmed.")
+  }
+  if (session.status === "confirmed") {
+    return { sessionId, cancelledCount: 0 }
+  }
+
+  const input: SessionFormInput = {
+    floor_id: session.floor_id,
+    is_all_floors: session.is_all_floors,
+    instructor_id: session.instructor_id,
+    partner_program_id: session.partner_program_id,
+    title: session.title,
+    path_keys: session.path_keys ?? [],
+    date: session.starts_at.slice(0, 10),
+    start_time: formatTimeInKst(session.starts_at),
+    end_time: formatTimeInKst(session.ends_at),
+    capacity: session.capacity,
+    price_currency: session.price_currency ?? "USD",
+    price_amount: session.price_amount ?? 0,
+    is_published: session.is_published,
+    status: "confirmed",
+    image_paths: session.image_paths ?? [],
+    description_blocks: session.description_blocks as SessionDescriptionBlocks,
+  }
+
+  const { starts_at, ends_at } = validateSessionInput(input)
+  await resolveSessionSlot(
+    supabase,
+    input,
+    session.experience_id,
+    starts_at,
+    ends_at,
+    sessionId,
+  )
+
+  const now = new Date().toISOString()
+  const { error: updateError } = await supabase
+    .from("sessions")
+    .update({
+      status: "confirmed",
+      slot_lane: 0,
+      confirmed_at: now,
+      confirmed_by: userId,
+      is_published: true,
+    })
+    .eq("id", sessionId)
+
+  if (updateError) throw new Error(updateError.message)
+
+  const cancelledCount = await cancelCompetingProcessing(
+    supabase,
+    sessionId,
+    {
+      isAllFloors: session.is_all_floors,
+      floorId: session.floor_id,
+      experienceId: session.experience_id,
+    },
+    session.starts_at,
+    session.ends_at,
+    userId,
+  )
+
+  revalidateSessionCaches(true)
+  return { sessionId, cancelledCount }
+}
+
+export async function confirmSession(sessionId: string): Promise<ConfirmSessionResult> {
+  try {
+    const result = await confirmSessionCore(sessionId)
+    return { ok: true, ...result }
+  } catch (err) {
+    if (isUserFacingError(err)) return { ok: false, error: err.message }
+    console.error("[confirmSession]", err)
+    return { ok: false, error: "Failed to confirm session. Please try again." }
+  }
+}
+
+export type UnconfirmSessionResult =
+  | { ok: true; sessionId: string }
+  | { ok: false; error: string }
+
+async function unconfirmSessionCore(
+  sessionId: string,
+): Promise<{ sessionId: string }> {
+  const { supabase } = await requireAuth()
+
+  const { data: session, error: fetchError } = await supabase
+    .from("sessions")
+    .select("*")
+    .eq("id", sessionId)
+    .maybeSingle()
+
+  if (fetchError) throw new Error(fetchError.message)
+  if (!session) throw new Error("Session not found.")
+  if (session.status === "cancelled") {
+    throw new Error("Cancelled sessions cannot be reverted.")
+  }
+  if (session.status === "processing") {
+    return { sessionId }
+  }
+
+  const input: SessionFormInput = {
+    floor_id: session.floor_id,
+    is_all_floors: session.is_all_floors,
+    instructor_id: session.instructor_id,
+    partner_program_id: session.partner_program_id,
+    title: session.title,
+    path_keys: session.path_keys ?? [],
+    date: session.starts_at.slice(0, 10),
+    start_time: formatTimeInKst(session.starts_at),
+    end_time: formatTimeInKst(session.ends_at),
+    capacity: session.capacity,
+    price_currency: session.price_currency ?? "USD",
+    price_amount: session.price_amount ?? 0,
+    is_published: false,
+    status: "processing",
+    image_paths: session.image_paths ?? [],
+    description_blocks: session.description_blocks as SessionDescriptionBlocks,
+  }
+
+  const { starts_at, ends_at } = validateSessionInput(input)
+  const { slot_lane } = await resolveSessionSlot(
+    supabase,
+    input,
+    session.experience_id,
+    starts_at,
+    ends_at,
+    sessionId,
+  )
+
+  const wasPublished = session.is_published
+  const { error: updateError } = await supabase
+    .from("sessions")
+    .update({
+      status: "processing",
+      slot_lane,
+      is_published: false,
+      confirmed_at: null,
+      confirmed_by: null,
+    })
+    .eq("id", sessionId)
+
+  if (updateError) throw new Error(updateError.message)
+
+  revalidateSessionCaches(wasPublished)
+  return { sessionId }
+}
+
+export async function unconfirmSession(sessionId: string): Promise<UnconfirmSessionResult> {
+  try {
+    const result = await unconfirmSessionCore(sessionId)
+    return { ok: true, ...result }
+  } catch (err) {
+    if (isUserFacingError(err)) return { ok: false, error: err.message }
+    console.error("[unconfirmSession]", err)
+    return { ok: false, error: "Failed to revert session. Please try again." }
+  }
+}
+
+export type DuplicateSessionInput = {
+  date: string
+  start_time: string
+  end_time: string
+  floor_id: string
+}
+
+export type DuplicateSessionResult =
+  | { ok: true; sessionId: string }
+  | { ok: false; error: string }
+
+async function duplicateSessionCore(
+  sourceSessionId: string,
+  target: DuplicateSessionInput,
+): Promise<string> {
+  const { supabase, userId, userEmail } = await requireAuth()
+
+  const { data: source, error: fetchError } = await supabase
+    .from("sessions")
+    .select("*")
+    .eq("id", sourceSessionId)
+    .maybeSingle()
+
+  if (fetchError) throw new Error(fetchError.message)
+  if (!source) throw new Error("Source session not found.")
+
+  const input: SessionFormInput = {
+    floor_id: target.floor_id,
+    is_all_floors: source.is_all_floors,
+    instructor_id: source.instructor_id,
+    partner_program_id: source.partner_program_id,
+    title: source.title,
+    path_keys: source.path_keys ?? [],
+    date: target.date,
+    start_time: target.start_time,
+    end_time: target.end_time,
+    capacity: source.capacity,
+    price_currency: source.price_currency ?? "USD",
+    price_amount: source.price_amount ?? 0,
+    is_published: false,
+    status: "processing",
+    image_paths: [],
+    description_blocks: source.description_blocks as SessionDescriptionBlocks,
+  }
+
+  const { starts_at, ends_at } = validateSessionInput(input)
+  const experience_id = await resolveExperienceIdForFloor(supabase, input.floor_id)
+  const { slot_lane } = await resolveSessionSlot(
+    supabase,
+    input,
+    experience_id,
+    starts_at,
+    ends_at,
+  )
+
+  const row = sessionRowFromInput(input, starts_at, ends_at, slot_lane, experience_id)
+  row.image_paths = []
+
+  const { data: inserted, error: insertError } = await supabase
+    .from("sessions")
+    .insert({
+      ...row,
+      created_by: userId,
+      created_by_email: userEmail ?? null,
+    })
+    .select("id")
+    .single()
+
+  if (insertError) throw new Error(insertError.message)
+
+  const sourcePaths = (source.image_paths as string[] | undefined) ?? []
+  if (sourcePaths.length > 0) {
+    const copiedPaths = await copySessionPhotos(
+      supabase,
+      sourcePaths,
+      inserted.id,
+    )
+    if (copiedPaths.length > 0) {
+      const { error: updateError } = await supabase
+        .from("sessions")
+        .update({ image_paths: copiedPaths })
+        .eq("id", inserted.id)
+      if (updateError) throw new Error(updateError.message)
+    }
+  }
+
+  revalidateSessionCaches(false)
+  return inserted.id
+}
+
+export async function duplicateSession(
+  sourceSessionId: string,
+  target: DuplicateSessionInput,
+): Promise<DuplicateSessionResult> {
+  try {
+    const id = await duplicateSessionCore(sourceSessionId, target)
+    return { ok: true, sessionId: id }
+  } catch (err) {
+    if (isUserFacingError(err)) return { ok: false, error: err.message }
+    console.error("[duplicateSession]", err)
+    return { ok: false, error: "Failed to duplicate session. Please try again." }
+  }
+}
+
+export type DeleteSessionResult =
+  | { ok: true }
+  | { ok: false; error: string }
+
+async function deleteSessionCore(sessionId: string): Promise<void> {
+  const supabase = await requireAuth().then((ctx) => ctx.supabase)
+
+  const { data: session, error: fetchError } = await supabase
+    .from("sessions")
+    .select("image_paths, is_published")
+    .eq("id", sessionId)
+    .maybeSingle()
+
+  if (fetchError) throw new Error(fetchError.message)
+
+  const paths = (session?.image_paths as string[] | undefined) ?? []
+  if (paths.length > 0) await removeSessionPhotos(supabase, paths)
+
+  const { error } = await supabase.from("sessions").delete().eq("id", sessionId)
+  if (error) throw new Error(error.message)
+
+  revalidateSessionCaches(session?.is_published ?? false)
+}
+
+export async function deleteSession(sessionId: string): Promise<DeleteSessionResult> {
+  try {
+    await deleteSessionCore(sessionId)
+    return { ok: true }
+  } catch (err) {
+    if (isUserFacingError(err)) return { ok: false, error: err.message }
+    console.error("[deleteSession]", err)
+    return { ok: false, error: "Failed to delete session. Please try again." }
+  }
+}

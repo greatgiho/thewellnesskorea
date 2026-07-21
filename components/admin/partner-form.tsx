@@ -7,7 +7,7 @@ import type { PartnerFormInput, PartnerWithPrograms } from "@/lib/partners/types
 import type { RegionsForForms } from "@/lib/regions/types"
 import { ActivityRegionFields } from "@/components/partners/activity-region-fields"
 import { PartnerPhotoField } from "@/components/partners/partner-photo-field"
-import { savePartner } from "@/app/admin/actions"
+import { savePartner } from "@/app/a/actions"
 import { emptyPersonInput, personInputFromPerson } from "@/lib/partners/form-state"
 import {
   uploadPersonPhoto,
@@ -76,7 +76,7 @@ export function PartnerForm({ person, regions }: PartnerFormProps) {
         setError(result.error)
         return
       }
-      router.push("/admin/partners")
+      router.push("/a/partners")
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.")
     } finally {
@@ -271,7 +271,7 @@ export function PartnerForm({ person, regions }: PartnerFormProps) {
           {pending ? "Saving…" : isEdit ? "Save changes" : "Create person"}
         </button>
         <Link
-          href="/admin/partners"
+          href="/a/partners"
           className="inline-flex h-9 items-center justify-center rounded-lg border border-border bg-background px-4 text-sm font-medium transition-colors hover:bg-muted"
         >
           Cancel

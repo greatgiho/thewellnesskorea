@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 function adminAccessError(role: string | undefined): string | null {
   if (role === "admin") return null
   if (role === "partner") {
-    return "This is a partner account. Sign in at /partner/login instead."
+    return "This is a partner account. Sign in at /p/login instead."
   }
   if (role === "member") {
     return "Member accounts cannot access admin. Use /login for member sign-in."
@@ -57,7 +57,7 @@ export function AdminLoginForm() {
     }
 
     setPending(false)
-    router.push("/admin/partners")
+    router.push("/a/partners")
     router.refresh()
   }
 

@@ -17,7 +17,7 @@ import {
   confirmSession,
   saveSession,
   unconfirmSession,
-} from "@/app/admin/schedule/actions"
+} from "@/app/a/schedule/actions"
 import { sessionStatusLabel, SESSION_STATUS_RIBBON_CLASS } from "@/lib/schedule/session-status"
 import { PhilosophyPathPicker } from "@/components/admin/philosophy-path-picker"
 import { InstructorSearchPicker } from "@/components/admin/instructor-search-picker"

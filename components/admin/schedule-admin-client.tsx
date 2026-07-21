@@ -42,7 +42,7 @@ function buildScheduleUrl(
   floorSlug: string,
 ): string {
   const params = new URLSearchParams({ date, view, floor: floorSlug })
-  return `/admin/schedule?${params.toString()}`
+  return `/a/schedule?${params.toString()}`
 }
 
 export function ScheduleAdminClient({

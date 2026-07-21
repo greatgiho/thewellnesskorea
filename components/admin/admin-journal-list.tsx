@@ -21,7 +21,7 @@ export function AdminJournalList({ posts }: AdminJournalListProps) {
     <div className="space-y-4">
       <div className="flex justify-end">
         <Link
-          href="/admin/journal/new"
+          href="/a/journal/new"
           className="inline-flex h-9 items-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
         >
           New post
@@ -65,7 +65,7 @@ export function AdminJournalList({ posts }: AdminJournalListProps) {
                   </td>
                   <td className="px-4 py-3 text-right">
                     <Link
-                      href={`/admin/journal/${post.id}/edit`}
+                      href={`/a/journal/${post.id}/edit`}
                       className="text-primary hover:underline"
                     >
                       Edit

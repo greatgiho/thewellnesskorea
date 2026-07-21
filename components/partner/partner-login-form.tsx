@@ -48,7 +48,7 @@ export function PartnerLoginForm() {
       return
     }
 
-    router.push("/partner")
+    router.push("/p")
     router.refresh()
   }
 

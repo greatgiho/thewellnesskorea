@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react"
 import {
   cancelBookingAsAdmin,
   fetchSessionBookings,
-} from "@/app/admin/bookings/actions"
+} from "@/app/a/bookings/actions"
 import { formatBookingDateTime } from "@/lib/bookings/format"
 import type { AdminBookingItem } from "@/lib/bookings/admin-queries"
 

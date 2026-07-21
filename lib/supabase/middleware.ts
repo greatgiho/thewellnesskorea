@@ -74,8 +74,8 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  const isAdminRoute = pathname.startsWith("/admin")
-  const isAdminLoginPage = pathname === "/admin/login"
+  const isAdminRoute = pathname === "/a" || pathname.startsWith("/a/")
+  const isAdminLoginPage = pathname === "/a/login"
   const isAccountRoute = pathname.startsWith("/account")
   const isMemberLoginPage = pathname === "/login"
   const isMemberSignupPage = pathname === "/signup"
@@ -102,7 +102,7 @@ export async function updateSession(request: NextRequest) {
   if (isAdminRoute && !isAdminLoginPage) {
     if (!user) {
       const redirectUrl = request.nextUrl.clone()
-      redirectUrl.pathname = "/admin/login"
+      redirectUrl.pathname = "/a/login"
       return NextResponse.redirect(redirectUrl)
     }
     if (isMemberIntent || role === "member") {
@@ -112,7 +112,7 @@ export async function updateSession(request: NextRequest) {
     }
     if (role !== "admin") {
       const redirectUrl = request.nextUrl.clone()
-      redirectUrl.pathname = "/admin/login"
+      redirectUrl.pathname = "/a/login"
       redirectUrl.search = "error=not_admin"
       return NextResponse.redirect(redirectUrl)
     }
@@ -126,7 +126,7 @@ export async function updateSession(request: NextRequest) {
     }
     if (role === "admin") {
       const redirectUrl = request.nextUrl.clone()
-      redirectUrl.pathname = "/admin/partners"
+      redirectUrl.pathname = "/a/partners"
       return NextResponse.redirect(redirectUrl)
     }
   }

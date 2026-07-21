@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useTransition } from "react"
-import { createSessionPost, deleteSessionPost } from "@/app/partner/session-actions"
+import { createSessionPost, deleteSessionPost } from "@/app/p/session-actions"
 import type { SessionPost } from "@/lib/partner/queries"
 
 type Props = {

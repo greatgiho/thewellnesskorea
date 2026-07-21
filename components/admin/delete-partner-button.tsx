@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { deletePartner } from "@/app/admin/actions"
+import { deletePartner } from "@/app/a/actions"
 import { Button } from "@/components/ui/button"
 
 type DeletePartnerButtonProps = {
@@ -19,7 +19,7 @@ export function DeletePartnerButton({ id, name }: DeletePartnerButtonProps) {
     setPending(true)
     try {
       await deletePartner(id)
-      router.push("/admin/partners")
+      router.push("/a/partners")
       router.refresh()
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to delete.")

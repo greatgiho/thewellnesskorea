@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { deleteJournalPost } from "@/app/admin/journal/actions"
+import { deleteJournalPost } from "@/app/a/journal/actions"
 
 type DeleteJournalButtonProps = {
   postId: string

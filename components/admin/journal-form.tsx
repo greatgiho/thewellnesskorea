@@ -14,7 +14,7 @@ import type { JournalPartnerOption } from "@/lib/journal/partners"
 import { getJournalPhotoUrl, validateJournalPhotoFile } from "@/lib/journal/images"
 import { uploadJournalHero } from "@/lib/journal/photo-upload"
 import type { JournalFormInput, JournalPostRow } from "@/lib/journal/types"
-import { saveJournalPost } from "@/app/admin/journal/actions"
+import { saveJournalPost } from "@/app/a/journal/actions"
 import Image from "next/image"
 import Link from "next/link"
 import { ImagePlus } from "lucide-react"
@@ -105,7 +105,7 @@ export function JournalForm({
         setError(result.error)
         return
       }
-      router.push("/admin/journal")
+      router.push("/a/journal")
       router.refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.")
@@ -389,7 +389,7 @@ export function JournalForm({
           {pending ? "Saving…" : isEdit ? "Save" : "Create"}
         </button>
         <Link
-          href="/admin/journal"
+          href="/a/journal"
           className="inline-flex h-9 items-center rounded-lg border border-border px-4 text-sm font-medium hover:bg-muted"
         >
           Cancel

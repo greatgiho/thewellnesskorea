@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { provisionPartnerAccount } from "@/app/admin/actions"
+import { provisionPartnerAccount } from "@/app/a/actions"
 import type { PartnerWithPrograms } from "@/lib/partners/types"
 
 type Props = { person: PartnerWithPrograms }
