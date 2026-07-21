@@ -1,0 +1,81 @@
+name: Reverse-sync greatgiho → great (open PR)
+
+# greatgiho/main(=giho의 프로덕션 tip)이 great/dev보다 앞서면,
+# giho의 커밋을 SHA 보존으로 great/dev에 역반영하는 PR을 자동으로 연다.
+# 머지는 사람이 리뷰 후 수행(직접 push 아님). forward 미러와 달리 PAT 불필요
+# (greatgiho는 public이라 읽기 무인증, great push/PR은 기본 GITHUB_TOKEN).
+on:
+  schedule:
+    # 시간은 UTC. KST = UTC+9.
+    - cron: "0 21 * * *"     # 06:00 KST (아침)
+    - cron: "0 13 * * *"     # 22:00 KST (밤)
+    - cron: "0,30 3-9 * * *" # 일과: 12:00–18:30 KST, 30분마다
+    - cron: "0 10 * * *"     # 19:00 KST (일과 끝)
+  workflow_dispatch: {}
+
+concurrency:
+  group: reverse-sync-greatgiho
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  reverse-sync:
+    # 미러본이 greatgiho로 딸려가도 거기서 돌지 않도록 원본에서만 실행
+    if: github.repository == 'great/TheWellnessKorea'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout great/dev (full history)
+        uses: actions/checkout@v4
+        with:
+          ref: dev
+          fetch-depth: 0
+
+      - name: Fetch greatgiho/main (public, 무인증)
+        run: |
+          git remote add greatgiho https://github.com/greatgiho/thewellnesskorea.git
+          git fetch --no-tags greatgiho main
+
+      - name: Open reverse-sync PR if greatgiho is ahead
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          AHEAD=$(git rev-list --count HEAD..greatgiho/main)
+          echo "greatgiho/main 이 great/dev 보다 앞선 커밋: $AHEAD"
+          if [ "$AHEAD" -eq 0 ]; then
+            echo "동기화 상태 — 할 일 없음."; exit 0
+          fi
+
+          # 이미 열린 역방향 PR이 있으면 중복 생성하지 않음
+          OPEN=$(gh pr list --state open --base dev --json headRefName \
+                  --jq '[.[].headRefName | select(startswith("reverse-sync/"))] | length')
+          if [ "$OPEN" -gt 0 ]; then
+            echo "이미 열린 reverse-sync PR 존재 — 스킵(먼저 처리 필요)."; exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          BR="reverse-sync/greatgiho-$(date +%Y%m%d-%H%M%S)"
+          git checkout -b "$BR"
+
+          SUMMARY=$(git log --oneline --no-merges HEAD..greatgiho/main | sed 's/^/- /')
+
+          if git merge --no-ff greatgiho/main -m "Reverse-sync greatgiho/main → great/dev"; then
+            git push origin "$BR"
+            gh pr create --base dev --head "$BR" \
+              --title "Reverse-sync: greatgiho/main → great/dev ($AHEAD commits)" \
+              --body "$(printf 'greatgiho/main 이 great/dev 보다 **%s커밋** 앞서 자동 생성된 역방향 동기화 PR입니다(SHA 보존 머지).\n\n%s\n\n- cherry-pick 아님 → 원본 SHA 유지(중복/루프 방지).\n- 리뷰 후 머지하면 미러로 greatgiho/dev 도 정렬됩니다.\n- ⚠️ 새 마이그레이션이 포함될 수 있으니 DB 반영 여부 확인.' "$AHEAD" "$SUMMARY")"
+          else
+            # 충돌 시: 자동 해결하지 않고, 원본 tip 브랜치로 PR을 열어 사람이 GitHub에서 해결
+            git merge --abort
+            SHA=$(git rev-parse greatgiho/main)
+            git push origin "$SHA:refs/heads/$BR"
+            gh pr create --base dev --head "$BR" \
+              --title "⚠️ [conflicts] Reverse-sync: greatgiho/main → great/dev ($AHEAD commits)" \
+              --body "$(printf '자동 머지에서 **충돌**이 발생했습니다. GitHub PR에서 수동 해결하거나 로컬에서 머지하세요.\n\n%s' "$SUMMARY")"
+          fi
