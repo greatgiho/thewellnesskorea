@@ -14,7 +14,7 @@ export type MemberCancelState = {
   error?: string
 }
 
-function memberAuthRedirect(next = "/account/bookings"): string {
+function memberAuthRedirect(next = "/u/bookings"): string {
   const params = new URLSearchParams({ next })
   return `${siteOrigin()}/auth/callback?${params.toString()}`
 }
@@ -92,7 +92,7 @@ export async function cancelMemberBooking(
     const { userId } = await requireMemberSession()
     await cancelBookingForUserRpc(bookingId, userId)
 
-    revalidatePath("/account/bookings")
+    revalidatePath("/u/bookings")
     revalidatePath("/")
     return {}
   } catch (error) {

@@ -76,10 +76,15 @@ export async function updateSession(request: NextRequest) {
 
   const isAdminRoute = pathname === "/a" || pathname.startsWith("/a/")
   const isAdminLoginPage = pathname === "/a/login"
-  const isAccountRoute = pathname.startsWith("/account")
-  const isMemberLoginPage = pathname === "/login"
-  const isMemberSignupPage = pathname === "/signup"
+  const isMemberLoginPage = pathname === "/u/login" || pathname === "/login"
+  const isMemberSignupPage = pathname === "/u/signup"
   const isMemberCheckEmailPage = pathname === "/login/check-email"
+  // Protected member area = /u and /u/* EXCEPT the login/signup pages
+  // (those must be reachable while signed out).
+  const isAccountRoute =
+    (pathname === "/u" || pathname.startsWith("/u/")) &&
+    !isMemberLoginPage &&
+    !isMemberSignupPage
   const role = authRole(user)
   const signupIntent =
     typeof user?.user_metadata?.signup_intent === "string"
@@ -89,13 +94,13 @@ export async function updateSession(request: NextRequest) {
 
   if (isAccountRoute && !user) {
     const redirectUrl = request.nextUrl.clone()
-    redirectUrl.pathname = "/login"
+    redirectUrl.pathname = "/u/login"
     return NextResponse.redirect(redirectUrl)
   }
 
   if ((isMemberLoginPage || isMemberSignupPage) && user && isMemberIntent) {
     const redirectUrl = request.nextUrl.clone()
-    redirectUrl.pathname = "/account/bookings"
+    redirectUrl.pathname = "/u/bookings"
     return NextResponse.redirect(redirectUrl)
   }
 
@@ -107,7 +112,7 @@ export async function updateSession(request: NextRequest) {
     }
     if (isMemberIntent || role === "member") {
       const redirectUrl = request.nextUrl.clone()
-      redirectUrl.pathname = "/account/bookings"
+      redirectUrl.pathname = "/u/bookings"
       return NextResponse.redirect(redirectUrl)
     }
     if (role !== "admin") {
@@ -121,7 +126,7 @@ export async function updateSession(request: NextRequest) {
   if (isAdminLoginPage && user) {
     if (isMemberIntent || role === "member") {
       const redirectUrl = request.nextUrl.clone()
-      redirectUrl.pathname = "/account/bookings"
+      redirectUrl.pathname = "/u/bookings"
       return NextResponse.redirect(redirectUrl)
     }
     if (role === "admin") {
@@ -133,7 +138,7 @@ export async function updateSession(request: NextRequest) {
 
   if (isMemberCheckEmailPage && user && isMemberIntent) {
     const redirectUrl = request.nextUrl.clone()
-    redirectUrl.pathname = "/account/bookings"
+    redirectUrl.pathname = "/u/bookings"
     return NextResponse.redirect(redirectUrl)
   }
 

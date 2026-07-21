@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { signOutMember } from "@/app/account/actions"
+import { signOutMember } from "@/app/u/actions"
 import { completeMemberOnboarding } from "@/lib/auth/member-account"
 import { requireMemberSession } from "@/lib/auth/require-session"
 

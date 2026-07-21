@@ -55,7 +55,7 @@ export default async function BookConfirmPage({
             Save this booking to an account for easier access next time.
           </p>
           <Link
-            href={`/signup?${signupParams.toString()}`}
+            href={`/u/signup?${signupParams.toString()}`}
             className="mt-4 inline-flex rounded-full border border-border bg-background px-5 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
           >
             Create account with this email
@@ -70,7 +70,7 @@ export default async function BookConfirmPage({
             Back to schedule
           </Link>
           <Link
-            href="/login"
+            href="/u/login"
             className="inline-flex rounded-full border border-border px-6 py-3 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
           >
             Sign in

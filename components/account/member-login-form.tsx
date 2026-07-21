@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { requestMemberLoginLink } from "@/app/account/actions"
+import { requestMemberLoginLink } from "@/app/u/actions"
 
 export function MemberLoginForm() {
   const [email, setEmail] = useState("")
@@ -61,7 +61,7 @@ export function MemberLoginForm() {
 
       <p className="text-center text-sm text-muted-foreground">
         New here?{" "}
-        <Link href="/signup" className="text-primary underline-offset-4 hover:underline">
+        <Link href="/u/signup" className="text-primary underline-offset-4 hover:underline">
           Create an account
         </Link>
       </p>

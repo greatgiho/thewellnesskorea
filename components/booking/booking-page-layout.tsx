@@ -26,7 +26,7 @@ export function BookingPageLayout({
           </Link>
           <div className="flex items-center gap-4 text-sm">
             <Link
-              href="/login"
+              href="/u/login"
               className="text-muted-foreground transition-colors hover:text-foreground"
             >
               Sign in

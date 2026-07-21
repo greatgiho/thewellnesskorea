@@ -20,7 +20,7 @@ function revalidateBookingCaches() {
   revalidatePath("/a/bookings")
   revalidatePath("/a/schedule")
   revalidatePath("/")
-  revalidatePath("/account/bookings")
+  revalidatePath("/u/bookings")
 }
 
 export async function fetchSessionBookings(sessionId: string) {

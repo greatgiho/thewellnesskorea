@@ -16,7 +16,7 @@ export async function requireMemberSession() {
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user) redirect("/login")
+  if (!user) redirect("/u/login")
   if (!user.email) throw new Error("Email is required on your account.")
 
   const role = user.app_metadata?.role

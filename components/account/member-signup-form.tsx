@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { requestMemberSignupLink } from "@/app/account/actions"
+import { requestMemberSignupLink } from "@/app/u/actions"
 
 type MemberSignupFormProps = {
   defaultEmail?: string
@@ -87,7 +87,7 @@ export function MemberSignupForm({
 
       <p className="text-center text-sm text-muted-foreground">
         Already have an account?{" "}
-        <Link href="/login" className="text-primary underline-offset-4 hover:underline">
+        <Link href="/u/login" className="text-primary underline-offset-4 hover:underline">
           Sign in
         </Link>
       </p>

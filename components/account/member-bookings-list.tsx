@@ -1,7 +1,7 @@
 "use client"
 
 import { useActionState } from "react"
-import { cancelMemberBooking, type MemberCancelState } from "@/app/account/actions"
+import { cancelMemberBooking, type MemberCancelState } from "@/app/u/actions"
 import { formatBookingDateTime } from "@/lib/bookings/format"
 import { money, formatMoney } from "@/lib/payments/money"
 import type { MemberBookingItem } from "@/lib/bookings/member-queries"

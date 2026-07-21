@@ -38,7 +38,7 @@ export function TrueLoginForm() {
       return
     }
 
-    router.push("/account")
+    router.push("/u")
     router.refresh()
   }
 
@@ -94,7 +94,7 @@ export function TrueLoginForm() {
       </p>
       <p className="text-center text-sm text-muted-foreground">
         처음이신가요?{" "}
-        <Link href="/signup" className="text-primary underline-offset-4 hover:underline">
+        <Link href="/u/signup" className="text-primary underline-offset-4 hover:underline">
           회원가입
         </Link>
       </p>
