@@ -1,9 +1,12 @@
 name: Reverse-sync greatgiho → great (open PR)
 
-# greatgiho/main(=giho의 프로덕션 tip)이 great/dev보다 앞서면,
-# giho의 커밋을 SHA 보존으로 great/dev에 역반영하는 PR을 자동으로 연다.
+# greatgiho/main(=giho의 프로덕션 tip)에 great/dev 에 없는 변경이 있으면,
+# SHA 보존으로 great/dev 에 역반영하는 PR을 자동으로 연다.
 # 머지는 사람이 리뷰 후 수행(직접 push 아님). forward 미러와 달리 PAT 불필요
 # (greatgiho는 public이라 읽기 무인증, great push/PR은 기본 GITHUB_TOKEN).
+#
+# 감지는 SHA가 아니라 "내용(trial merge)" 기준 → 이전 PR을 squash/rebase로
+# 머지해 원본 SHA가 dev 이력에 없어도 재감지(중복 PR)하지 않는다.
 on:
   schedule:
     # 시간은 UTC. KST = UTC+9.
@@ -38,17 +41,11 @@ jobs:
           git remote add greatgiho https://github.com/greatgiho/thewellnesskorea.git
           git fetch --no-tags greatgiho main
 
-      - name: Open reverse-sync PR if greatgiho is ahead
+      - name: Open reverse-sync PR if greatgiho has changes not in great/dev
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-
-          AHEAD=$(git rev-list --count HEAD..greatgiho/main)
-          echo "greatgiho/main 이 great/dev 보다 앞선 커밋: $AHEAD"
-          if [ "$AHEAD" -eq 0 ]; then
-            echo "동기화 상태 — 할 일 없음."; exit 0
-          fi
 
           # 이미 열린 역방향 PR이 있으면 중복 생성하지 않음
           OPEN=$(gh pr list --state open --base dev --json headRefName \
@@ -62,20 +59,27 @@ jobs:
 
           BR="reverse-sync/greatgiho-$(date +%Y%m%d-%H%M%S)"
           git checkout -b "$BR"
-
           SUMMARY=$(git log --oneline --no-merges HEAD..greatgiho/main | sed 's/^/- /')
 
-          if git merge --no-ff greatgiho/main -m "Reverse-sync greatgiho/main → great/dev"; then
+          # 내용 기준 판정: trial merge 결과 파일 변경이 없으면(=이미 반영, squash 포함)
+          # 아무것도 안 한다. 변경이 있으면 그 머지로 PR을 연다.
+          if git merge --no-ff --no-commit greatgiho/main >/dev/null 2>&1; then
+            if git diff --cached --quiet; then
+              echo "내용 이미 동기화됨(SHA가 달라도) — PR 불필요."
+              git merge --abort 2>/dev/null || git reset --hard HEAD
+              exit 0
+            fi
+            git commit -m "Reverse-sync greatgiho/main → great/dev"
             git push origin "$BR"
             gh pr create --base dev --head "$BR" \
-              --title "Reverse-sync: greatgiho/main → great/dev ($AHEAD commits)" \
-              --body "$(printf 'greatgiho/main 이 great/dev 보다 **%s커밋** 앞서 자동 생성된 역방향 동기화 PR입니다(SHA 보존 머지).\n\n%s\n\n- cherry-pick 아님 → 원본 SHA 유지(중복/루프 방지).\n- 리뷰 후 머지하면 미러로 greatgiho/dev 도 정렬됩니다.\n- ⚠️ 새 마이그레이션이 포함될 수 있으니 DB 반영 여부 확인.' "$AHEAD" "$SUMMARY")"
+              --title "Reverse-sync: greatgiho/main → great/dev" \
+              --body "$(printf 'greatgiho/main 에 great/dev 에 없는 변경이 있어 자동 생성된 역방향 동기화 PR입니다(SHA 보존 머지).\n\n%s\n\n- ⚠️ 새 마이그레이션 포함 여부(예: 033) 확인 후 DB 반영.\n- 병합 방식(merge/squash) 무관 — 다음 실행은 내용 기준이라 재감지하지 않음.' "$SUMMARY")"
           else
-            # 충돌 시: 자동 해결하지 않고, 원본 tip 브랜치로 PR을 열어 사람이 GitHub에서 해결
-            git merge --abort
+            # 충돌 시: 자동 해결하지 않고 원본 tip 브랜치로 PR을 열어 사람이 GitHub에서 해결
+            git merge --abort 2>/dev/null || git reset --hard HEAD
             SHA=$(git rev-parse greatgiho/main)
             git push origin "$SHA:refs/heads/$BR"
             gh pr create --base dev --head "$BR" \
-              --title "⚠️ [conflicts] Reverse-sync: greatgiho/main → great/dev ($AHEAD commits)" \
+              --title "⚠️ [conflicts] Reverse-sync: greatgiho/main → great/dev" \
               --body "$(printf '자동 머지에서 **충돌**이 발생했습니다. GitHub PR에서 수동 해결하거나 로컬에서 머지하세요.\n\n%s' "$SUMMARY")"
           fi
