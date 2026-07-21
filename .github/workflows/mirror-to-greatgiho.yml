@@ -1,10 +1,11 @@
-name: Mirror dev → greatgiho
+name: Mirror main → greatgiho (release)
 
-# great(원본)의 dev가 갱신되면 greatgiho(다운스트림 미러)의 dev로 push한다.
-# 운영 배포는 greatgiho에서 dev→main 릴리즈로 별도 처리(자동 아님).
+# great(원본)의 main이 갱신될 때만 greatgiho(다운스트림)의 main으로 push한다.
+# 즉 great에서 dev→main 릴리즈를 하면, 그 결과가 greatgiho/main 에 반영되고
+# giho의 Vercel이 운영 배포한다. (dev push마다 자동 동기화하지 않는다 — release-gated)
 on:
   push:
-    branches: [dev]
+    branches: [main]
   workflow_dispatch: {}
 
 # 동시에 여러 번 돌지 않게(중복 push 방지)
@@ -18,18 +19,22 @@ jobs:
     if: github.repository == 'great/TheWellnessKorea'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout (full history)
+      - name: Checkout main (full history)
         uses: actions/checkout@v4
         with:
+          ref: main
           fetch-depth: 0
           # GITHUB_TOKEN을 git config에 심지 않게 — 안 그러면 push URL의 PAT를
           # 덮어써 github-actions[bot]로 push되어 greatgiho에 403이 난다.
           persist-credentials: false
 
-      - name: Push dev to greatgiho (fast-forward only)
+      - name: Push main to greatgiho/main (fast-forward only)
         env:
           SYNC_TOKEN: ${{ secrets.GH_SYNC_TOKEN }}
         run: |
           set -euo pipefail
-          git push "https://x-access-token:${SYNC_TOKEN}@github.com/greatgiho/thewellnesskorea.git" HEAD:dev
-          echo "Synced $(git rev-parse --short HEAD) → greatgiho/dev"
+          # --force 없음(ff-only): giho가 greatgiho/main 에 직접 올린 게 있으면
+          # non-fast-forward 로 거부되어 이 잡이 실패한다. 그럴 땐 역방향 동기화로
+          # 회수(merge-commit, SHA 보존)한 뒤 다시 릴리즈하면 ff 로 통과한다.
+          git push "https://x-access-token:${SYNC_TOKEN}@github.com/greatgiho/thewellnesskorea.git" HEAD:main
+          echo "Released $(git rev-parse --short HEAD) → greatgiho/main"
