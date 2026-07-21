@@ -35,6 +35,11 @@ export function shouldBypassSiteAccess(
   if (pathname === "/site-unlock") return true
   if (pathname === "/auth/callback") return true
   if (authCallbackParams(searchParams)) return true
+  // External server-to-server endpoints (PayPal webhook, Vercel cron)
+  // authenticate via their own signature / secret and cannot present the
+  // site-unlock cookie, so the whole-site gate must not intercept them.
+  if (pathname.startsWith("/api/webhooks/")) return true
+  if (pathname.startsWith("/api/cron/")) return true
   return false
 }
 
