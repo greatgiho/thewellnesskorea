@@ -49,6 +49,7 @@ const defaultInput = (
   startTime: string,
 ): SessionFormInput => ({
   floor_id: floorId,
+  is_all_floors: false,
   instructor_id: "",
   partner_program_id: null,
   title: "",
@@ -112,6 +113,7 @@ export function SessionFormDialog({
     if (session) {
       setInput({
         floor_id: session.floor_id,
+        is_all_floors: session.is_all_floors ?? false,
         instructor_id: session.instructor_id,
         partner_program_id: session.partner_program_id,
         title: session.title,
@@ -362,11 +364,12 @@ export function SessionFormDialog({
                   }
                 />
               </label>
-              <label className="block space-y-1.5">
+              <div className="block space-y-1.5">
                 <span className="text-sm font-medium">Floor</span>
                 <select
                   className={fieldClass}
                   value={input.floor_id}
+                  disabled={input.is_all_floors}
                   onChange={(e) =>
                     setInput((v) => ({ ...v, floor_id: e.target.value }))
                   }
@@ -377,7 +380,29 @@ export function SessionFormDialog({
                     </option>
                   ))}
                 </select>
-              </label>
+                <label className="flex items-center gap-2 pt-0.5">
+                  <input
+                    type="checkbox"
+                    checked={input.is_all_floors}
+                    onChange={(e) =>
+                      setInput((v) => ({
+                        ...v,
+                        is_all_floors: e.target.checked,
+                      }))
+                    }
+                    className="size-4 rounded border-border"
+                  />
+                  <span className="text-xs font-medium text-foreground">
+                    전층 사용 · All floors
+                  </span>
+                </label>
+                {input.is_all_floors && (
+                  <p className="text-xs text-muted-foreground">
+                    이 시간대에 건물 전체(모든 층)를 점유합니다. 위 층은
+                    대표(홈) 층으로 저장돼요.
+                  </p>
+                )}
+              </div>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">

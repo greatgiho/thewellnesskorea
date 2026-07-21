@@ -28,7 +28,7 @@ export default async function AdminSchedulePage({ searchParams }: PageProps) {
       ? params.date
       : todayDateKeyInKst()
 
-  const view: ScheduleViewMode = params.view === "month" ? "month" : "week"
+  const view: ScheduleViewMode = params.view === "week" ? "week" : "month"
 
   const floors = await getFloors()
   const floorSlug =
