@@ -16,9 +16,10 @@ export async function requirePartnerSession() {
   const role = user.app_metadata?.role
 
   // Admin read-only impersonation: resolve the TARGET partner instead of the
-  // caller's own account. NOTE: deep data queries still run under the admin's
-  // own RLS (my_partner_id() is empty for admins), so session/booking lists
-  // are empty until target-scoped reads are wired (view-as data phase).
+  // caller's own account. Portal pages filter their queries by the returned
+  // partner.id and run under the admin's client, whose "admin all" RLS reads
+  // the target's rows — so /p renders the target's real data. Writes are still
+  // refused by assertNotViewAs().
   if (role === "admin") {
     const viewAs = await getViewAs()
     if (viewAs?.kind === "partner") {

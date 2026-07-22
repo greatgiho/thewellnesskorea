@@ -24,8 +24,9 @@ export async function requireMemberSession() {
   const role = user.app_metadata?.role
 
   // Admin read-only impersonation: resolve the TARGET member. userId/userEmail
-  // point at the target; deep data still runs under the admin's RLS until
-  // target-scoped reads are wired (view-as data phase).
+  // point at the target; member queries filter by userId and read under the
+  // admin's "admin all" RLS, so /u renders the target's real data. Writes are
+  // refused by assertNotViewAs().
   if (role === "admin") {
     const viewAs = await getViewAs()
     if (viewAs?.kind === "member") {
