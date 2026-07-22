@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache"
 import { requirePartnerSession } from "@/lib/auth/require-partner-session"
+import { assertNotViewAs } from "@/lib/view-as-server"
 
 export type PostResult = { ok: true } | { ok: false; error: string }
 
@@ -13,6 +14,7 @@ export async function createSessionPost(
   if (!trimmed) return { ok: false, error: "내용을 입력해 주세요." }
 
   try {
+    await assertNotViewAs()
     const { supabase, partner } = await requirePartnerSession()
 
     // 본인 세션이며 종료된 경우에만 허용
@@ -51,6 +53,7 @@ export async function deleteSessionPost(
   postId: string,
 ): Promise<PostResult> {
   try {
+    await assertNotViewAs()
     const { supabase, partner } = await requirePartnerSession()
 
     const { error } = await supabase

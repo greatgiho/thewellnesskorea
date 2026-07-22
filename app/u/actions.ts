@@ -6,6 +6,7 @@ import { isRedirectError } from "next/dist/client/components/redirect-error"
 import { siteOrigin } from "@/lib/site-origin"
 import { completeMemberOnboarding, validateMemberSignupEmail } from "@/lib/auth/member-account"
 import { requireMemberSession } from "@/lib/auth/require-session"
+import { assertNotViewAs } from "@/lib/view-as-server"
 import { cancelBookingForUserRpc } from "@/lib/bookings/rpc"
 import { isValidEmail } from "@/lib/partners/utils"
 import { createClient } from "@/lib/supabase/server"
@@ -84,6 +85,7 @@ export async function cancelMemberBooking(
   formData: FormData,
 ): Promise<MemberCancelState> {
   try {
+    await assertNotViewAs()
     const bookingId = String(formData.get("bookingId") ?? "")
     if (!bookingId) {
       return { error: "Invalid booking." }

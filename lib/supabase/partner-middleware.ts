@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { createServerClient } from "@supabase/ssr"
+import { VIEW_AS_COOKIE, decodeViewAs } from "@/lib/view-as"
 
 export async function updatePartnerSession(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -45,11 +46,18 @@ export async function updatePartnerSession(request: NextRequest) {
 
     const role = user.app_metadata?.role
     if (role !== "partner") {
-      // Not a partner — redirect to login with error
-      const redirectUrl = request.nextUrl.clone()
-      redirectUrl.pathname = "/p/login"
-      redirectUrl.search = "error=not_partner"
-      return NextResponse.redirect(redirectUrl, { headers: supabaseResponse.headers })
+      // Allow admins in read-only view-as (impersonating a partner) through;
+      // requirePartnerSession resolves the target and mutations are blocked.
+      const viewAs =
+        role === "admin"
+          ? await decodeViewAs(request.cookies.get(VIEW_AS_COOKIE)?.value)
+          : null
+      if (viewAs?.kind !== "partner") {
+        const redirectUrl = request.nextUrl.clone()
+        redirectUrl.pathname = "/p/login"
+        redirectUrl.search = "error=not_partner"
+        return NextResponse.redirect(redirectUrl, { headers: supabaseResponse.headers })
+      }
     }
   }
 

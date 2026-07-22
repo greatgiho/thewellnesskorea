@@ -3,6 +3,7 @@ import { notFound } from "next/navigation"
 import { PartnerDetailView } from "@/components/admin/partner-detail-view"
 import { getPartnerById } from "@/lib/partners/queries"
 import { getRegionsForForms } from "@/lib/regions/queries"
+import { startViewAs } from "@/app/a/view-as-actions"
 
 type Props = {
   params: Promise<{ id: string }>
@@ -30,6 +31,14 @@ export default async function PersonDetailPage({ params }: Props) {
             Profile
           </h1>
         </div>
+        <form action={startViewAs.bind(null, "partner", id)}>
+          <button
+            type="submit"
+            className="rounded-full border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+          >
+            👁 이 파트너로 보기 (읽기전용)
+          </button>
+        </form>
       </div>
       <PartnerDetailView person={person} sido={sido} />
     </div>

@@ -2,17 +2,22 @@ import Link from "next/link"
 import { signOutMember } from "@/app/u/actions"
 import { completeMemberOnboarding } from "@/lib/auth/member-account"
 import { requireMemberSession } from "@/lib/auth/require-session"
+import { ViewAsBanner } from "@/components/view-as-banner"
 
 export default async function AccountLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const { user } = await requireMemberSession()
-  const { linkedBookingCount } = await completeMemberOnboarding(user)
+  const { user, viewAs } = await requireMemberSession()
+  // Skip onboarding side-effects while an admin is impersonating (read-only).
+  const { linkedBookingCount } = viewAs
+    ? { linkedBookingCount: 0 }
+    : await completeMemberOnboarding(user)
 
   return (
     <div className="min-h-screen bg-background">
+      <ViewAsBanner />
       <header className="border-b border-border">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-6 py-6">
           <Link
