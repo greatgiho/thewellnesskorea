@@ -14,6 +14,11 @@ on:
     - cron: "0 13 * * *"     # 22:00 KST (밤)
     - cron: "0,30 3-9 * * *" # 일과: 12:00–18:30 KST, 30분마다
     - cron: "0 10 * * *"     # 19:00 KST (일과 끝)
+  # near-real-time: the always-on zotac box pushes a fresh commit to this
+  # branch (SSH, no token needed) whenever greatgiho/main changes, giving
+  # ~60s detection instead of waiting for the cron.
+  push:
+    branches: [ops/reverse-sync-poke]
   workflow_dispatch: {}
 
 concurrency:
