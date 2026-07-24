@@ -1,12 +1,14 @@
-name: Reverse-sync greatgiho → great (open PR)
+name: Reverse-sync greatgiho → great (auto-merge, PR on conflict)
 
-# greatgiho/main(=giho의 프로덕션 tip)에 great/dev 에 없는 변경이 있으면,
-# SHA 보존으로 great/dev 에 역반영하는 PR을 자동으로 연다.
-# 머지는 사람이 리뷰 후 수행(직접 push 아님). forward 미러와 달리 PAT 불필요
-# (greatgiho는 public이라 읽기 무인증, great push/PR은 기본 GITHUB_TOKEN).
+# greatgiho/main(=giho의 프로덕션 tip)에 great/dev 에 없는 변경이 있으면 역반영한다.
+#  - 충돌 없음 → PR을 열고 즉시 merge-commit 으로 **자동 병합**(SHA 보존).
+#    기존 Discord pull_request 웹훅이 알림을 쏘므로 사람이 사후 인지 가능.
+#  - 충돌 있음 → PR을 열어둔 채 **사람이 해결**(자동 병합 금지).
+# 운영 반영은 아님: 자동 병합은 dev(스테이징)까지만. www는 dev→main 릴리스 때만.
+# forward 미러와 달리 PAT 불필요(greatgiho는 public 읽기 무인증, great는 GITHUB_TOKEN).
 #
-# 감지는 SHA가 아니라 "내용(trial merge)" 기준 → 이전 PR을 squash/rebase로
-# 머지해 원본 SHA가 dev 이력에 없어도 재감지(중복 PR)하지 않는다.
+# 감지는 SHA가 아니라 "내용(trial merge)" 기준 → 이전 반영이 squash/rebase여도
+# 재감지(중복 PR)하지 않는다. 자동 병합은 항상 merge-commit → 미러 ff-push 조상관계 유지.
 on:
   schedule:
     # 시간은 UTC. KST = UTC+9.
@@ -46,13 +48,14 @@ jobs:
           git remote add greatgiho https://github.com/greatgiho/thewellnesskorea.git
           git fetch --no-tags greatgiho main
 
-      - name: Open reverse-sync PR if greatgiho has changes not in great/dev
+      - name: Reverse-sync — auto-merge if clean, PR if conflict
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
 
-          # 이미 열린 역방향 PR이 있으면 중복 생성하지 않음
+          # 미해결 충돌 PR이 열려 있으면 스킵(먼저 처리 필요). 자동 병합된 것은
+          # 즉시 닫히므로 남지 않는다 — 여기 걸리는 건 사람이 봐야 할 충돌 PR뿐.
           OPEN=$(gh pr list --state open --base dev --json headRefName \
                   --jq '[.[].headRefName | select(startswith("reverse-sync/"))] | length')
           if [ "$OPEN" -gt 0 ]; then
@@ -62,25 +65,38 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          BR="reverse-sync/greatgiho-$(date +%Y%m%d-%H%M%S)"
-          git checkout -b "$BR"
           SUMMARY=$(git log --oneline --no-merges HEAD..greatgiho/main | sed 's/^/- /')
+          BR="reverse-sync/greatgiho-$(date +%Y%m%d-%H%M%S)"
 
-          # 내용 기준 판정: trial merge 결과 파일 변경이 없으면(=이미 반영, squash 포함)
-          # 아무것도 안 한다. 변경이 있으면 그 머지로 PR을 연다.
+          # 내용/충돌 판정용 trial merge (dev 위에서, 커밋 안 함).
           if git merge --no-ff --no-commit greatgiho/main >/dev/null 2>&1; then
             if git diff --cached --quiet; then
-              echo "내용 이미 동기화됨(SHA가 달라도) — PR 불필요."
+              echo "내용 이미 동기화됨(SHA가 달라도) — 할 일 없음."
               git merge --abort 2>/dev/null || git reset --hard HEAD
               exit 0
             fi
-            git commit -m "Reverse-sync greatgiho/main → great/dev"
-            git push origin "$BR"
+            # 깨끗 + 변경 있음 → 자동 반영. trial 결과는 버리고, greatgiho tip 을
+            # 그대로 담은 브랜치로 PR을 열어 merge-commit 병합(원본 SHA 보존).
+            git merge --abort 2>/dev/null || git reset --hard HEAD
+            SHA=$(git rev-parse greatgiho/main)
+            git push origin "$SHA:refs/heads/$BR"
             gh pr create --base dev --head "$BR" \
-              --title "Reverse-sync: greatgiho/main → great/dev" \
-              --body "$(printf 'greatgiho/main 에 great/dev 에 없는 변경이 있어 자동 생성된 역방향 동기화 PR입니다(SHA 보존 머지).\n\n%s\n\n- ⚠️ 새 마이그레이션 포함 여부(예: 033) 확인 후 DB 반영.\n- 병합 방식(merge/squash) 무관 — 다음 실행은 내용 기준이라 재감지하지 않음.' "$SUMMARY")"
+              --title "Reverse-sync (auto): greatgiho/main → great/dev" \
+              --body "$(printf '충돌이 없어 **자동 병합**되는 역방향 동기화입니다(SHA 보존 merge-commit).\n\n%s\n\n- 운영 반영 아님: dev(스테이징)까지만. www 는 dev→main 릴리스 때.\n- ⚠️ 새 마이그레이션 포함 여부 확인 후 DB 반영.' "$SUMMARY")"
+
+            # 병합성 계산을 기다렸다가 merge-commit 으로 자동 병합.
+            merged=0
+            for i in $(seq 1 12); do
+              if gh pr merge "$BR" --merge --delete-branch 2>/dev/null; then
+                echo "자동 병합 완료(merge-commit)."; merged=1; break
+              fi
+              echo "병합성 계산 대기... ($i)"; sleep 6
+            done
+            if [ "$merged" -ne 1 ]; then
+              echo "자동 병합 실패 — PR을 열어둔 채 사람에게 넘긴다."
+            fi
           else
-            # 충돌 시: 자동 해결하지 않고 원본 tip 브랜치로 PR을 열어 사람이 GitHub에서 해결
+            # 충돌 → 자동 병합 금지. 원본 tip 브랜치로 PR을 열어 사람이 해결.
             git merge --abort 2>/dev/null || git reset --hard HEAD
             SHA=$(git rev-parse greatgiho/main)
             git push origin "$SHA:refs/heads/$BR"
