@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
@@ -87,6 +88,15 @@ export function PartnerLoginForm() {
       <Button type="submit" className="w-full" disabled={pending}>
         {pending ? "로그인 중…" : "로그인"}
       </Button>
+      <p className="text-center text-sm text-muted-foreground">
+        아직 파트너가 아니신가요?{" "}
+        <Link
+          href="/p/signup"
+          className="text-primary underline underline-offset-2"
+        >
+          파트너 신청
+        </Link>
+      </p>
     </form>
   )
 }
