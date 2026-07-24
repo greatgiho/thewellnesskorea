@@ -30,7 +30,7 @@ export type PartnerSaveResult =
 export async function signOut() {
   const supabase = await createClient()
   await supabase.auth.signOut()
-  redirect("/a/login")
+  redirect("/a/signin")
 }
 
 export async function savePartner(

@@ -33,14 +33,14 @@ export async function updatePartnerSession(request: NextRequest) {
   const pathname = request.nextUrl.pathname
   // pathname is /p/... — the portal is served on the main domain.
   const isPublicPage =
-    pathname === "/p/login" ||
+    pathname === "/p/signin" ||
     pathname === "/p/signup" ||
     pathname === "/p/accept-invite"
 
   if (!isPublicPage) {
     if (!user) {
       const redirectUrl = request.nextUrl.clone()
-      redirectUrl.pathname = "/p/login"
+      redirectUrl.pathname = "/p/signin"
       return NextResponse.redirect(redirectUrl, { headers: supabaseResponse.headers })
     }
 
@@ -54,14 +54,14 @@ export async function updatePartnerSession(request: NextRequest) {
           : null
       if (viewAs?.kind !== "partner") {
         const redirectUrl = request.nextUrl.clone()
-        redirectUrl.pathname = "/p/login"
+        redirectUrl.pathname = "/p/signin"
         redirectUrl.search = "error=not_partner"
         return NextResponse.redirect(redirectUrl, { headers: supabaseResponse.headers })
       }
     }
   }
 
-  // NOTE: no auto-redirect from /p/login -> /p here. The login form
+  // NOTE: no auto-redirect from /p/signin -> /p here. The login form
   // navigates to /p on success, and the approval gate in
   // requirePartnerSession bounces non-approved partners back to the login page.
   // Auto-redirecting logged-in partners off the login page would loop with that

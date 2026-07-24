@@ -75,8 +75,8 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   const isAdminRoute = pathname === "/a" || pathname.startsWith("/a/")
-  const isAdminLoginPage = pathname === "/a/login"
-  const isMemberLoginPage = pathname === "/u/login" || pathname === "/login"
+  const isAdminLoginPage = pathname === "/a/signin"
+  const isMemberLoginPage = pathname === "/u/signin" || pathname === "/login"
   const isMemberSignupPage = pathname === "/u/signup"
   const isMemberCheckEmailPage = pathname === "/login/check-email"
   // Protected member area = /u and /u/* EXCEPT the login/signup pages
@@ -94,7 +94,7 @@ export async function updateSession(request: NextRequest) {
 
   if (isAccountRoute && !user) {
     const redirectUrl = request.nextUrl.clone()
-    redirectUrl.pathname = "/u/login"
+    redirectUrl.pathname = "/u/signin"
     return NextResponse.redirect(redirectUrl)
   }
 
@@ -107,7 +107,7 @@ export async function updateSession(request: NextRequest) {
   if (isAdminRoute && !isAdminLoginPage) {
     if (!user) {
       const redirectUrl = request.nextUrl.clone()
-      redirectUrl.pathname = "/a/login"
+      redirectUrl.pathname = "/a/signin"
       return NextResponse.redirect(redirectUrl)
     }
     if (isMemberIntent || role === "member") {
@@ -117,7 +117,7 @@ export async function updateSession(request: NextRequest) {
     }
     if (role !== "admin") {
       const redirectUrl = request.nextUrl.clone()
-      redirectUrl.pathname = "/a/login"
+      redirectUrl.pathname = "/a/signin"
       redirectUrl.search = "error=not_admin"
       return NextResponse.redirect(redirectUrl)
     }

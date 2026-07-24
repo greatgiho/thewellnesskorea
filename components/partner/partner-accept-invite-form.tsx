@@ -47,7 +47,7 @@ export function PartnerAcceptInviteForm({ token }: { token: string }) {
         <p className="rounded-lg border border-border bg-card px-4 py-3">
           비밀번호가 설정되었습니다. 이제 로그인할 수 있습니다.
         </p>
-        <Link href="/p/login" className="text-primary underline underline-offset-2">
+        <Link href="/p/signin" className="text-primary underline underline-offset-2">
           로그인으로 이동
         </Link>
       </div>
