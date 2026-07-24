@@ -43,7 +43,7 @@ export function PartnerSignupForm() {
             ? "신청이 접수되었습니다. 관리자 승인 후 로그인할 수 있습니다."
             : "가입이 완료되었습니다. 이제 로그인할 수 있습니다."}
         </p>
-        <Link href="/p/login" className="text-primary underline underline-offset-2">
+        <Link href="/p/signin" className="text-primary underline underline-offset-2">
           로그인으로 이동
         </Link>
       </div>
@@ -98,7 +98,7 @@ export function PartnerSignupForm() {
       </Button>
       <p className="text-center text-xs text-muted-foreground">
         이미 계정이 있으신가요?{" "}
-        <Link href="/p/login" className="text-primary underline underline-offset-2">
+        <Link href="/p/signin" className="text-primary underline underline-offset-2">
           로그인
         </Link>
       </p>

@@ -70,7 +70,7 @@ export default async function BookConfirmPage({
             Back to schedule
           </Link>
           <Link
-            href="/u/login"
+            href="/u/signin"
             className="inline-flex rounded-full border border-border px-6 py-3 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
           >
             Sign in

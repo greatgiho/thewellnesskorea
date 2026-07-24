@@ -9,8 +9,8 @@ export async function requireAdminSession() {
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user) redirect("/a/login")
-  if (user.app_metadata?.role !== "admin") redirect("/a/login")
+  if (!user) redirect("/a/signin")
+  if (user.app_metadata?.role !== "admin") redirect("/a/signin")
   return { supabase, user, userId: user.id, userEmail: user.email }
 }
 
@@ -19,7 +19,7 @@ export async function requireMemberSession() {
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user) redirect("/u/login")
+  if (!user) redirect("/u/signin")
 
   const role = user.app_metadata?.role
 

@@ -125,7 +125,7 @@ export function GuestBookingForm({
             <p className="mt-4 text-sm text-muted-foreground">
               Have an account?{" "}
               <Link
-                href="/u/login"
+                href="/u/signin"
                 className="text-primary underline-offset-4 hover:underline"
               >
                 Sign in

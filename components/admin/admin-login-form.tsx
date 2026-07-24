@@ -8,10 +8,10 @@ import { Button } from "@/components/ui/button"
 function adminAccessError(role: string | undefined): string | null {
   if (role === "admin") return null
   if (role === "partner") {
-    return "This is a partner account. Sign in at /p/login instead."
+    return "This is a partner account. Sign in at /p/signin instead."
   }
   if (role === "member") {
-    return "Member accounts cannot access admin. Use /u/login for member sign-in."
+    return "Member accounts cannot access admin. Use /u/signin for member sign-in."
   }
   return "This account does not have admin access (app_metadata.role is not \"admin\"). Run: npm run set-admin-role -- your@email.com"
 }

@@ -6,5 +6,5 @@ import { createClient } from "@/lib/supabase/server"
 export async function partnerSignOut() {
   const supabase = await createClient()
   await supabase.auth.signOut()
-  redirect("/p/login")
+  redirect("/p/signin")
 }
