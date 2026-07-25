@@ -1,5 +1,6 @@
 import Image from "next/image"
 import Link from "next/link"
+import { approvePartner, rejectPartner } from "@/app/a/actions"
 import { ActivityRegionDisplay } from "@/components/partners/activity-region-display"
 import { pathLabelKo } from "@/lib/paths/paths-data"
 import type { RegionRow } from "@/lib/regions/types"
@@ -84,6 +85,31 @@ export function PartnerDetailView({ person, sido }: PartnerDetailViewProps) {
               {person.is_published ? "Published" : "Not published"}
             </span>
           </div>
+          {person.registration_status === "submitted" && (
+            <div className="flex flex-wrap items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-900 dark:bg-amber-950/40">
+              <span className="text-sm text-amber-900 dark:text-amber-200">
+                승인 대기 중인 셀프 신청입니다. 승인하면 파트너 로그인이 열립니다.
+              </span>
+              <div className="ml-auto flex gap-2">
+                <form action={approvePartner.bind(null, person.id)}>
+                  <button
+                    type="submit"
+                    className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
+                  >
+                    승인
+                  </button>
+                </form>
+                <form action={rejectPartner.bind(null, person.id)}>
+                  <button
+                    type="submit"
+                    className="rounded-full border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+                  >
+                    반려
+                  </button>
+                </form>
+              </div>
+            </div>
+          )}
           {person.quote && (
             <blockquote className="border-l-2 border-primary/30 pl-4 text-sm italic leading-relaxed text-foreground/80">
               {person.quote}

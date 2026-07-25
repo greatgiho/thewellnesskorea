@@ -67,6 +67,46 @@ export async function updatePerson(id: string, input: PartnerFormInput) {
   return savePartner(input, id)
 }
 
+/**
+ * Approve or reject a self-registered partner (registration_status "submitted").
+ * Approving unblocks portal login (canAccessPartnerPortal allows "approved").
+ * Runs under the admin's own client — the "admin all" RLS grants the update.
+ */
+export async function setPartnerRegistrationStatus(
+  id: string,
+  status: "approved" | "rejected",
+): Promise<PartnerSaveResult> {
+  try {
+    const { supabase, userId } = await requireAdminSession()
+    const { error } = await supabase
+      .from("partners")
+      .update({
+        registration_status: status,
+        reviewed_at: new Date().toISOString(),
+        reviewed_by: userId,
+      })
+      .eq("id", id)
+    if (error) throw new Error(error.message)
+    revalidatePath("/a/partners")
+    revalidatePath(`/a/partners/${id}`)
+    return { ok: true, personId: id }
+  } catch (error) {
+    if (isUserFacingError(error) || error instanceof Error) {
+      return { ok: false, error: error.message || "처리에 실패했습니다." }
+    }
+    console.error("[setPartnerRegistrationStatus]", error)
+    return { ok: false, error: "처리에 실패했습니다. 잠시 후 다시 시도해 주세요." }
+  }
+}
+
+export async function approvePartner(id: string): Promise<void> {
+  await setPartnerRegistrationStatus(id, "approved")
+}
+
+export async function rejectPartner(id: string): Promise<void> {
+  await setPartnerRegistrationStatus(id, "rejected")
+}
+
 export async function updatePersonPhotoPath(id: string, photoPath: string) {
   const { supabase } = await requireAdminSession()
 
