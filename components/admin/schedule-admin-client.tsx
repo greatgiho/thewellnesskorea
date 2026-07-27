@@ -6,10 +6,12 @@ import { ChevronLeft, ChevronRight } from "lucide-react"
 import type { PartnerWithPrograms } from "@/lib/partners/types"
 import type { FloorRow, SessionWithRelations, ScheduleViewMode } from "@/lib/schedule/types"
 import {
+  addDaysToDateKey,
   addMonthsToDateKey,
   addWeeksToDateKey,
   dateKeyFromIso,
   endOfWeekDateKey,
+  formatDisplayDate,
   formatMonthLabel,
   formatWeekRangeLabel,
   monthFromDateKey,
@@ -23,6 +25,7 @@ import {
 } from "@/components/admin/schedule-floor-nav"
 import { ScheduleMonthCalendar } from "@/components/admin/schedule-month-calendar"
 import { ScheduleWeekGrid } from "@/components/admin/schedule-week-grid"
+import { ScheduleDayTimeline } from "@/components/admin/schedule-day-timeline"
 import { SessionFormDialog } from "@/components/admin/session-form-dialog"
 
 export type { ScheduleViewMode } from "@/lib/schedule/types"
@@ -147,6 +150,17 @@ export function ScheduleAdminClient({
           <div className="flex rounded-lg border border-border p-0.5">
             <button
               type="button"
+              onClick={() => setView("day")}
+              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                view === "day"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Day
+            </button>
+            <button
+              type="button"
               onClick={() => setView("week")}
               className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
                 view === "week"
@@ -174,9 +188,11 @@ export function ScheduleAdminClient({
               type="button"
               onClick={() =>
                 navigate(
-                  view === "week"
-                    ? addWeeksToDateKey(dateKey, -1)
-                    : addMonthsToDateKey(dateKey, -1),
+                  view === "day"
+                    ? addDaysToDateKey(dateKey, -1)
+                    : view === "week"
+                      ? addWeeksToDateKey(dateKey, -1)
+                      : addMonthsToDateKey(dateKey, -1),
                 )
               }
               className="flex size-9 items-center justify-center rounded-lg border border-border hover:bg-muted"
@@ -184,24 +200,32 @@ export function ScheduleAdminClient({
             >
               <ChevronLeft className="size-4" />
             </button>
-            <SchedulePeriodPicker
-              label={
-                view === "week"
-                  ? formatWeekRangeLabel(weekStart, weekEnd)
-                  : formatMonthLabel(year, month)
-              }
-              view={view}
-              dateKey={dateKey}
-              weekStart={weekStart}
-              onNavigate={(nextDate, nextView) => navigate(nextDate, nextView)}
-            />
+            {view === "day" ? (
+              <span className="min-w-[9rem] text-center text-sm font-medium text-foreground">
+                {formatDisplayDate(dateKey)}
+              </span>
+            ) : (
+              <SchedulePeriodPicker
+                label={
+                  view === "week"
+                    ? formatWeekRangeLabel(weekStart, weekEnd)
+                    : formatMonthLabel(year, month)
+                }
+                view={view}
+                dateKey={dateKey}
+                weekStart={weekStart}
+                onNavigate={(nextDate, nextView) => navigate(nextDate, nextView)}
+              />
+            )}
             <button
               type="button"
               onClick={() =>
                 navigate(
-                  view === "week"
-                    ? addWeeksToDateKey(dateKey, 1)
-                    : addMonthsToDateKey(dateKey, 1),
+                  view === "day"
+                    ? addDaysToDateKey(dateKey, 1)
+                    : view === "week"
+                      ? addWeeksToDateKey(dateKey, 1)
+                      : addMonthsToDateKey(dateKey, 1),
                 )
               }
               className="flex size-9 items-center justify-center rounded-lg border border-border hover:bg-muted"
@@ -240,7 +264,14 @@ export function ScheduleAdminClient({
         )}
 
         <div className="min-w-0 flex-1 space-y-2">
-          {view === "week" ? (
+          {view === "day" ? (
+            <ScheduleDayTimeline
+              dateKey={dateKey}
+              floors={floors}
+              sessions={sessions}
+              onSessionClick={openEdit}
+            />
+          ) : view === "week" ? (
             <>
               <p className="text-sm text-muted-foreground">
                 {activeFloor.name_ko} · {activeFloor.name_en} · Mon–Sun ·

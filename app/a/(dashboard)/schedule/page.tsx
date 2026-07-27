@@ -28,7 +28,12 @@ export default async function AdminSchedulePage({ searchParams }: PageProps) {
       ? params.date
       : todayDateKeyInKst()
 
-  const view: ScheduleViewMode = params.view === "week" ? "week" : "month"
+  const view: ScheduleViewMode =
+    params.view === "week"
+      ? "week"
+      : params.view === "day"
+        ? "day"
+        : "month"
 
   const floors = await getFloors()
   const floorSlug =
@@ -39,7 +44,10 @@ export default async function AdminSchedulePage({ searchParams }: PageProps) {
   let rangeStart: string
   let rangeEndExclusive: string
 
-  if (view === "week") {
+  if (view === "day") {
+    rangeStart = dateKey
+    rangeEndExclusive = addDaysToDateKey(dateKey, 1)
+  } else if (view === "week") {
     rangeStart = startOfWeekDateKey(dateKey)
     rangeEndExclusive = addDaysToDateKey(endOfWeekDateKey(dateKey), 1)
   } else {
