@@ -18,7 +18,7 @@
 | Database | Supabase Postgres (전 테이블 RLS) |
 | Auth | Supabase Auth — 관리자: 비밀번호 · 강사 등록: 매직링크 · 강사 포털: 비밀번호 |
 | Storage | Supabase Storage (`person-photos`, `session-photos`) |
-| Email | Resend (관리자 알림, 강사 계정 발급) |
+| Email | Brevo (관리자 알림, 강사 계정 발급) |
 | Alert | Slack incoming webhook (선택) |
 | Deploy | Vercel · Gabia DNS · @vercel/analytics |
 
@@ -80,8 +80,8 @@ ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD=change-me npm run create-admin
 | `SUPABASE_SERVICE_ROLE_KEY` | server only | Auth admin API, 관리자 이메일 조회 — **절대 노출 금지** |
 | `NEXT_PUBLIC_SITE_URL` | client+server | 매직링크 리다이렉트·알림 링크 (로컬: `http://localhost:3000`) |
 | `TEACHER_APPLY_CODE` | server | 강사 초대코드 (기본 `twk2026`) |
-| `RESEND_API_KEY` | server | 이메일 발송 (없으면 알림 silent 실패) |
-| `NOTIFY_FROM_EMAIL` | server | Resend 발신 주소 |
+| `BREVO_API_KEY` | server | 이메일 발송 (없으면 알림 silent 실패) |
+| `NOTIFY_FROM_EMAIL` | server | Brevo 발신 주소 |
 | `SLACK_WEBHOOK_URL` | server | Slack 알림 (선택) |
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | server | `create-admin` 기본값 (선택) |
 
@@ -126,7 +126,7 @@ lib/
   supabase/                client · server · service · middleware 클라이언트
   auth/ apply/             역할·계정 프로비저닝·매직링크 링킹
   people/ schedule/        쿼리·검증·persist·레이아웃·시간(KST) 로직
-  notifications/           Resend·Slack 알림
+  notifications/           Brevo·Slack 알림
   paths/                   철학 path 메타데이터
 supabase/migrations/       DB 스키마 원천 (001–008)
 docs/                      설계 문서 4종 (아래)
@@ -141,7 +141,7 @@ middleware.ts              세션 갱신 + 라우트 가드
 - **Vercel**에 배포, **Gabia DNS**로 도메인 연결.
 - 도메인: `https://www.thewellnesskorea.com` (apex `thewellnesskorea.com` → 308 redirect to www).
 - 배포 전 체크: Vercel 환경변수 등록, Supabase 마이그레이션 적용, Auth redirect URL,
-  프로덕션 다중 수신 이메일을 위한 Resend 도메인 인증.
+  프로덕션 다중 수신 이메일을 위한 Brevo 도메인 인증.
 - 상세 체크리스트: [`docs/site-map-and-flows.md`](docs/site-map-and-flows.md) → Deployment checklist.
 
 ---
@@ -168,6 +168,6 @@ middleware.ts              세션 갱신 + 라우트 가드
 - 공개 홈페이지 `#schedule`을 실제 `sessions`와 연동 (현재 mock)
 - 참가자 예약/결제 (`bookings`), 대기열
 - 강사 비밀번호 찾기(비로그인) 페이지
-- 프로덕션 다중 관리자 수신용 Resend 도메인 인증
+- 프로덕션 다중 관리자 수신용 Brevo 도메인 인증
 
 전체 목록은 각 `docs/` 문서의 *Not yet implemented* 섹션 참고.

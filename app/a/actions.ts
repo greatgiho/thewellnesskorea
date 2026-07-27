@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/server"
 import { createServiceClient } from "@/lib/supabase/service"
 import { requireAdminSession } from "@/lib/auth/require-session"
 import { isUserFacingError } from "@/lib/errors"
-import { sendResendEmail } from "@/lib/notifications/resend"
+import { sendEmail } from "@/lib/notifications/email"
 import { persistPartner } from "@/lib/partners/persist-partner"
 import type { PartnerFormInput } from "@/lib/partners/types"
 
@@ -232,7 +232,7 @@ async function sendPartnerInviteEmail(opts: {
       <a href="${opts.inviteUrl}">${opts.inviteUrl}</a></p>
     <p style="color:#666;font-size:13px">이 링크는 ${INVITE_TTL_DAYS}일간 유효하며 한 번만 사용할 수 있습니다.</p>
   `
-  await sendResendEmail(opts.email, subject, html, "partner-invite")
+  await sendEmail(opts.email, subject, html, "partner-invite")
 }
 
 export async function deletePartner(id: string) {
