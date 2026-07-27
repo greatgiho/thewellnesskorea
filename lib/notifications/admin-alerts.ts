@@ -1,6 +1,7 @@
 import { siteOrigin } from "@/lib/site-origin"
 import type { PartnerRegistrationStatus } from "@/lib/partners/types"
 import { getAdminNotifyEmails } from "@/lib/notifications/admin-recipients"
+import { sendEmail } from "@/lib/notifications/email"
 
 type ProfileSubmittedPayload = {
   personId: string
@@ -34,20 +35,16 @@ export async function notifyAdminProfileSubmitted(
   ]
 
   await Promise.allSettled([
-    sendResendEmail(subject, lines.join("\n"), editLink),
+    sendAdminEmail(subject, lines.join("\n"), editLink),
     sendSlackMessage(payload, label, editLink),
   ])
 }
 
-async function sendResendEmail(
+async function sendAdminEmail(
   subject: string,
   text: string,
   editLink: string,
 ): Promise<void> {
-  const apiKey = process.env.RESEND_API_KEY
-  const from = process.env.NOTIFY_FROM_EMAIL
-  if (!apiKey || !from) return
-
   const to = await getAdminNotifyEmails()
   if (to.length === 0) return
 
@@ -56,19 +53,7 @@ async function sendResendEmail(
     <p><a href="${editLink}">어드민에서 검토하기</a></p>
   `
 
-  await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from,
-      to,
-      subject,
-      html,
-    }),
-  })
+  await sendEmail(to, subject, html, "admin-alert")
 }
 
 async function sendSlackMessage(

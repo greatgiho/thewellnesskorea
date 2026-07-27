@@ -1,6 +1,6 @@
 import { createServiceClient } from "@/lib/supabase/service"
 import { siteOrigin } from "@/lib/site-origin"
-import { sendResendEmail } from "@/lib/notifications/resend"
+import { sendEmail } from "@/lib/notifications/email"
 import { renderWaitlistAvailableEmail } from "@/lib/notifications/email-templates"
 
 type WaitlistEntry = {
@@ -48,7 +48,7 @@ export async function notifyWaitlist(session: SessionInfo): Promise<void> {
         bookUrl,
       })
 
-      await sendResendEmail(
+      await sendEmail(
         entry.guest_email,
         `[TWK] A spot opened up in ${session.sessionTitle}`,
         html,

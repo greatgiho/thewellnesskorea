@@ -1,7 +1,7 @@
 import { siteOrigin } from "@/lib/site-origin"
 import { formatBookingDateTime } from "@/lib/bookings/format"
 import type { BookingSummary } from "@/lib/bookings/queries"
-import { sendResendEmail } from "@/lib/notifications/resend"
+import { sendEmail } from "@/lib/notifications/email"
 import {
   renderBookingConfirmationEmail,
   renderBookingCancelledEmail,
@@ -36,7 +36,7 @@ export async function sendBookingConfirmationEmail(
     scheduleUrl,
   })
 
-  await sendResendEmail(
+  await sendEmail(
     summary.guestEmail,
     "[TWK] Your class reservation is confirmed",
     html,
@@ -55,7 +55,7 @@ export async function sendBookingCancelledEmail(
     scheduleUrl,
   })
 
-  await sendResendEmail(
+  await sendEmail(
     summary.guestEmail,
     "[TWK] Your class reservation was cancelled",
     html,
