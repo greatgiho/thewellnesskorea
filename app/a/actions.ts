@@ -8,6 +8,7 @@ import { createServiceClient } from "@/lib/supabase/service"
 import { requireAdminSession } from "@/lib/auth/require-session"
 import { isUserFacingError } from "@/lib/errors"
 import { sendEmail } from "@/lib/notifications/email"
+import { siteOrigin } from "@/lib/site-origin"
 import { persistPartner } from "@/lib/partners/persist-partner"
 import type { PartnerFormInput } from "@/lib/partners/types"
 
@@ -78,7 +79,7 @@ export async function setPartnerRegistrationStatus(
 ): Promise<PartnerSaveResult> {
   try {
     const { supabase, userId } = await requireAdminSession()
-    const { error } = await supabase
+    const { data: updated, error } = await supabase
       .from("partners")
       .update({
         registration_status: status,
@@ -86,7 +87,32 @@ export async function setPartnerRegistrationStatus(
         reviewed_by: userId,
       })
       .eq("id", id)
+      .select("email, name_ko")
+      .maybeSingle()
     if (error) throw new Error(error.message)
+
+    // Notify the partner on approval so they know they can sign in. Best-effort:
+    // a mail failure must not fail the approval itself.
+    if (status === "approved" && updated?.email) {
+      try {
+        const url = `${siteOrigin()}/p/signin`
+        const name = updated.name_ko?.trim() || "파트너"
+        await sendEmail(
+          updated.email,
+          "The Wellness Korea — 파트너 가입이 승인되었습니다",
+          `<p>${name}님, 파트너 가입이 승인되었습니다.</p>` +
+            `<p>아래에서 로그인하시면 파트너 포털을 이용하실 수 있습니다.</p>` +
+            `<p><a href="${url}">${url}</a></p>`,
+          "partner-approved",
+        )
+      } catch (mailErr) {
+        console.error(
+          "[setPartnerRegistrationStatus] approval email failed:",
+          mailErr,
+        )
+      }
+    }
+
     revalidatePath("/a/partners")
     revalidatePath(`/a/partners/${id}`)
     return { ok: true, personId: id }
