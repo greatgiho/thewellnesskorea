@@ -4,7 +4,7 @@ export type SessionStatus = "processing" | "confirmed" | "cancelled"
 
 export type Currency = "KRW" | "USD"
 
-export type ScheduleViewMode = "day" | "week" | "month"
+export type ScheduleViewMode = "agenda" | "week" | "month"
 
 export type SessionDescriptionBlocks = {
   intro: string
