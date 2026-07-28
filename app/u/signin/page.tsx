@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { TrueLoginForm } from "@/components/account/true-login-form"
+import { GoogleSignInButton } from "@/components/account/google-signin-button"
 
 export const metadata: Metadata = {
   title: "Sign in — The Wellness Korea",
@@ -29,8 +30,14 @@ export default function TrueLoginPage() {
           </p>
         </div>
 
-        <div className="rounded-3xl border border-border bg-card p-6 shadow-sm sm:p-8">
+        <div className="space-y-5 rounded-3xl border border-border bg-card p-6 shadow-sm sm:p-8">
           <TrueLoginForm />
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <span className="h-px flex-1 bg-border" />
+            또는
+            <span className="h-px flex-1 bg-border" />
+          </div>
+          <GoogleSignInButton />
         </div>
 
         <p className="text-center text-xs text-muted-foreground">
