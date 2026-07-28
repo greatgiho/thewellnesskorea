@@ -58,10 +58,10 @@ export function Navbar() {
 
           <div className="hidden items-center gap-6 md:flex">
             <a
-              href="/a/signin"
+              href="/u/signin"
               className="text-sm font-medium text-foreground/70 transition-colors hover:text-foreground"
             >
-              Admin
+              Sign in
             </a>
             <a
               href="/#schedule"
@@ -107,11 +107,11 @@ export function Navbar() {
                 </a>
               ))}
               <a
-                href="/a/signin"
+                href="/u/signin"
                 onClick={() => setOpen(false)}
                 className="rounded-lg px-2 py-3 text-lg font-medium text-foreground/80 transition-colors hover:bg-secondary hover:text-foreground"
               >
-                Admin
+                Sign in
               </a>
               <a
                 href="/#schedule"
