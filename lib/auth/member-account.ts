@@ -80,7 +80,13 @@ export async function upsertMemberProfile(
 
 export async function completeMemberOnboarding(
   user: User,
-  options?: { name?: string | null; phone?: string | null },
+  options?: {
+    name?: string | null
+    phone?: string | null
+    // OAuth (e.g. Google) users have no role and no signup_intent — allow them
+    // to be onboarded as members when the sign-in flow is explicitly member.
+    treatAsMember?: boolean
+  },
 ): Promise<MemberOnboardingResult> {
   if (!user.email) {
     throw new UserFacingError("Email is required on your account.")
@@ -95,7 +101,7 @@ export async function completeMemberOnboarding(
 
   if (role == null) {
     const signupIntent = user.user_metadata?.signup_intent
-    if (signupIntent !== "member") {
+    if (signupIntent !== "member" && !options?.treatAsMember) {
       throw new UserFacingError(
         "This account cannot use member sign-in.",
       )

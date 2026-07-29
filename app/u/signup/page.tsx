@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { MemberSignupForm } from "@/components/account/member-signup-form"
+import { GoogleSignInButton } from "@/components/account/google-signin-button"
 
 export const metadata: Metadata = {
   title: "Create account — The Wellness Korea",
@@ -35,11 +36,17 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
           </p>
         </div>
 
-        <div className="rounded-3xl border border-border bg-card p-6 shadow-sm sm:p-8">
+        <div className="space-y-5 rounded-3xl border border-border bg-card p-6 shadow-sm sm:p-8">
           <MemberSignupForm
             defaultEmail={email ?? ""}
             defaultName={name ?? ""}
           />
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <span className="h-px flex-1 bg-border" />
+            또는
+            <span className="h-px flex-1 bg-border" />
+          </div>
+          <GoogleSignInButton label="Google로 가입하기" />
         </div>
 
         <p className="text-center text-xs text-muted-foreground">
