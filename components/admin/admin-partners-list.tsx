@@ -19,6 +19,8 @@ import {
   registrationStatusLabel,
 } from "@/lib/partners/registration-status"
 import { getPartnerPhotoUrl, sortPartnersByName } from "@/lib/partners/utils"
+import { cn } from "@/lib/utils"
+import { FIELD } from "@/lib/ui/field"
 
 type AdminPartnersListProps = {
   partners: PartnerWithPrograms[]
@@ -80,8 +82,7 @@ export function AdminPartnersList({ partners }: AdminPartnersListProps) {
     )
   }
 
-  const fieldClass =
-    "h-9 w-full min-w-[200px] rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/50 sm:max-w-xs"
+  const fieldClass = cn(FIELD, "h-9 min-w-[200px] sm:max-w-xs")
 
   return (
     <div className="space-y-6">

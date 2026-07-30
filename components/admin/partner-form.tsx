@@ -15,6 +15,7 @@ import {
 } from "@/lib/partners/photo-upload"
 import { canPublishPerson } from "@/lib/partners/registration-status"
 import { getPartnerPhotoUrl, PERSON_KINDS } from "@/lib/partners/utils"
+import { FIELD } from "@/lib/ui/field"
 import { ProgramListEditor } from "@/components/admin/program-list-editor"
 
 type PartnerFormProps = {
@@ -84,8 +85,7 @@ export function PartnerForm({ person, regions }: PartnerFormProps) {
     }
   }
 
-  const fieldClass =
-    "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/50"
+  const fieldClass = FIELD
 
   return (
     <form onSubmit={onSubmit} className="mx-auto max-w-2xl space-y-10">

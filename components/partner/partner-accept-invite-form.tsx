@@ -3,10 +3,10 @@
 import { useState } from "react"
 import Link from "next/link"
 import { acceptPartnerInvite } from "@/app/p/accept-invite-actions"
+import { FIELD_ROOMY } from "@/lib/ui/field"
 import { Button } from "@/components/ui/button"
 
-const fieldClass =
-  "w-full rounded-lg border border-border bg-background px-3 py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-ring/50"
+const fieldClass = FIELD_ROOMY
 
 export function PartnerAcceptInviteForm({ token }: { token: string }) {
   const [pending, setPending] = useState(false)

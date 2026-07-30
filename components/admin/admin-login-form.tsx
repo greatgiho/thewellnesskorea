@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
+import { FIELD_ROOMY } from "@/lib/ui/field"
 import { Button } from "@/components/ui/button"
 
 function adminAccessError(role: string | undefined): string | null {
@@ -61,8 +62,7 @@ export function AdminLoginForm() {
     router.refresh()
   }
 
-  const fieldClass =
-    "w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring/50"
+  const fieldClass = FIELD_ROOMY
 
   return (
     <form onSubmit={onSubmit} className="space-y-5">

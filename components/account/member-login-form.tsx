@@ -4,6 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { requestMemberLoginLink } from "@/app/u/actions"
+import { FIELD_PUBLIC } from "@/lib/ui/field"
 
 export function MemberLoginForm() {
   const searchParams = useSearchParams()
@@ -33,9 +34,6 @@ export function MemberLoginForm() {
     }
   }
 
-  const fieldClass =
-    "w-full rounded-xl border border-border bg-background px-4 py-3 text-base sm:text-sm text-foreground outline-none transition-colors focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
-
   return (
     <form onSubmit={onSubmit} className="space-y-5">
       {error ? (
@@ -50,7 +48,7 @@ export function MemberLoginForm() {
           type="email"
           required
           autoComplete="email"
-          className={fieldClass}
+          className={FIELD_PUBLIC}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="you@example.com"

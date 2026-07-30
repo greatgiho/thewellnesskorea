@@ -30,6 +30,7 @@ import {
   type SessionImageSlot,
 } from "@/components/admin/session-image-upload"
 import { SessionBookingsPanel } from "@/components/admin/session-bookings-panel"
+import { FIELD } from "@/lib/ui/field"
 
 type SessionFormDialogProps = {
   open: boolean
@@ -269,8 +270,7 @@ export function SessionFormDialog({
 
   if (!open) return null
 
-  const fieldClass =
-    "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring/50"
+  const fieldClass = FIELD
 
   const isProcessing = input.status === "processing"
   const readOnly = Boolean(session) && !isEditing
