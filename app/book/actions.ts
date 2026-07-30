@@ -16,7 +16,7 @@ import {
   getBookingSummaryByCancelToken,
 } from "@/lib/bookings/queries"
 import { validateGuestBookingInput } from "@/lib/bookings/validate"
-import { money, isPaid } from "@/lib/payments/money"
+import { money, paymentMode } from "@/lib/payments/money"
 import {
   sendBookingConfirmationEmail,
   sendBookingCancelledEmail,
@@ -58,7 +58,12 @@ export async function submitGuestBooking(
       return { error: "This class is full." }
     }
 
-    if (isPaid(money(session.price_currency, session.price_amount))) {
+    // Only online (PayPal/USD) classes go through the payment step. Free and
+    // on-site classes reserve the spot directly — nothing to pay online.
+    if (
+      paymentMode(money(session.price_currency, session.price_amount)) ===
+      "online"
+    ) {
       const hold = await createBookingHoldRpc({
         sessionId,
         guestName,
