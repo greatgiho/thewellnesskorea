@@ -4,6 +4,7 @@ import { notFound } from "next/navigation"
 import { BookingPageLayout } from "@/components/booking/booking-page-layout"
 import { BookingSessionSummary } from "@/components/booking/booking-session-summary"
 import { getBookingSummaryById } from "@/lib/bookings/queries"
+import { getOptionalMemberSession } from "@/lib/auth/require-session"
 import { isPaid } from "@/lib/payments/money"
 
 export const metadata: Metadata = {
@@ -28,6 +29,8 @@ export default async function BookConfirmPage({
     notFound()
   }
 
+  const member = await getOptionalMemberSession()
+
   const signupParams = new URLSearchParams({
     email: summary.guestEmail,
     name: summary.guestName,
@@ -51,15 +54,19 @@ export default async function BookConfirmPage({
               ? "Your online payment is confirmed. Please arrive a few minutes early and wear comfortable clothing."
               : "Payment is on-site. Please arrive a few minutes early and wear comfortable clothing."}
           </p>
-          <p className="mt-4 text-sm text-foreground">
-            Save this booking to an account for easier access next time.
-          </p>
-          <Link
-            href={`/u/signup?${signupParams.toString()}`}
-            className="mt-4 inline-flex rounded-full border border-border bg-background px-5 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
-          >
-            Create account with this email
-          </Link>
+          {!member ? (
+            <>
+              <p className="mt-4 text-sm text-foreground">
+                Save this booking to an account for easier access next time.
+              </p>
+              <Link
+                href={`/u/signup?${signupParams.toString()}`}
+                className="mt-4 inline-flex rounded-full border border-border bg-background px-5 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
+              >
+                Create account with this email
+              </Link>
+            </>
+          ) : null}
         </div>
 
         <div className="flex flex-wrap gap-3">
@@ -70,10 +77,10 @@ export default async function BookConfirmPage({
             Back to schedule
           </Link>
           <Link
-            href="/u/signin"
+            href={member ? "/u/bookings" : "/u/signin"}
             className="inline-flex rounded-full border border-border px-6 py-3 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
           >
-            Sign in
+            {member ? "My reservations" : "Sign in"}
           </Link>
         </div>
       </div>

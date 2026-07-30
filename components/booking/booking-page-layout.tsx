@@ -1,5 +1,6 @@
 import Link from "next/link"
 import type { ReactNode } from "react"
+import { AuthNavActions } from "@/components/auth-nav-actions"
 
 type BookingPageLayoutProps = {
   eyebrow: string
@@ -25,12 +26,7 @@ export function BookingPageLayout({
             The Wellness Korea
           </Link>
           <div className="flex items-center gap-4 text-sm">
-            <Link
-              href="/u/signin"
-              className="text-muted-foreground transition-colors hover:text-foreground"
-            >
-              Sign in
-            </Link>
+            <AuthNavActions />
             <Link
               href="/#schedule"
               className="text-muted-foreground transition-colors hover:text-foreground"
