@@ -81,3 +81,17 @@ export async function expireStaleBookingHoldsRpc(): Promise<number> {
 
   return typeof data === "number" ? data : 0
 }
+
+/**
+ * Opportunistic hold cleanup for read paths (booking page, member bookings).
+ * The daily cron alone leaves expired holds occupying spots and showing as
+ * "pending" for up to a day; releasing them on read keeps availability and the
+ * member's list fresh regardless of cron cadence. Never throws.
+ */
+export async function releaseExpiredHoldsBestEffort(): Promise<void> {
+  try {
+    await expireStaleBookingHoldsRpc()
+  } catch (err) {
+    console.error("[bookings] opportunistic hold expiry failed:", err)
+  }
+}

@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { createServiceClient } from "@/lib/supabase/service"
+import { releaseExpiredHoldsBestEffort } from "./hold-rpc"
 import {
   SESSION_SUMMARY_SELECT,
   mapSessionSummary,
@@ -34,6 +35,9 @@ export async function getBookableSession(
   ) {
     return null
   }
+
+  // Release expired holds first so this session's spot count is accurate.
+  await releaseExpiredHoldsBestEffort()
 
   const supabase = await createClient()
   const now = new Date().toISOString()
