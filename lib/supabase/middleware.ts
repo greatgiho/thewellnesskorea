@@ -54,7 +54,13 @@ export async function updateSession(request: NextRequest) {
   const pathname = request.nextUrl.pathname
   const params = request.nextUrl.searchParams
 
-  if (authCallbackParams(params)) {
+  // The dedicated /auth/callback route handler owns its own code exchange +
+  // member onboarding (flow=member sets role=member). If the middleware
+  // exchanged the code here first, it would consume the single-use PKCE code
+  // and redirect away before the route runs, so OAuth users never get the
+  // member role. Let /auth/callback fall through to its route handler; the
+  // middleware still handles magic-link callbacks that land on other paths.
+  if (authCallbackParams(params) && pathname !== "/auth/callback") {
     const { ok } = await completeAuthFromUrl(supabase, params)
     const next = params.get("next") ?? "/"
     const redirectUrl = request.nextUrl.clone()

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { Menu, X } from "lucide-react"
+import { createClient } from "@/lib/supabase/client"
 
 const navLinks = [
   { label: "Philosophy", href: "/#philosophy" },
@@ -11,8 +12,24 @@ const navLinks = [
   { label: "Journal", href: "/journal" },
 ]
 
+type SessionUser = { name: string }
+
+function displayName(user: {
+  email?: string | null
+  app_metadata?: Record<string, unknown>
+  user_metadata?: Record<string, unknown>
+}): string {
+  const fromApp = user.app_metadata?.name
+  if (typeof fromApp === "string" && fromApp.trim()) return fromApp.trim()
+  const fromUser = user.user_metadata?.name
+  if (typeof fromUser === "string" && fromUser.trim()) return fromUser.trim()
+  const local = user.email?.split("@")[0]
+  return local || "Member"
+}
+
 export function Navbar() {
   const [open, setOpen] = useState(false)
+  const [user, setUser] = useState<SessionUser | null>(null)
 
   useEffect(() => {
     if (!open) return
@@ -22,6 +39,34 @@ export function Navbar() {
       document.body.style.overflow = prev
     }
   }, [open])
+
+  useEffect(() => {
+    const supabase = createClient()
+    let active = true
+
+    supabase.auth.getUser().then(({ data }) => {
+      if (active && data.user) setUser({ name: displayName(data.user) })
+    })
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!active) return
+      setUser(session?.user ? { name: displayName(session.user) } : null)
+    })
+
+    return () => {
+      active = false
+      subscription.unsubscribe()
+    }
+  }, [])
+
+  const signOut = async () => {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    // Hard navigation so server components re-render without the session cookie.
+    window.location.assign("/")
+  }
 
   return (
     <>
@@ -57,12 +102,30 @@ export function Navbar() {
           </div>
 
           <div className="hidden items-center gap-6 md:flex">
-            <a
-              href="/u/signin"
-              className="text-sm font-medium text-foreground/70 transition-colors hover:text-foreground"
-            >
-              Sign in
-            </a>
+            {user ? (
+              <>
+                <a
+                  href="/u"
+                  className="text-sm font-medium text-foreground/70 transition-colors hover:text-foreground"
+                >
+                  Welcome, {user.name}
+                </a>
+                <button
+                  type="button"
+                  onClick={signOut}
+                  className="text-sm font-medium text-foreground/70 transition-colors hover:text-foreground"
+                >
+                  Sign out
+                </button>
+              </>
+            ) : (
+              <a
+                href="/u/signin"
+                className="text-sm font-medium text-foreground/70 transition-colors hover:text-foreground"
+              >
+                Sign in
+              </a>
+            )}
             <a
               href="/#schedule"
               className="inline-flex items-center rounded-full bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground transition-all duration-300 hover:scale-105 hover:bg-primary/90"
@@ -106,13 +169,35 @@ export function Navbar() {
                   {link.label}
                 </a>
               ))}
-              <a
-                href="/u/signin"
-                onClick={() => setOpen(false)}
-                className="rounded-lg px-2 py-3 text-lg font-medium text-foreground/80 transition-colors hover:bg-secondary hover:text-foreground"
-              >
-                Sign in
-              </a>
+              {user ? (
+                <>
+                  <a
+                    href="/u"
+                    onClick={() => setOpen(false)}
+                    className="rounded-lg px-2 py-3 text-lg font-medium text-foreground/80 transition-colors hover:bg-secondary hover:text-foreground"
+                  >
+                    Welcome, {user.name}
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOpen(false)
+                      void signOut()
+                    }}
+                    className="rounded-lg px-2 py-3 text-left text-lg font-medium text-foreground/80 transition-colors hover:bg-secondary hover:text-foreground"
+                  >
+                    Sign out
+                  </button>
+                </>
+              ) : (
+                <a
+                  href="/u/signin"
+                  onClick={() => setOpen(false)}
+                  className="rounded-lg px-2 py-3 text-lg font-medium text-foreground/80 transition-colors hover:bg-secondary hover:text-foreground"
+                >
+                  Sign in
+                </a>
+              )}
               <a
                 href="/#schedule"
                 onClick={() => setOpen(false)}
