@@ -35,7 +35,7 @@ export function MemberSignupForm({
   }
 
   const fieldClass =
-    "w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
+    "w-full rounded-xl border border-border bg-background px-4 py-3 text-base sm:text-sm text-foreground outline-none transition-colors focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
 
   return (
     <form onSubmit={onSubmit} className="space-y-5">

@@ -22,7 +22,10 @@ export function Schedule({ sessionsByExperience }: ScheduleProps) {
         {experiences.map((experience) => (
           <div
             key={experience.id}
-            className="min-w-full shrink-0 snap-center lg:snap-always"
+            // w-full pins each slide to the track width. Without it the flex
+            // item sizes to its content and the heading overflows the section's
+            // overflow-hidden — visibly clipped on phones.
+            className="w-full min-w-full shrink-0 snap-center lg:snap-always"
           >
             <div className="mx-auto max-w-5xl px-6 lg:px-10">
               <ScheduleHeader experience={experience} />
