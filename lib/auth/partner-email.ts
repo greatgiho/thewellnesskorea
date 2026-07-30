@@ -40,13 +40,17 @@ export async function assertPartnerSignupEmailAvailable(
 }
 
 /**
- * Partner sign-in (magic link): the link may only go to an existing, approved
- * partner account. Never create a new account, and never let a member/admin
- * email into the partner portal (1 email = 1 role).
+ * Partner sign-in (magic link): validate that the email belongs to an existing,
+ * approved partner account (never create an account, never let a member/admin
+ * email into the portal — 1 email = 1 role) and return the address the link
+ * should be delivered to: the partner's contact email (partners.email). That
+ * field is the single source of the delivery address, so test accounts whose
+ * login email is undeliverable just carry a real (or Gmail "+alias") address
+ * there — no special-casing in code.
  */
-export async function assertPartnerLoginEmailAllowed(
+export async function resolvePartnerLoginDeliveryEmail(
   email: string,
-): Promise<void> {
+): Promise<string> {
   const existing = await findAuthUserByEmail(normalize(email))
   if (!existing) {
     throw new UserFacingError("등록된 파트너 계정을 찾을 수 없습니다.")
@@ -62,7 +66,7 @@ export async function assertPartnerLoginEmailAllowed(
 
   const { data: partner } = await createServiceClient()
     .from("partners")
-    .select("registration_status")
+    .select("registration_status, email")
     .eq("user_id", existing.id)
     .maybeSingle()
 
@@ -81,4 +85,13 @@ export async function assertPartnerLoginEmailAllowed(
       "아직 승인 대기 중인 계정입니다. 승인 후 로그인할 수 있습니다.",
     )
   }
+
+  const contact = typeof partner.email === "string" ? partner.email.trim() : ""
+  if (!contact) {
+    throw new UserFacingError(
+      "파트너 연락 이메일이 설정돼 있지 않습니다. 관리자에게 문의해 주세요.",
+    )
+  }
+
+  return contact
 }
