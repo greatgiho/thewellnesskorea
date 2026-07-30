@@ -3,7 +3,6 @@ import { createServiceClient } from "@/lib/supabase/service"
 import {
   assertMemberEmailAvailable,
   assertMemberLoginEmailAllowed,
-  isAdminAuthUser,
   isMemberAuthUser,
   normalizeMemberEmail,
 } from "@/lib/auth/member-email"
@@ -96,8 +95,13 @@ export async function completeMemberOnboarding(
   const appMeta = user.app_metadata as Record<string, unknown> | undefined
   const role = appMeta?.role
 
-  if (isAdminAuthUser(appMeta)) {
-    throw new UserFacingError("Admin accounts cannot use member sign-in.")
+  // An existing account with a non-member role (partner/admin) must NOT be
+  // onboarded as a member — doing so would overwrite (clobber) its role. Refuse
+  // instead; the caller signs the user out and shows a "wrong account" notice.
+  if (typeof role === "string" && role !== "member") {
+    throw new UserFacingError(
+      "이 이메일은 회원 계정이 아닙니다. 파트너·관리자는 각자 로그인 페이지를 이용해 주세요.",
+    )
   }
 
   if (role == null) {
