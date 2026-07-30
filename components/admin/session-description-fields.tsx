@@ -1,3 +1,5 @@
+import { cn } from "@/lib/utils"
+import { FIELD } from "@/lib/ui/field"
 import type { SessionDescriptionBlocks } from "@/lib/schedule/types"
 import {
   SESSION_DESCRIPTION_FIELDS,
@@ -12,8 +14,7 @@ export function SessionDescriptionFields({
   value,
   onChange,
 }: SessionDescriptionFieldsProps) {
-  const fieldClass =
-    "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring/50 min-h-[88px] resize-y"
+  const fieldClass = cn(FIELD, "min-h-[88px] resize-y")
 
   return (
     <div className="space-y-4">
