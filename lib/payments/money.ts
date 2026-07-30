@@ -18,9 +18,24 @@ export function money(
   }
 }
 
-/** Above 0 = requires online payment; 0 = free / on-site. */
+/** Above 0 = has a fee (online or on-site); 0 = free. */
 export function isPaid(m: Money): boolean {
   return m.amount > 0
+}
+
+export type PaymentMode = "free" | "online" | "onsite"
+
+/**
+ * How a class is paid for:
+ * - free   : no charge (amount 0) — reserve directly, nothing to pay.
+ * - online : has a fee paid now via PayPal. PayPal only supports USD, so a USD
+ *   price = online.
+ * - onsite : has a fee paid in person (any non-USD price, e.g. KRW) — reserve
+ *   now, pay at the studio.
+ */
+export function paymentMode(m: Money): PaymentMode {
+  if (m.amount <= 0) return "free"
+  return m.currency === "USD" ? "online" : "onsite"
 }
 
 /** PayPal decimal amount string, e.g. "30.00". */

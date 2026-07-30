@@ -5,7 +5,7 @@ import { BookingPageLayout } from "@/components/booking/booking-page-layout"
 import { BookingSessionSummary } from "@/components/booking/booking-session-summary"
 import { DevMockPaymentButton } from "@/components/booking/dev-mock-payment-button"
 import { PaypalCheckoutButton } from "@/components/booking/paypal-checkout-button"
-import { money, formatMoney } from "@/lib/payments/money"
+import { money, formatMoney, paymentMode } from "@/lib/payments/money"
 import { getPendingBookingPayment } from "@/lib/bookings/payment-queries"
 
 export const metadata: Metadata = {
@@ -83,7 +83,10 @@ export default async function BookPayPage({ searchParams }: BookPayPageProps) {
 
   const paypalClientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID
   const currency = pending.summary.price.currency
-  const showPaypal = Boolean(paypalClientId) && currency === "USD"
+  // Only online (USD, amount > 0) classes get the PayPal button — never a free
+  // ($0) or on-site hold, even if reached here directly.
+  const isOnline = paymentMode(money(currency, pending.amount)) === "online"
+  const showPaypal = Boolean(paypalClientId) && isOnline
 
   return (
     <BookingPageLayout
