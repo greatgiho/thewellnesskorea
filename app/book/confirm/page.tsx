@@ -5,7 +5,7 @@ import { BookingPageLayout } from "@/components/booking/booking-page-layout"
 import { BookingSessionSummary } from "@/components/booking/booking-session-summary"
 import { getBookingSummaryById } from "@/lib/bookings/queries"
 import { getOptionalMemberSession } from "@/lib/auth/require-session"
-import { isPaid } from "@/lib/payments/money"
+import { paymentMode } from "@/lib/payments/money"
 
 export const metadata: Metadata = {
   title: "Reservation confirmed — The Wellness Korea",
@@ -31,6 +31,14 @@ export default async function BookConfirmPage({
 
   const member = await getOptionalMemberSession()
 
+  // Same three-way split as the booking form and /book/pay, so a free class
+  // never reads as "pay on-site".
+  const paymentNote = {
+    free: "This class is free — nothing to pay.",
+    online: "Your online payment is confirmed.",
+    onsite: "Payment is on-site.",
+  }[paymentMode(summary.price)]
+
   const signupParams = new URLSearchParams({
     email: summary.guestEmail,
     name: summary.guestName,
@@ -50,9 +58,8 @@ export default async function BookConfirmPage({
             See you at Brickwell, Seochon.
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
-            {isPaid(summary.price)
-              ? "Your online payment is confirmed. Please arrive a few minutes early and wear comfortable clothing."
-              : "Payment is on-site. Please arrive a few minutes early and wear comfortable clothing."}
+            {paymentNote} Please arrive a few minutes early and wear
+            comfortable clothing.
           </p>
           {!member ? (
             <>
