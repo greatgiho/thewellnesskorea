@@ -87,12 +87,6 @@ export function TrueLoginForm() {
       </button>
 
       <p className="text-center text-sm text-muted-foreground">
-        매직링크로 로그인하시겠어요?{" "}
-        <Link href="/login" className="text-primary underline-offset-4 hover:underline">
-          이메일 링크 로그인
-        </Link>
-      </p>
-      <p className="text-center text-sm text-muted-foreground">
         처음이신가요?{" "}
         <Link href="/u/signup" className="text-primary underline-offset-4 hover:underline">
           회원가입
