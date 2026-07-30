@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { createServiceClient } from "@/lib/supabase/service"
+import { releaseExpiredHoldsBestEffort } from "./hold-rpc"
 import {
   SESSION_SUMMARY_SELECT,
   mapSessionSummary,
@@ -31,6 +32,10 @@ export type MemberBookingItem = {
 export async function getMemberBookingsForUser(
   userId: string,
 ): Promise<MemberBookingItem[]> {
+  // Release expired holds first so abandoned/expired "pending" holds drop out
+  // of the list instead of lingering until the daily cron.
+  await releaseExpiredHoldsBestEffort()
+
   const supabase = await createClient()
 
   const { data, error } = await supabase
@@ -52,6 +57,9 @@ export async function getMemberBookingsForUser(
     `,
     )
     .eq("user_id", userId)
+    // Cancelled bookings (incl. released/expired holds) aren't active
+    // reservations, so keep them out of "My reservations".
+    .neq("status", "cancelled")
     .order("created_at", { ascending: false })
 
   if (error) throw new Error(error.message)
