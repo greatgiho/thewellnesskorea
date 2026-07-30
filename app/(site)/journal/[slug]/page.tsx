@@ -1,8 +1,6 @@
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
-import { Footer } from "@/components/footer"
 import { JournalArticle } from "@/components/journal/journal-article"
-import { Navbar } from "@/components/navbar"
 import { getPublishedJournalPostBySlug } from "@/lib/journal/queries"
 import { getJournalPartnerTagsForPost } from "@/lib/journal/partners"
 
@@ -33,12 +31,8 @@ export default async function JournalArticlePage({ params }: Props) {
   const partners = await getJournalPartnerTagsForPost(post.id)
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      <main>
-        <JournalArticle post={post} partners={partners} />
-      </main>
-      <Footer />
-    </div>
+    <main>
+      <JournalArticle post={post} partners={partners} />
+    </main>
   )
 }

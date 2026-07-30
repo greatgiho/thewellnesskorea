@@ -1,7 +1,5 @@
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
-import { Footer } from "@/components/footer"
-import { Navbar } from "@/components/navbar"
 import { PartnerProfileView } from "@/components/partners/partner-profile-view"
 import { getPartnerBySlug } from "@/lib/partners/queries"
 import { getRegionsForForms } from "@/lib/regions/queries"
@@ -35,12 +33,8 @@ export default async function PersonProfilePage({ params }: Props) {
   const { sido } = await getRegionsForForms()
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      <main>
-        <PartnerProfileView person={person} sessions={sessions} sido={sido} />
-      </main>
-      <Footer />
-    </div>
+    <main>
+      <PartnerProfileView person={person} sessions={sessions} sido={sido} />
+    </main>
   )
 }
