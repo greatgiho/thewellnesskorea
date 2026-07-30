@@ -82,15 +82,17 @@ export async function updateSession(request: NextRequest) {
 
   const isAdminRoute = pathname === "/a" || pathname.startsWith("/a/")
   const isAdminLoginPage = pathname === "/a/signin"
-  const isMemberLoginPage = pathname === "/u/signin" || pathname === "/login"
+  const isMemberLoginPage = pathname === "/u/signin"
   const isMemberSignupPage = pathname === "/u/signup"
-  const isMemberCheckEmailPage = pathname === "/login/check-email"
-  // Protected member area = /u and /u/* EXCEPT the login/signup pages
-  // (those must be reachable while signed out).
+  const isMemberCheckEmailPage = pathname === "/u/check-email"
+  // Protected member area = /u and /u/* EXCEPT the sign-in, sign-up, and
+  // check-email pages. All three are reached while signed out — check-email in
+  // particular is where a magic-link request lands, before the link is opened.
   const isAccountRoute =
     (pathname === "/u" || pathname.startsWith("/u/")) &&
     !isMemberLoginPage &&
-    !isMemberSignupPage
+    !isMemberSignupPage &&
+    !isMemberCheckEmailPage
   const role = authRole(user)
   const signupIntent =
     typeof user?.user_metadata?.signup_intent === "string"

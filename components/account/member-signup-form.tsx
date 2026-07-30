@@ -28,7 +28,7 @@ export function MemberSignupForm({
       const params = new URLSearchParams({
         email: email.trim().toLowerCase(),
       })
-      window.location.href = `/login/check-email?${params.toString()}`
+      window.location.href = `/u/check-email?${params.toString()}`
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to send sign-up link.")
       setPending(false)

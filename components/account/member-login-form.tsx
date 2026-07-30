@@ -27,7 +27,7 @@ export function MemberLoginForm() {
     try {
       await requestMemberLoginLink(email)
       const params = new URLSearchParams({ email: email.trim().toLowerCase() })
-      window.location.href = `/login/check-email?${params.toString()}`
+      window.location.href = `/u/check-email?${params.toString()}`
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to send login link.")
       setPending(false)
