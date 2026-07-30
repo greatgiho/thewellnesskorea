@@ -5,7 +5,7 @@ import { completeMemberOnboarding } from "@/lib/auth/member-account"
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
-  const next = searchParams.get("next") ?? "/apply/profile"
+  const next = searchParams.get("next") ?? "/"
   const flow = searchParams.get("flow")
 
   const supabase = await createClient()
@@ -29,5 +29,6 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${origin}${next}`)
   }
 
-  return NextResponse.redirect(`${origin}/apply?error=auth`)
+  const errorPath = flow === "member" ? "/u/signin?error=auth" : "/?error=auth"
+  return NextResponse.redirect(`${origin}${errorPath}`)
 }
