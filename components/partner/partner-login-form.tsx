@@ -44,7 +44,7 @@ export function PartnerLoginForm() {
   }
 
   const fieldClass =
-    "w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring/50"
+    "w-full rounded-lg border border-border bg-background px-3 py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-ring/50"
 
   if (sent) {
     return (

@@ -56,7 +56,9 @@ export function FooterLinkColumns() {
           <p>
             <a
               href="mailto:hello@thewellnesskorea.com"
-              className="transition-colors hover:text-background"
+              // The address is one unbreakable token — without break-all it
+              // overflows the narrow footer column on phones.
+              className="break-all transition-colors hover:text-background"
             >
               hello@thewellnesskorea.com
             </a>

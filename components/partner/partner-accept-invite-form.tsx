@@ -6,7 +6,7 @@ import { acceptPartnerInvite } from "@/app/p/accept-invite-actions"
 import { Button } from "@/components/ui/button"
 
 const fieldClass =
-  "w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring/50"
+  "w-full rounded-lg border border-border bg-background px-3 py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-ring/50"
 
 export function PartnerAcceptInviteForm({ token }: { token: string }) {
   const [pending, setPending] = useState(false)

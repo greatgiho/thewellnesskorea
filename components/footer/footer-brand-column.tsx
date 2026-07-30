@@ -19,7 +19,7 @@ export function FooterBrandColumn() {
             required
             placeholder="Your email address"
             aria-label="Email address"
-            className="w-full bg-transparent text-sm text-background placeholder:text-background/50 focus:outline-none"
+            className="w-full bg-transparent text-base text-background placeholder:text-background/50 focus:outline-none sm:text-sm"
           />
           <button
             type="submit"
