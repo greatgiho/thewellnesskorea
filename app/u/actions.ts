@@ -4,7 +4,11 @@ import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { isRedirectError } from "next/dist/client/components/redirect-error"
 import { siteOrigin } from "@/lib/site-origin"
-import { completeMemberOnboarding, validateMemberSignupEmail } from "@/lib/auth/member-account"
+import {
+  completeMemberOnboarding,
+  validateMemberLoginEmail,
+  validateMemberSignupEmail,
+} from "@/lib/auth/member-account"
 import { requireMemberSession } from "@/lib/auth/require-session"
 import { assertNotViewAs } from "@/lib/view-as-server"
 import { cancelBookingForUserRpc } from "@/lib/bookings/rpc"
@@ -26,7 +30,9 @@ export async function requestMemberLoginLink(email: string): Promise<void> {
     throw new Error("Please enter a valid email address.")
   }
 
-  await validateMemberSignupEmail(normalized)
+  // Login (not signup): an existing account is expected, including one still
+  // pending onboarding (no role yet). Only admin emails are barred here.
+  await validateMemberLoginEmail(normalized)
 
   const supabase = await createClient()
   const { error } = await supabase.auth.signInWithOtp({

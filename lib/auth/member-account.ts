@@ -2,6 +2,7 @@ import type { User } from "@supabase/supabase-js"
 import { createServiceClient } from "@/lib/supabase/service"
 import {
   assertMemberEmailAvailable,
+  assertMemberLoginEmailAllowed,
   isAdminAuthUser,
   isMemberAuthUser,
   normalizeMemberEmail,
@@ -131,4 +132,8 @@ export async function completeMemberOnboarding(
 
 export async function validateMemberSignupEmail(email: string): Promise<void> {
   await assertMemberEmailAvailable(email)
+}
+
+export async function validateMemberLoginEmail(email: string): Promise<void> {
+  await assertMemberLoginEmailAllowed(email)
 }

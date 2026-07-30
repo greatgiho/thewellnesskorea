@@ -1,13 +1,14 @@
 import type { Metadata } from "next"
 import Link from "next/link"
-import { MemberSignInPanel } from "@/components/account/member-signin-panel"
+import { MemberLoginForm } from "@/components/account/member-login-form"
+import { GoogleSignInButton } from "@/components/account/google-signin-button"
 
 export const metadata: Metadata = {
   title: "Sign in — The Wellness Korea",
-  description: "Sign in with an email link, password, or Google to manage your reservations.",
+  description: "Sign in with an email link or Google to manage your reservations.",
 }
 
-export default function TrueLoginPage() {
+export default function MemberSignInPage() {
   return (
     <div className="min-h-screen bg-background px-6 py-16">
       <div className="mx-auto w-full max-w-md space-y-8">
@@ -25,11 +26,19 @@ export default function TrueLoginPage() {
             Sign in
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            이메일 링크, 비밀번호, 또는 Google로 로그인합니다.
+            이메일 링크 또는 Google로 로그인합니다.
           </p>
         </div>
 
-        <MemberSignInPanel />
+        <div className="space-y-5 rounded-3xl border border-border bg-card p-6 shadow-sm sm:p-8">
+          <MemberLoginForm />
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <span className="h-px flex-1 bg-border" />
+            또는
+            <span className="h-px flex-1 bg-border" />
+          </div>
+          <GoogleSignInButton />
+        </div>
 
         <p className="text-center text-xs text-muted-foreground">
           <Link href="/" className="underline-offset-4 hover:underline">
