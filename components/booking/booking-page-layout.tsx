@@ -1,6 +1,6 @@
-import Link from "next/link"
 import type { ReactNode } from "react"
-import { AuthNavActions } from "@/components/auth-nav-actions"
+import { Navbar } from "@/components/navbar"
+import { Footer } from "@/components/footer"
 
 type BookingPageLayoutProps = {
   eyebrow: string
@@ -17,25 +17,9 @@ export function BookingPageLayout({
 }: BookingPageLayoutProps) {
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b border-border">
-        <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-6 py-6">
-          <Link
-            href="/"
-            className="font-serif text-xl text-foreground transition-opacity hover:opacity-70"
-          >
-            The Wellness Korea
-          </Link>
-          <div className="flex items-center gap-4 text-sm">
-            <AuthNavActions />
-            <Link
-              href="/#schedule"
-              className="text-muted-foreground transition-colors hover:text-foreground"
-            >
-              Schedule
-            </Link>
-          </div>
-        </div>
-      </header>
+      <Navbar />
+      {/* Spacer for the fixed 65px navbar. */}
+      <div aria-hidden className="h-[65px]" />
       <main className="mx-auto max-w-3xl px-6 py-14 lg:py-20">
         <p className="font-mono text-xs uppercase tracking-[0.35em] text-primary">
           {eyebrow}
@@ -50,6 +34,7 @@ export function BookingPageLayout({
         ) : null}
         <div className="mt-10">{children}</div>
       </main>
+      <Footer />
     </div>
   )
 }

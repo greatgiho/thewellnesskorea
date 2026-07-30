@@ -1,5 +1,6 @@
-import Link from "next/link"
 import type { ReactNode } from "react"
+import { Navbar } from "@/components/navbar"
+import { Footer } from "@/components/footer"
 
 type LegalPageLayoutProps = {
   title: string
@@ -14,22 +15,9 @@ export function LegalPageLayout({
 }: LegalPageLayoutProps) {
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b border-border">
-        <div className="mx-auto flex max-w-3xl items-center justify-between px-6 py-6">
-          <Link
-            href="/"
-            className="font-serif text-xl text-foreground transition-opacity hover:opacity-70"
-          >
-            The Wellness Korea
-          </Link>
-          <Link
-            href="/"
-            className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-          >
-            Back to home
-          </Link>
-        </div>
-      </header>
+      <Navbar />
+      {/* Spacer for the fixed 65px navbar. */}
+      <div aria-hidden className="h-[65px]" />
       <article className="mx-auto max-w-3xl px-6 py-14 lg:py-20">
         <p className="font-mono text-xs uppercase tracking-[0.35em] text-primary">
           Legal
@@ -42,6 +30,7 @@ export function LegalPageLayout({
           {children}
         </div>
       </article>
+      <Footer />
     </div>
   )
 }
