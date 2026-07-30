@@ -2,6 +2,8 @@
 
 import { useState, useTransition } from "react"
 import { createSessionPost, deleteSessionPost } from "@/app/p/session-actions"
+import { cn } from "@/lib/utils"
+import { FIELD_ROOMY } from "@/lib/ui/field"
 import type { SessionPost } from "@/lib/partner/queries"
 
 type Props = {
@@ -119,7 +121,7 @@ export function SessionBoard({ sessionId, posts: initialPosts, partnerName }: Pr
           onChange={(e) => setContent(e.target.value)}
           placeholder="수업에 대한 피드백이나 메모를 남겨보세요."
           rows={4}
-          className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring/50 resize-none"
+          className={cn(FIELD_ROOMY, "resize-none")}
         />
         <button
           type="submit"

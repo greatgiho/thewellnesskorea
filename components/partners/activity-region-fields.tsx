@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo } from "react"
+import { FIELD } from "@/lib/ui/field"
 import type { RegionsForForms } from "@/lib/regions/types"
 
 type ActivityRegionFieldsProps = {
@@ -62,8 +63,7 @@ function RegionPair({
     [selectedSidoCode, sigungu],
   )
 
-  const fieldClass =
-    "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/50"
+  const fieldClass = FIELD
 
   return (
     <div className="space-y-3 rounded-2xl border border-border bg-card/40 p-5">
