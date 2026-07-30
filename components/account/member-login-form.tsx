@@ -2,11 +2,21 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import { useSearchParams } from "next/navigation"
 import { requestMemberLoginLink } from "@/app/u/actions"
 
 export function MemberLoginForm() {
+  const searchParams = useSearchParams()
+  const errorParam = searchParams.get("error")
+  const queryError =
+    errorParam === "wrong_account"
+      ? "이 이메일은 회원 계정이 아닙니다. 파트너·관리자는 각자 로그인 페이지를 이용해 주세요."
+      : errorParam === "auth"
+        ? "로그인 링크가 만료되었거나 유효하지 않습니다. 다시 시도해 주세요."
+        : null
+
   const [email, setEmail] = useState("")
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(queryError)
   const [pending, setPending] = useState(false)
 
   const onSubmit = async (e: React.FormEvent) => {

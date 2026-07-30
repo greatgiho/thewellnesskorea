@@ -22,7 +22,13 @@ export async function GET(request: Request) {
         try {
           await completeMemberOnboarding(user, { treatAsMember: true })
         } catch {
-          // e.g. an admin/partner tried member OAuth — let the /u gate handle it.
+          // A partner/admin email tried member OAuth. Don't leave them signed
+          // in as the wrong role — sign out and bounce back with a notice.
+          // (completeMemberOnboarding refuses instead of clobbering the role.)
+          await supabase.auth.signOut()
+          return NextResponse.redirect(
+            `${origin}/u/signin?error=wrong_account`,
+          )
         }
       }
     }

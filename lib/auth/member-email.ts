@@ -63,9 +63,15 @@ export async function assertMemberLoginEmailAllowed(email: string): Promise<void
   if (!existing) return // new account; signInWithOtp will create it
 
   const appMeta = existing.app_metadata as Record<string, unknown> | undefined
-  if (isAdminAuthUser(appMeta)) {
+  const role = appMeta?.role
+  if (role === "admin") {
     throw new UserFacingError(
-      "This email is registered as an admin account and cannot be used for member sign-in.",
+      "이 이메일은 관리자 계정입니다. 관리자 로그인 페이지를 이용해 주세요.",
+    )
+  }
+  if (role === "partner") {
+    throw new UserFacingError(
+      "이 이메일은 파트너 계정입니다. 파트너 로그인 페이지를 이용해 주세요.",
     )
   }
 }
