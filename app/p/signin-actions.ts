@@ -6,11 +6,6 @@ import { isValidEmail } from "@/lib/partners/utils"
 import { createServiceClient } from "@/lib/supabase/service"
 import { sendEmail } from "@/lib/notifications/email"
 
-function partnerAuthRedirect(): string {
-  const params = new URLSearchParams({ next: "/p" })
-  return `${siteOrigin()}/auth/callback?${params.toString()}`
-}
-
 /**
  * Send a partner sign-in magic link. The email must belong to an approved
  * partner account (guarded); we never create a new account here. The link is
@@ -31,13 +26,22 @@ export async function requestPartnerLoginLink(email: string): Promise<void> {
   const { data, error } = await admin.auth.admin.generateLink({
     type: "magiclink",
     email: normalized,
-    options: { redirectTo: partnerAuthRedirect() },
   })
 
-  const link = data?.properties?.action_link
-  if (error || !link) {
+  // Build the link against our own /auth/callback with token_hash — verifyOtp
+  // works server-side on any device. (The raw action_link is Supabase's
+  // /auth/v1/verify URL, which redirects tokens in a URL hash our server
+  // callback can't read, so it fell through to the homepage.)
+  const hashedToken = data?.properties?.hashed_token
+  if (error || !hashedToken) {
     throw new Error(error?.message ?? "로그인 링크 생성에 실패했습니다.")
   }
+  const params = new URLSearchParams({
+    token_hash: hashedToken,
+    type: "magiclink",
+    next: "/p",
+  })
+  const link = `${siteOrigin()}/auth/callback?${params.toString()}`
 
   const subject = `[파트너 로그인] ${normalized} 계정 로그인 링크`
   const html = `
