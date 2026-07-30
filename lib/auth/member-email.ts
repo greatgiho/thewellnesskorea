@@ -49,4 +49,25 @@ export async function assertMemberEmailAvailable(email: string): Promise<void> {
   )
 }
 
+/**
+ * Member sign-in (magic link) email guard. Unlike signup, an existing account
+ * is expected here — including one still pending onboarding (no role yet), e.g.
+ * created but never confirmed. Only admin accounts are barred from member
+ * sign-in; everything else (member or role-less) may request a login link.
+ */
+export async function assertMemberLoginEmailAllowed(email: string): Promise<void> {
+  const normalized = normalizeEmail(email)
+  if (!normalized) return
+
+  const existing = await findAuthUserByEmail(normalized)
+  if (!existing) return // new account; signInWithOtp will create it
+
+  const appMeta = existing.app_metadata as Record<string, unknown> | undefined
+  if (isAdminAuthUser(appMeta)) {
+    throw new UserFacingError(
+      "This email is registered as an admin account and cannot be used for member sign-in.",
+    )
+  }
+}
+
 export { normalizeEmail as normalizeMemberEmail }
