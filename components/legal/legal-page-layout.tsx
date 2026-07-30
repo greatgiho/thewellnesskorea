@@ -1,6 +1,4 @@
 import type { ReactNode } from "react"
-import { Navbar } from "@/components/navbar"
-import { Footer } from "@/components/footer"
 
 type LegalPageLayoutProps = {
   title: string
@@ -14,8 +12,7 @@ export function LegalPageLayout({
   children,
 }: LegalPageLayoutProps) {
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
+    <>
       {/* Spacer for the fixed 65px navbar. */}
       <div aria-hidden className="h-[65px]" />
       <article className="mx-auto max-w-3xl px-6 py-14 lg:py-20">
@@ -30,8 +27,7 @@ export function LegalPageLayout({
           {children}
         </div>
       </article>
-      <Footer />
-    </div>
+    </>
   )
 }
 
