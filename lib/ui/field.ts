@@ -11,13 +11,23 @@
  * keeps the denser desktop size.
  */
 
+/** Border, background, focus ring, and the mobile font size. No width. */
+const CHROME =
+  "rounded-lg border border-border bg-background text-base text-foreground focus:outline-none focus:ring-2 focus:ring-ring/50 sm:text-sm"
+
+/**
+ * App chrome sized by the caller — for the few fields that set their own
+ * width. Keep `w-full` out of it: Tailwind resolves same-specificity
+ * conflicts by stylesheet order, not class order, so `cn(FIELD, "w-20")`
+ * would not reliably beat `w-full`.
+ */
+export const FIELD_BASE = `${CHROME} px-3 py-2`
+
 /** App chrome — admin and partner dashboards. */
-export const FIELD =
-  "w-full rounded-lg border border-border bg-background px-3 py-2 text-base text-foreground focus:outline-none focus:ring-2 focus:ring-ring/50 sm:text-sm"
+export const FIELD = `w-full ${FIELD_BASE}`
 
 /** App chrome with the taller padding standalone auth forms use. */
-export const FIELD_ROOMY =
-  "w-full rounded-lg border border-border bg-background px-3 py-2.5 text-base text-foreground focus:outline-none focus:ring-2 focus:ring-ring/50 sm:text-sm"
+export const FIELD_ROOMY = `w-full ${CHROME} px-3 py-2.5`
 
 /** Public booking and member forms — softer radius, primary focus ring. */
 export const FIELD_PUBLIC =
