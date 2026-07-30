@@ -4,11 +4,9 @@ import { useActionState } from "react"
 import Link from "next/link"
 import { submitGuestBooking, type GuestBookingState } from "@/app/book/actions"
 import type { SessionWithRelations } from "@/lib/schedule/types"
+import { FIELD_PUBLIC } from "@/lib/ui/field"
 import { money, formatMoney, paymentMode } from "@/lib/payments/money"
 import { BookingSessionSummary } from "./booking-session-summary"
-
-const fieldClass =
-  "w-full rounded-xl border border-border bg-background px-4 py-3 text-base sm:text-sm text-foreground outline-none transition-colors focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
 
 const initialState: GuestBookingState = {}
 
@@ -61,7 +59,7 @@ export function GuestBookingForm({
                 type="text"
                 required
                 autoComplete="name"
-                className={fieldClass}
+                className={FIELD_PUBLIC}
                 placeholder="Your name"
                 defaultValue={memberPrefill?.name ?? ""}
                 readOnly={isMember}
@@ -75,7 +73,7 @@ export function GuestBookingForm({
                 type="email"
                 required
                 autoComplete="email"
-                className={fieldClass}
+                className={FIELD_PUBLIC}
                 placeholder="you@example.com"
                 defaultValue={memberPrefill?.email ?? ""}
                 readOnly={isMember}
@@ -90,7 +88,7 @@ export function GuestBookingForm({
                 name="guestPhone"
                 type="tel"
                 autoComplete="tel"
-                className={fieldClass}
+                className={FIELD_PUBLIC}
                 placeholder="+82 10 0000 0000"
                 defaultValue={memberPrefill?.phone ?? ""}
               />

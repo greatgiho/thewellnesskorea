@@ -2,6 +2,7 @@
 
 import type { PathKey } from "@/lib/paths/paths-data"
 import type { PartnerProgramFormInput } from "@/lib/partners/types"
+import { FIELD } from "@/lib/ui/field"
 import { PhilosophyPathPicker } from "./philosophy-path-picker"
 
 type ProgramListEditorProps = {
@@ -29,8 +30,7 @@ export function ProgramListEditor({ programs, onChange }: ProgramListEditorProps
     onChange([...programs, emptyProgram()])
   }
 
-  const fieldClass =
-    "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/50"
+  const fieldClass = FIELD
 
   return (
     <div className="space-y-4">

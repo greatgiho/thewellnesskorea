@@ -2,12 +2,13 @@
 
 import { useActionState } from "react"
 import { unlockSite, type SiteUnlockState } from "@/app/site-unlock/actions"
+import { cn } from "@/lib/utils"
+import { FIELD_ROOMY } from "@/lib/ui/field"
 import { Button } from "@/components/ui/button"
 
 const initialState: SiteUnlockState = {}
 
-const fieldClass =
-  "w-full rounded-lg border border-border bg-background px-3 py-2.5 text-center text-lg tracking-[0.35em] focus:outline-none focus:ring-2 focus:ring-ring/50"
+const fieldClass = cn(FIELD_ROOMY, "text-center text-lg tracking-[0.35em]")
 
 type SiteUnlockFormProps = {
   nextPath: string

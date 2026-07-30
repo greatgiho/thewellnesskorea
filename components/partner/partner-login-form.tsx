@@ -4,6 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { requestPartnerLoginLink } from "@/app/p/signin-actions"
+import { FIELD_ROOMY } from "@/lib/ui/field"
 import { Button } from "@/components/ui/button"
 
 export function PartnerLoginForm() {
@@ -43,8 +44,7 @@ export function PartnerLoginForm() {
     }
   }
 
-  const fieldClass =
-    "w-full rounded-lg border border-border bg-background px-3 py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-ring/50"
+  const fieldClass = FIELD_ROOMY
 
   if (sent) {
     return (

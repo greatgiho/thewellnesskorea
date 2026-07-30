@@ -4,6 +4,7 @@ import { useMemo, useState } from "react"
 import Image from "next/image"
 import { Search } from "lucide-react"
 import type { PartnerWithPrograms } from "@/lib/partners/types"
+import { FIELD } from "@/lib/ui/field"
 import { getPartnerPhotoUrl, sortPartnersByName } from "@/lib/partners/utils"
 
 type InstructorSearchPickerProps = {
@@ -45,8 +46,7 @@ export function InstructorSearchPicker({
     return sortPartnersByName(filtered).slice(0, 12)
   }, [instructors, search])
 
-  const fieldClass =
-    "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/50"
+  const fieldClass = FIELD
 
   const clearSelection = () => {
     onChange("")

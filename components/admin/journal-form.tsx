@@ -19,6 +19,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { ImagePlus } from "lucide-react"
 import { useMemo, useRef, useState } from "react"
+import { FIELD } from "@/lib/ui/field"
 import { useRouter } from "next/navigation"
 
 type ExperienceOption = {
@@ -114,8 +115,7 @@ export function JournalForm({
     }
   }
 
-  const fieldClass =
-    "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/50"
+  const fieldClass = FIELD
 
   return (
     <form onSubmit={onSubmit} className="mx-auto max-w-3xl space-y-10">

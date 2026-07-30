@@ -2,11 +2,9 @@
 
 import { useActionState } from "react"
 import { joinWaitlist, type WaitlistState } from "@/app/book/waitlist-actions"
+import { FIELD_PUBLIC } from "@/lib/ui/field"
 import type { SessionWithRelations } from "@/lib/schedule/types"
 import { BookingSessionSummary } from "./booking-session-summary"
-
-const fieldClass =
-  "w-full rounded-xl border border-border bg-background px-4 py-3 text-base sm:text-sm text-foreground outline-none transition-colors focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
 
 const initialState: WaitlistState = {}
 
@@ -61,7 +59,7 @@ export function WaitlistForm({ session, memberPrefill }: WaitlistFormProps) {
                 type="text"
                 required
                 autoComplete="name"
-                className={fieldClass}
+                className={FIELD_PUBLIC}
                 placeholder="Your name"
                 defaultValue={memberPrefill?.name ?? ""}
                 readOnly={Boolean(memberPrefill)}
@@ -75,7 +73,7 @@ export function WaitlistForm({ session, memberPrefill }: WaitlistFormProps) {
                 type="email"
                 required
                 autoComplete="email"
-                className={fieldClass}
+                className={FIELD_PUBLIC}
                 placeholder="you@example.com"
                 defaultValue={memberPrefill?.email ?? ""}
                 readOnly={Boolean(memberPrefill)}
@@ -93,7 +91,7 @@ export function WaitlistForm({ session, memberPrefill }: WaitlistFormProps) {
                 name="guestPhone"
                 type="tel"
                 autoComplete="tel"
-                className={fieldClass}
+                className={FIELD_PUBLIC}
                 placeholder="+82 10 0000 0000"
                 defaultValue={memberPrefill?.phone ?? ""}
               />
