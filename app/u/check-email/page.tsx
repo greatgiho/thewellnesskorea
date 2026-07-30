@@ -9,7 +9,7 @@ type CheckEmailPageProps = {
   searchParams: Promise<{ email?: string }>
 }
 
-export default async function LoginCheckEmailPage({
+export default async function MemberCheckEmailPage({
   searchParams,
 }: CheckEmailPageProps) {
   const { email } = await searchParams
@@ -38,7 +38,7 @@ export default async function LoginCheckEmailPage({
           </p>
         </div>
         <Link
-          href="/login"
+          href="/u/signin"
           className="text-sm text-primary underline-offset-4 hover:underline"
         >
           Back to sign in
