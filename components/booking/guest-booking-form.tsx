@@ -5,7 +5,8 @@ import Link from "next/link"
 import { submitGuestBooking, type GuestBookingState } from "@/app/book/actions"
 import type { SessionWithRelations } from "@/lib/schedule/types"
 import { FIELD_PUBLIC } from "@/lib/ui/field"
-import { money, formatMoney, paymentMode } from "@/lib/payments/money"
+import { money, applyDiscount, discountFrom, paymentMode } from "@/lib/payments/money"
+import { PriceTag } from "@/components/booking/price-tag"
 import { BookingSessionSummary } from "./booking-session-summary"
 
 const initialState: GuestBookingState = {}
@@ -31,7 +32,13 @@ export function GuestBookingForm({
   )
 
   const isMember = Boolean(memberPrefill)
-  const price = money(session.price_currency, session.price_amount)
+  const priced = applyDiscount(
+    money(session.price_currency, session.price_amount),
+    discountFrom(session.discount_type, session.discount_value),
+  )
+  // The discounted price is what gets charged, so it drives the flow too — a
+  // 100% discount makes this a free class with no payment step.
+  const price = priced.final
   const mode = paymentMode(price)
 
   return (
@@ -98,13 +105,13 @@ export function GuestBookingForm({
           {mode === "online" ? (
             <p className="mt-4 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-foreground">
               Class fee:{" "}
-              <span className="font-medium">{formatMoney(price)}</span>
+              <PriceTag priced={priced} className="font-medium" />
               {" "}— you&apos;ll complete online payment on the next step.
             </p>
           ) : mode === "onsite" ? (
             <p className="mt-4 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-foreground">
               Class fee:{" "}
-              <span className="font-medium">{formatMoney(price)}</span>
+              <PriceTag priced={priced} className="font-medium" />
               {" "}— pay on-site at the studio when you arrive.
             </p>
           ) : (

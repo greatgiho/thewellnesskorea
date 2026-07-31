@@ -6,7 +6,7 @@ import {
   mapSessionSummary,
   type SessionSummaryRelation,
 } from "./session-summary"
-import type { Money } from "@/lib/payments/money"
+import type { PricedMoney } from "@/lib/payments/money"
 import { SESSION_WITH_RELATIONS } from "@/lib/schedule/constants"
 import { toSessionWithRelations } from "@/lib/schedule/queries"
 import type { FloorRow, SessionRow, SessionWithRelations } from "@/lib/schedule/types"
@@ -23,7 +23,7 @@ export type BookingSummary = {
   sessionEndsAt: string
   floorName: string
   instructorName: string
-  price: Money
+  price: PricedMoney
 }
 
 export async function getBookableSession(

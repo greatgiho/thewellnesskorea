@@ -31,6 +31,8 @@ import {
 } from "@/components/admin/session-image-upload"
 import { SessionBookingsPanel } from "@/components/admin/session-bookings-panel"
 import { FIELD } from "@/lib/ui/field"
+import { applyDiscount, discountFrom, money } from "@/lib/payments/money"
+import { PriceTag } from "@/components/booking/price-tag"
 
 type SessionFormDialogProps = {
   open: boolean
@@ -61,6 +63,8 @@ const defaultInput = (
   capacity: 12,
   price_currency: "USD",
   price_amount: 0,
+  discount_type: null,
+  discount_value: null,
   is_published: false,
   status: "processing",
   image_paths: [],
@@ -125,6 +129,8 @@ export function SessionFormDialog({
         capacity: session.capacity,
         price_currency: session.price_currency ?? "USD",
         price_amount: Number(session.price_amount ?? 0),
+        discount_type: session.discount_type ?? null,
+        discount_value: session.discount_value != null ? Number(session.discount_value) : null,
         is_published: session.is_published,
         status: session.status ?? "confirmed",
         image_paths: session.image_paths ?? [],
@@ -271,6 +277,14 @@ export function SessionFormDialog({
   if (!open) return null
 
   const fieldClass = FIELD
+
+  // Show the admin exactly what a customer will see, using the same
+  // applyDiscount() the booking screens use.
+  const discountPreview = useMemo(() => {
+    const discount = discountFrom(input.discount_type, input.discount_value)
+    if (!discount) return null
+    return applyDiscount(money(input.price_currency, input.price_amount), discount)
+  }, [input.discount_type, input.discount_value, input.price_currency, input.price_amount])
 
   const isProcessing = input.status === "processing"
   const readOnly = Boolean(session) && !isEditing
@@ -567,6 +581,60 @@ export function SessionFormDialog({
                 0 = free / on-site payment. Above 0 requires online payment at
                 booking (B7).
               </p>
+            </label>
+
+            <label className="block space-y-1">
+              <span className="text-sm font-medium">Discount</span>
+              <div className="flex gap-2">
+                <select
+                  className={fieldClass}
+                  value={input.discount_type ?? ""}
+                  onChange={(e) => {
+                    const type = e.target.value as "" | "fixed" | "percent"
+                    setInput((v) => ({
+                      ...v,
+                      // Both columns travel together — the DB rejects one
+                      // without the other.
+                      discount_type: type === "" ? null : type,
+                      discount_value: type === "" ? null : (v.discount_value ?? 0),
+                    }))
+                  }}
+                >
+                  <option value="">없음</option>
+                  <option value="percent">정률 (%)</option>
+                  <option value="fixed">정액 ({input.price_currency})</option>
+                </select>
+                <input
+                  type="number"
+                  min={0}
+                  max={input.discount_type === "percent" ? 100 : input.price_amount}
+                  step={
+                    input.discount_type === "percent"
+                      ? 1
+                      : input.price_currency === "KRW"
+                        ? 1000
+                        : 1
+                  }
+                  disabled={input.discount_type === null}
+                  className={fieldClass}
+                  value={input.discount_value ?? ""}
+                  onChange={(e) =>
+                    setInput((v) => ({
+                      ...v,
+                      discount_value: Math.max(0, Number(e.target.value) || 0),
+                    }))
+                  }
+                />
+              </div>
+              {discountPreview ? (
+                <p className="text-xs text-muted-foreground">
+                  고객 화면: <PriceTag priced={discountPreview} />
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  정률은 1–100%, 정액은 정가 이하. 100% 할인은 무료 수업이 됩니다.
+                </p>
+              )}
             </label>
 
             {session ? (

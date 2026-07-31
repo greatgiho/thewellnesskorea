@@ -49,6 +49,72 @@ export function roundMoney(m: Money): Money {
   return { currency: m.currency, amount: rounded / factor }
 }
 
+export type DiscountType = "fixed" | "percent"
+export type Discount = { type: DiscountType; value: number }
+
+/** A price with its discount resolved: what it was, what it is, how much off. */
+export type PricedMoney = {
+  original: Money
+  final: Money
+  discount: Discount | null
+  /** Rounded whole percent, for the "(50% off)" label. 0 when undiscounted. */
+  percentOff: number
+}
+
+/** Read a discount off a session row; null unless both columns are set. */
+export function discountFrom(
+  type: string | null | undefined,
+  value: number | string | null | undefined,
+): Discount | null {
+  if (type !== "fixed" && type !== "percent") return null
+  const amount = Number(value ?? 0)
+  if (!Number.isFinite(amount) || amount <= 0) return null
+  return { type, value: amount }
+}
+
+/**
+ * Apply a discount to a price.
+ *
+ * Mirrors session_final_price() in the database, which is what actually gets
+ * charged — the two must agree or confirm_booking_payment rejects the capture
+ * for an amount mismatch. Keep them in step.
+ *
+ * The result is clamped at zero so an oversized fixed discount cannot produce
+ * a negative charge, and rounded to what the currency can be charged in.
+ */
+export function applyDiscount(
+  price: Money,
+  discount: Discount | null,
+): PricedMoney {
+  if (!discount) {
+    return { original: price, final: price, discount: null, percentOff: 0 }
+  }
+
+  const raw =
+    discount.type === "percent"
+      ? price.amount - (price.amount * discount.value) / 100
+      : price.amount - discount.value
+
+  const final = roundMoney({
+    currency: price.currency,
+    amount: Math.max(0, raw),
+  })
+
+  // Derive the label from the actual prices rather than the configured value,
+  // so a fixed discount also reads as a percentage and rounding is reflected.
+  const percentOff =
+    price.amount > 0
+      ? Math.round(((price.amount - final.amount) / price.amount) * 100)
+      : 0
+
+  return { original: price, final, discount, percentOff }
+}
+
+/** True when the final price is below the original. */
+export function isDiscounted(priced: PricedMoney): boolean {
+  return priced.final.amount < priced.original.amount
+}
+
 export type PaymentMode = "free" | "online" | "onsite"
 
 /**

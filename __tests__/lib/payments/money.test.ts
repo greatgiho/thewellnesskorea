@@ -6,6 +6,9 @@ import {
   paymentMode,
   roundMoney,
   toPaypalAmount,
+  applyDiscount,
+  discountFrom,
+  isDiscounted,
 } from "@/lib/payments/money"
 
 describe("decimalPlaces", () => {
@@ -64,5 +67,66 @@ describe("rounded amounts survive the payment round trip", () => {
     // /book/pay step and no PayPal order.
     expect(paymentMode(roundMoney(money("USD", 0)))).toBe("free")
     expect(paymentMode(roundMoney(money("KRW", 0)))).toBe("free")
+  })
+})
+
+describe("applyDiscount", () => {
+  const usd30 = money("USD", 30)
+  const krw33000 = money("KRW", 33000)
+
+  it("returns the price untouched when there is no discount", () => {
+    const p = applyDiscount(usd30, null)
+    expect(p.final.amount).toBe(30)
+    expect(p.percentOff).toBe(0)
+    expect(isDiscounted(p)).toBe(false)
+  })
+
+  it("takes a percentage off and rounds to the currency", () => {
+    expect(applyDiscount(usd30, { type: "percent", value: 33 }).final.amount).toBe(20.1)
+    expect(applyDiscount(krw33000, { type: "percent", value: 17 }).final.amount).toBe(27390)
+  })
+
+  it("takes a fixed amount off", () => {
+    const p = applyDiscount(usd30, { type: "fixed", value: 5 })
+    expect(p.final.amount).toBe(25)
+    expect(p.percentOff).toBe(17)
+  })
+
+  it("labels a half-price class as 50% off", () => {
+    // The example from the brief: ~~$50.00~~ $25.00 (50% off)
+    const p = applyDiscount(money("USD", 50), { type: "fixed", value: 25 })
+    expect(p.percentOff).toBe(50)
+    expect(formatMoney(p.original)).toBe("$50.00")
+    expect(formatMoney(p.final)).toBe("$25.00")
+  })
+
+  it("clamps at zero so an oversized fixed discount cannot go negative", () => {
+    const p = applyDiscount(usd30, { type: "fixed", value: 999 })
+    expect(p.final.amount).toBe(0)
+    expect(p.percentOff).toBe(100)
+    expect(paymentMode(p.final)).toBe("free")
+  })
+
+  it("turns a 100% discount into a free class", () => {
+    const p = applyDiscount(usd30, { type: "percent", value: 100 })
+    expect(p.final.amount).toBe(0)
+    expect(paymentMode(p.final)).toBe("free")
+  })
+})
+
+describe("discountFrom", () => {
+  it("needs both columns to be set", () => {
+    expect(discountFrom("percent", 20)).toEqual({ type: "percent", value: 20 })
+    expect(discountFrom(null, 20)).toBeNull()
+    expect(discountFrom("percent", null)).toBeNull()
+    expect(discountFrom("percent", 0)).toBeNull()
+  })
+
+  it("ignores a type it does not recognise", () => {
+    expect(discountFrom("half-off", 50)).toBeNull()
+  })
+
+  it("coerces PostgREST numeric strings", () => {
+    expect(discountFrom("fixed", "12.50")).toEqual({ type: "fixed", value: 12.5 })
   })
 })

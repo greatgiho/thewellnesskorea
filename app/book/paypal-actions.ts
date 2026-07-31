@@ -26,7 +26,7 @@ export async function createBookingPaypalOrder(
     throw new Error("Payment window expired.")
   }
 
-  const price = money(pending.summary.price.currency, pending.amount)
+  const price = money(pending.summary.price.final.currency, pending.amount)
   if (price.currency !== "USD") {
     throw new Error("Online card payment is only available in USD.")
   }
