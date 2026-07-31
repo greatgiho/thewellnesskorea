@@ -18,13 +18,7 @@ import {
   todayDateKeyInKst,
 } from "@/lib/schedule/utils"
 import { SchedulePeriodPicker } from "@/components/admin/schedule-period-picker"
-import {
-  ScheduleFloorChips,
-  ScheduleFloorNav,
-} from "@/components/admin/schedule-floor-nav"
-import { ScheduleMonthCalendar } from "@/components/admin/schedule-month-calendar"
-import { ScheduleWeekGrid } from "@/components/admin/schedule-week-grid"
-import { ScheduleAgendaTimeline } from "@/components/admin/schedule-agenda-timeline"
+import { ScheduleViewBody } from "@/components/schedule/schedule-view-body"
 import { SessionFormDialog } from "@/components/admin/session-form-dialog"
 
 export type { ScheduleViewMode } from "@/lib/schedule/types"
@@ -78,26 +72,6 @@ export function ScheduleAdminClient({
     const bySlug = floors.find((f) => f.slug === floorSlug)
     return bySlug ?? floors[0]
   }, [floors, floorSlug])
-
-  const [visibleLevels, setVisibleLevels] = useState<Set<number>>(
-    () => new Set(floors.map((f) => f.level)),
-  )
-  const visibleFloorIds = useMemo(
-    () =>
-      new Set(
-        floors.filter((f) => visibleLevels.has(f.level)).map((f) => f.id),
-      ),
-    [floors, visibleLevels],
-  )
-  const toggleLevel = (level: number) =>
-    setVisibleLevels((prev) => {
-      const next = new Set(prev)
-      if (next.has(level)) next.delete(level)
-      else next.add(level)
-      return next
-    })
-  const showAllLevels = () =>
-    setVisibleLevels(new Set(floors.map((f) => f.level)))
 
   const { year, month } = monthFromDateKey(dateKey)
   const weekStart = startOfWeekDateKey(dateKey)
@@ -311,64 +285,19 @@ export function ScheduleAdminClient({
         </button>
       </div>
 
-      <div className="flex flex-col gap-4 lg:flex-row">
-        {view === "week" && (
-          <ScheduleFloorNav
-            floors={floors}
-            activeFloorId={activeFloor.id}
-            onSelect={setFloor}
-          />
-        )}
-
-        <div className="min-w-0 flex-1 space-y-2">
-          {view === "agenda" ? (
-            <ScheduleAgendaTimeline
-              floors={floors}
-              sessions={sessions}
-              onSessionClick={openEdit}
-            />
-          ) : view === "week" ? (
-            <>
-              <p className="text-sm text-muted-foreground">
-                {activeFloor.name_ko} · {activeFloor.name_en} · Mon–Sun ·
-                06:00–24:00 · click slot to add
-              </p>
-              <ScheduleWeekGrid
-                weekAnchorDateKey={dateKey}
-                floorId={activeFloor.id}
-                sessions={sessions}
-                onSlotClick={(dayKey, time) =>
-                  openCreate(activeFloor.id, time, dayKey)
-                }
-                onSessionClick={openEdit}
-              />
-            </>
-          ) : (
-            <>
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <ScheduleFloorChips
-                  floors={floors}
-                  visibleLevels={visibleLevels}
-                  onToggleLevel={toggleLevel}
-                  onShowAll={showAllLevels}
-                />
-                <p className="text-xs text-muted-foreground">
-                  전 층 · click session to edit
-                </p>
-              </div>
-              <ScheduleMonthCalendar
-                year={year}
-                month={month}
-                floors={floors}
-                visibleFloorIds={visibleFloorIds}
-                sessions={sessions}
-                onDayClick={(dayKey) => navigate(dayKey, "week")}
-                onSessionClick={openEdit}
-              />
-            </>
-          )}
-        </div>
-      </div>
+      <ScheduleViewBody
+        view={view}
+        dateKey={dateKey}
+        floors={floors}
+        sessions={sessions}
+        activeFloorId={activeFloor.id}
+        onSelectFloor={setFloor}
+        onSessionClick={openEdit}
+        onSlotClick={(dayKey, time) => openCreate(activeFloor.id, time, dayKey)}
+        onDayClick={(dayKey) => navigate(dayKey, "week")}
+        weekHint={`${activeFloor.name_ko} · ${activeFloor.name_en} · Mon–Sun · 06:00–24:00 · click slot to add`}
+        monthHint="전 층 · click session to edit"
+      />
 
       <SessionFormDialog
         open={dialogOpen}

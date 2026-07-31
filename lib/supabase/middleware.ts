@@ -82,6 +82,9 @@ export async function updateSession(request: NextRequest) {
 
   const isAdminRoute = pathname === "/a" || pathname.startsWith("/a/")
   const isAdminLoginPage = pathname === "/a/signin"
+  // Read-only collaborator dashboard: schedule and occupancy only. Admins can
+  // open it too, so they and a collaborator can look at the same screen.
+  const isViewerRoute = pathname === "/v" || pathname.startsWith("/v/")
   const isMemberLoginPage = pathname === "/u/signin"
   const isMemberSignupPage = pathname === "/u/signup"
   const isMemberCheckEmailPage = pathname === "/u/check-email"
@@ -123,7 +126,28 @@ export async function updateSession(request: NextRequest) {
       redirectUrl.pathname = "/u/bookings"
       return NextResponse.redirect(redirectUrl)
     }
+    // Read-only collaborators have their own dashboard; send them there rather
+    // than to a sign-in page they are already past.
+    if (role === "viewer") {
+      const redirectUrl = request.nextUrl.clone()
+      redirectUrl.pathname = "/v"
+      return NextResponse.redirect(redirectUrl)
+    }
     if (role !== "admin") {
+      const redirectUrl = request.nextUrl.clone()
+      redirectUrl.pathname = "/a/signin"
+      redirectUrl.search = "error=not_admin"
+      return NextResponse.redirect(redirectUrl)
+    }
+  }
+
+  if (isViewerRoute) {
+    if (!user) {
+      const redirectUrl = request.nextUrl.clone()
+      redirectUrl.pathname = "/a/signin"
+      return NextResponse.redirect(redirectUrl)
+    }
+    if (role !== "viewer" && role !== "admin") {
       const redirectUrl = request.nextUrl.clone()
       redirectUrl.pathname = "/a/signin"
       redirectUrl.search = "error=not_admin"
@@ -140,6 +164,12 @@ export async function updateSession(request: NextRequest) {
     if (role === "admin") {
       const redirectUrl = request.nextUrl.clone()
       redirectUrl.pathname = "/a/partners"
+      return NextResponse.redirect(redirectUrl)
+    }
+    // Collaborators sign in on the same form; land them on their dashboard.
+    if (role === "viewer") {
+      const redirectUrl = request.nextUrl.clone()
+      redirectUrl.pathname = "/v"
       return NextResponse.redirect(redirectUrl)
     }
   }
