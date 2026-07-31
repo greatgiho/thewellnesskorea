@@ -2,118 +2,261 @@
 
 import { useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
-import { ScheduleWeekGrid } from "@/components/admin/schedule-week-grid"
+import { ChevronLeft, ChevronRight } from "lucide-react"
+import { ScheduleViewBody } from "@/components/schedule/schedule-view-body"
 import {
   addDaysToDateKey,
-  buildWeekDateKeys,
-  formatDisplayDate,
+  addMonthsToDateKey,
+  addWeeksToDateKey,
+  endOfWeekDateKey,
+  formatMonthLabel,
+  formatWeekRangeLabel,
+  startOfWeekDateKey,
   todayDateKeyInKst,
 } from "@/lib/schedule/utils"
+import { AGENDA_DEFAULT_SPAN_DAYS } from "@/lib/schedule/view-range"
 import { formatSessionTime } from "@/lib/partner/utils"
-import type { FloorRow, SessionWithRelations } from "@/lib/schedule/types"
+import { FIELD_BASE } from "@/lib/ui/field"
+import type {
+  FloorRow,
+  ScheduleViewMode,
+  SessionWithRelations,
+} from "@/lib/schedule/types"
 
 type Props = {
-  weekAnchorDateKey: string
+  view: ScheduleViewMode
+  dateKey: string
+  floorSlug: string
   floors: FloorRow[]
   sessions: SessionWithRelations[]
-  initialFloorId: string
+  agendaFrom: string
+  agendaTo: string
 }
 
+function spanDaysInclusive(from: string, to: string): number {
+  const ms = Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)
+  return Math.max(1, Math.round(ms / 86_400_000) + 1)
+}
+
+/**
+ * Read-only counterpart to the admin schedule: same agenda / week / month
+ * views via ScheduleViewBody, but clicking a class opens details instead of
+ * the editor, and empty slots are not actionable (no onSlotClick is passed).
+ */
 export function ViewerScheduleClient({
-  weekAnchorDateKey,
+  view,
+  dateKey,
+  floorSlug,
   floors,
   sessions,
-  initialFloorId,
+  agendaFrom,
+  agendaTo,
 }: Props) {
   const router = useRouter()
-  const [floorId, setFloorId] = useState(initialFloorId)
   const [selected, setSelected] = useState<SessionWithRelations | null>(null)
 
-  const weekDays = buildWeekDateKeys(weekAnchorDateKey)
-  const go = (dateKey: string) =>
-    router.push(`/v?date=${dateKey}&floor=${floorId}`)
-
-  const floorSessions = useMemo(
-    () => sessions.filter((s) => s.floor_id === floorId || s.is_all_floors),
-    [sessions, floorId],
+  const activeFloor = useMemo(
+    () => floors.find((f) => f.slug === floorSlug) ?? floors[0],
+    [floors, floorSlug],
   )
 
-  // Occupancy is booked seats over offered seats for the week. Unpublished and
-  // tentative classes count: a half-planned class still holds the room.
+  const today = todayDateKeyInKst()
+  const weekStart = startOfWeekDateKey(dateKey)
+  const weekEnd = endOfWeekDateKey(dateKey)
+  const agendaSpan = spanDaysInclusive(agendaFrom, agendaTo)
+
+  const go = (
+    nextDate: string,
+    nextView: ScheduleViewMode = view,
+    nextFloor = activeFloor?.slug ?? floorSlug,
+  ) =>
+    router.push(
+      `/v?${new URLSearchParams({ date: nextDate, view: nextView, floor: nextFloor })}`,
+    )
+
+  const goAgenda = (from: string, to: string) =>
+    router.push(`/v?view=agenda&from=${from}&to=${to}`)
+
+  const setView = (next: ScheduleViewMode) =>
+    next === "agenda" ? router.push("/v?view=agenda") : go(dateKey, next)
+
+  // Occupancy over whatever range is on screen. Unpublished and tentative
+  // classes count: a half-planned class still holds the room.
   const occupancy = useMemo(() => {
-    const capacity = floorSessions.reduce((sum, s) => sum + (s.capacity ?? 0), 0)
-    const booked = floorSessions.reduce((sum, s) => sum + (s.booked_count ?? 0), 0)
-    return { capacity, booked, classes: floorSessions.length }
-  }, [floorSessions])
+    const shown =
+      view === "week"
+        ? sessions.filter(
+            (s) => s.floor_id === activeFloor?.id || s.is_all_floors,
+          )
+        : sessions
+    return {
+      classes: shown.length,
+      capacity: shown.reduce((sum, s) => sum + (s.capacity ?? 0), 0),
+      booked: shown.reduce((sum, s) => sum + (s.booked_count ?? 0), 0),
+    }
+  }, [sessions, view, activeFloor])
+
+  if (!activeFloor) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        등록된 공간이 없습니다.
+      </p>
+    )
+  }
+
+  const viewButton = (mode: ScheduleViewMode, label: string) => (
+    <button
+      type="button"
+      onClick={() => setView(mode)}
+      className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+        view === mode
+          ? "bg-primary text-primary-foreground"
+          : "text-muted-foreground hover:text-foreground"
+      }`}
+    >
+      {label}
+    </button>
+  )
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="font-serif text-2xl text-foreground">
-            {formatDisplayDate(weekDays[0])} 주
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            수업 {occupancy.classes}개 · 예약 {occupancy.booked}/
-            {occupancy.capacity}석
-            {occupancy.capacity > 0
-              ? ` (${Math.round((occupancy.booked / occupancy.capacity) * 100)}%)`
-              : ""}
-          </p>
+    <div className="space-y-4">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex rounded-lg border border-border p-0.5">
+            {viewButton("agenda", "Agenda")}
+            {viewButton("week", "Week")}
+            {viewButton("month", "Month")}
+          </div>
+
+          {view === "agenda" ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() =>
+                  goAgenda(
+                    addDaysToDateKey(agendaFrom, -agendaSpan),
+                    addDaysToDateKey(agendaTo, -agendaSpan),
+                  )
+                }
+                className="flex size-9 items-center justify-center rounded-lg border border-border hover:bg-muted"
+                aria-label="이전 기간"
+              >
+                <ChevronLeft className="size-4" />
+              </button>
+              <input
+                type="date"
+                value={agendaFrom}
+                max={agendaTo}
+                onChange={(e) => e.target.value && goAgenda(e.target.value, agendaTo)}
+                className={FIELD_BASE}
+                aria-label="시작일"
+              />
+              <span className="text-muted-foreground">~</span>
+              <input
+                type="date"
+                value={agendaTo}
+                min={agendaFrom}
+                onChange={(e) => e.target.value && goAgenda(agendaFrom, e.target.value)}
+                className={FIELD_BASE}
+                aria-label="종료일"
+              />
+              <button
+                type="button"
+                onClick={() =>
+                  goAgenda(
+                    addDaysToDateKey(agendaFrom, agendaSpan),
+                    addDaysToDateKey(agendaTo, agendaSpan),
+                  )
+                }
+                className="flex size-9 items-center justify-center rounded-lg border border-border hover:bg-muted"
+                aria-label="다음 기간"
+              >
+                <ChevronRight className="size-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  goAgenda(today, addDaysToDateKey(today, AGENDA_DEFAULT_SPAN_DAYS))
+                }
+                className="text-sm text-primary underline-offset-4 hover:underline"
+              >
+                오늘
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() =>
+                  go(
+                    view === "week"
+                      ? addWeeksToDateKey(dateKey, -1)
+                      : addMonthsToDateKey(dateKey, -1),
+                  )
+                }
+                className="flex size-9 items-center justify-center rounded-lg border border-border hover:bg-muted"
+                aria-label="이전"
+              >
+                <ChevronLeft className="size-4" />
+              </button>
+              <span className="min-w-[10rem] text-center text-sm font-medium text-foreground">
+                {view === "week"
+                  ? formatWeekRangeLabel(weekStart, weekEnd)
+                  : formatMonthLabel(
+                      Number(dateKey.slice(0, 4)),
+                      Number(dateKey.slice(5, 7)),
+                    )}
+              </span>
+              <button
+                type="button"
+                onClick={() =>
+                  go(
+                    view === "week"
+                      ? addWeeksToDateKey(dateKey, 1)
+                      : addMonthsToDateKey(dateKey, 1),
+                  )
+                }
+                className="flex size-9 items-center justify-center rounded-lg border border-border hover:bg-muted"
+                aria-label="다음"
+              >
+                <ChevronRight className="size-4" />
+              </button>
+              {dateKey !== today && (
+                <button
+                  type="button"
+                  onClick={() => go(today)}
+                  className="text-sm text-primary underline-offset-4 hover:underline"
+                >
+                  오늘
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => go(addDaysToDateKey(weekAnchorDateKey, -7))}
-            className="h-11 rounded-lg border border-border px-3 text-sm text-foreground transition-colors hover:bg-muted sm:h-9"
-          >
-            ← 이전 주
-          </button>
-          <button
-            type="button"
-            onClick={() => go(todayDateKeyInKst())}
-            className="h-11 rounded-lg border border-border px-3 text-sm text-foreground transition-colors hover:bg-muted sm:h-9"
-          >
-            이번 주
-          </button>
-          <button
-            type="button"
-            onClick={() => go(addDaysToDateKey(weekAnchorDateKey, 7))}
-            className="h-11 rounded-lg border border-border px-3 text-sm text-foreground transition-colors hover:bg-muted sm:h-9"
-          >
-            다음 주 →
-          </button>
-        </div>
+        <p className="text-sm text-muted-foreground">
+          수업 {occupancy.classes}개 · 예약 {occupancy.booked}/{occupancy.capacity}석
+          {occupancy.capacity > 0
+            ? ` (${Math.round((occupancy.booked / occupancy.capacity) * 100)}%)`
+            : ""}
+        </p>
       </div>
 
-      {floors.length > 1 ? (
-        <div className="flex flex-wrap gap-2">
-          {floors.map((floor) => (
-            <button
-              key={floor.id}
-              type="button"
-              onClick={() => setFloorId(floor.id)}
-              className={
-                floor.id === floorId
-                  ? "rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
-                  : "rounded-full border border-border px-4 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted"
-              }
-            >
-              {floor.name_ko}
-            </button>
-          ))}
-        </div>
-      ) : null}
-
-      <ScheduleWeekGrid
-        weekAnchorDateKey={weekAnchorDateKey}
-        floorId={floorId}
+      <ScheduleViewBody
+        view={view}
+        dateKey={dateKey}
+        floors={floors}
         sessions={sessions}
-        // Read-only: empty slots are not actionable here, and clicking a class
-        // opens details rather than an editor.
-        onSlotClick={() => {}}
+        activeFloorId={activeFloor.id}
+        onSelectFloor={(floorId) => {
+          const floor = floors.find((f) => f.id === floorId)
+          if (floor) go(dateKey, view, floor.slug)
+        }}
         onSessionClick={setSelected}
+        // No onSlotClick / onDayClick: empty slots are not actionable here,
+        // and a class opens details rather than an editor.
+        weekHint={`${activeFloor.name_ko} · ${activeFloor.name_en} · 월–일 · 06:00–24:00`}
+        monthHint="전 층 · 수업을 누르면 상세"
       />
 
       {selected ? (
@@ -151,13 +294,14 @@ function SessionDetail({
         </h2>
 
         <dl className="mt-5 space-y-3 text-sm">
-          <Row label="시간" value={formatSessionTime(session.starts_at, session.ends_at)} />
+          <Row
+            label="시간"
+            value={formatSessionTime(session.starts_at, session.ends_at)}
+          />
           <Row
             label="공간"
             value={
-              session.is_all_floors
-                ? "전 층 사용"
-                : (session.floor?.name_ko ?? "—")
+              session.is_all_floors ? "전 층 사용" : (session.floor?.name_ko ?? "—")
             }
           />
           <Row label="강사" value={session.instructor?.name_ko ?? "—"} />
