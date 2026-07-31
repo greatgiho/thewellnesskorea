@@ -6,7 +6,7 @@ import Link from "next/link"
 import { Search } from "lucide-react"
 import { formatBookingDateTime } from "@/lib/bookings/format"
 import type { AdminSessionSummary } from "@/lib/bookings/admin-queries"
-import { FIELD } from "@/lib/ui/field"
+import { FIELD, FIELD_BASE } from "@/lib/ui/field"
 import type { PartnerWithPrograms } from "@/lib/partners/types"
 
 type AdminBookingsClientProps = {
@@ -75,7 +75,7 @@ export function AdminBookingsClient({
               type="date"
               value={localStart}
               onChange={(e) => setLocalStart(e.target.value)}
-              className="rounded-lg border border-border bg-background px-3 py-2 text-base sm:text-sm"
+              className={FIELD_BASE}
             />
           </label>
           <label className="block space-y-1">
@@ -84,7 +84,7 @@ export function AdminBookingsClient({
               type="date"
               value={localEnd}
               onChange={(e) => setLocalEnd(e.target.value)}
-              className="rounded-lg border border-border bg-background px-3 py-2 text-base sm:text-sm"
+              className={FIELD_BASE}
             />
           </label>
           <label className="block space-y-1 flex-1 min-w-[160px]">

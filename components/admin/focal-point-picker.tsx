@@ -1,6 +1,8 @@
 "use client"
 
 import { useCallback, useRef } from "react"
+import { cn } from "@/lib/utils"
+import { FIELD_BASE } from "@/lib/ui/field"
 
 type Props = {
   /** Full URL of the uploaded/existing cover image. */
@@ -147,7 +149,7 @@ export function FocalPointPicker({ imageUrl, value, onChange }: Props) {
             max={100}
             value={x}
             onChange={(e) => emit(Number(e.target.value), y)}
-            className="w-20 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/50"
+            className={cn(FIELD_BASE, "w-20")}
           />
         </label>
         <label className="block space-y-1">
@@ -160,7 +162,7 @@ export function FocalPointPicker({ imageUrl, value, onChange }: Props) {
             max={100}
             value={y}
             onChange={(e) => emit(x, Number(e.target.value))}
-            className="w-20 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/50"
+            className={cn(FIELD_BASE, "w-20")}
           />
         </label>
         <p className="pb-2 text-xs text-muted-foreground">
