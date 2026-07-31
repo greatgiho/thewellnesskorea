@@ -97,3 +97,56 @@ export async function getSessionBookings(
 
   return (data ?? []) as PartnerBooking[]
 }
+
+export type SessionRoster = {
+  session: PartnerSession
+  attendees: PartnerBooking[]
+}
+
+/**
+ * Every confirmed session this instructor teaches, each with its attendee list.
+ *
+ * The per-session page at /p/sessions/[id]/bookings answers "who is coming to
+ * this class"; this answers "who is coming to any of my classes" without
+ * clicking through each one. Bookings are fetched in a single `in` query
+ * rather than one per session, so the cost does not grow with the roster.
+ */
+export async function getPartnerSessionRosters(
+  supabase: SupabaseClient,
+  instructorId: string,
+): Promise<SessionRoster[]> {
+  const { data: sessionRows } = await supabase
+    .from("sessions")
+    .select(SESSION_SELECT)
+    .eq("instructor_id", instructorId)
+    .eq("status", "confirmed")
+    .order("starts_at", { ascending: false })
+    .limit(100)
+
+  const sessions = (sessionRows ?? []) as unknown as PartnerSession[]
+  if (sessions.length === 0) return []
+
+  const { data: bookingRows } = await supabase
+    .from("bookings")
+    .select("id, session_id, guest_name, guest_email, guest_phone, status, created_at")
+    .in(
+      "session_id",
+      sessions.map((session) => session.id),
+    )
+    .eq("status", "confirmed")
+    .order("created_at", { ascending: true })
+
+  const bySession = new Map<string, PartnerBooking[]>()
+  for (const row of (bookingRows ?? []) as (PartnerBooking & {
+    session_id: string
+  })[]) {
+    const list = bySession.get(row.session_id) ?? []
+    list.push(row)
+    bySession.set(row.session_id, list)
+  }
+
+  return sessions.map((session) => ({
+    session,
+    attendees: bySession.get(session.id) ?? [],
+  }))
+}

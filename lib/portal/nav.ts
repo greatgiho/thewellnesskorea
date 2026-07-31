@@ -35,7 +35,7 @@ export const PARTNER_NAV: PortalNavGroup[] = [
     title: "Class Instructor",
     items: [
       { label: "정산 관리", href: "/p/settlement", status: "skeleton" },
-      { label: "수강생 관리", href: "/p/students", status: "skeleton" },
+      { label: "수강생 관리", href: "/p/students" },
       { label: "커뮤니티", href: "/p/community", status: "skeleton" },
     ],
   },
