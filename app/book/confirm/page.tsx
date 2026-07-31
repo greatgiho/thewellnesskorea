@@ -37,7 +37,7 @@ export default async function BookConfirmPage({
     free: "This class is free — nothing to pay.",
     online: "Your online payment is confirmed.",
     onsite: "Payment is on-site.",
-  }[paymentMode(summary.price)]
+  }[paymentMode(summary.price.final)]
 
   const signupParams = new URLSearchParams({
     email: summary.guestEmail,

@@ -30,6 +30,32 @@ async function requireAuth() {
   return { supabase, userId, userEmail }
 }
 
+/**
+ * The database enforces these too. Checking here as well turns a constraint
+ * violation into a message the admin can act on, and keeps the two columns
+ * from being saved half-set.
+ */
+function validateDiscount(input: SessionFormInput): void {
+  const { discount_type, discount_value } = input
+
+  if (discount_type === null) {
+    if (discount_value !== null) {
+      throw new UserFacingError("Choose a discount type or clear the value.")
+    }
+    return
+  }
+
+  if (discount_value === null || discount_value <= 0) {
+    throw new UserFacingError("Discount value must be greater than 0.")
+  }
+  if (discount_type === "percent" && discount_value > 100) {
+    throw new UserFacingError("A percentage discount cannot exceed 100%.")
+  }
+  if (discount_type === "fixed" && discount_value > input.price_amount) {
+    throw new UserFacingError("A fixed discount cannot exceed the price.")
+  }
+}
+
 function validateSessionInput(input: SessionFormInput): {
   starts_at: string
   ends_at: string
@@ -37,6 +63,7 @@ function validateSessionInput(input: SessionFormInput): {
   if (!input.title.trim()) throw new UserFacingError("Session title is required.")
   if (input.capacity <= 0) throw new UserFacingError("Capacity must be greater than 0.")
   if (input.price_amount < 0) throw new UserFacingError("Price cannot be negative.")
+  validateDiscount(input)
   if (input.path_keys.length === 0) {
     throw new UserFacingError("Select at least one philosophy path.")
   }
@@ -160,6 +187,8 @@ function sessionRowFromInput(
     capacity: input.capacity,
     price_currency: input.price_currency,
     price_amount: input.price_amount,
+    discount_type: input.discount_type,
+    discount_value: input.discount_value,
     is_published: input.status === "confirmed" ? input.is_published : false,
     status: input.status,
     slot_lane,
@@ -382,6 +411,8 @@ async function confirmSessionCore(
     capacity: session.capacity,
     price_currency: session.price_currency ?? "USD",
     price_amount: session.price_amount ?? 0,
+    discount_type: session.discount_type ?? null,
+    discount_value: session.discount_value ?? null,
     is_published: session.is_published,
     status: "confirmed",
     image_paths: session.image_paths ?? [],
@@ -477,6 +508,8 @@ async function unconfirmSessionCore(
     capacity: session.capacity,
     price_currency: session.price_currency ?? "USD",
     price_amount: session.price_amount ?? 0,
+    discount_type: session.discount_type ?? null,
+    discount_value: session.discount_value ?? null,
     is_published: false,
     status: "processing",
     image_paths: session.image_paths ?? [],
@@ -561,6 +594,8 @@ async function duplicateSessionCore(
     capacity: source.capacity,
     price_currency: source.price_currency ?? "USD",
     price_amount: source.price_amount ?? 0,
+    discount_type: source.discount_type ?? null,
+    discount_value: source.discount_value ?? null,
     is_published: false,
     status: "processing",
     image_paths: [],

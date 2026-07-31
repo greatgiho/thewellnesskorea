@@ -6,6 +6,7 @@ import { getAdminMemberDetail } from "@/lib/members/admin-queries"
 import { formatBookingDateTime } from "@/lib/bookings/format"
 import { formatDateKeyInKst, formatDisplayDate } from "@/lib/schedule/utils"
 import { formatMoney, isPaid } from "@/lib/payments/money"
+import { PriceTag } from "@/components/booking/price-tag"
 import { MemberAccountStatus } from "@/components/admin/member-account-status"
 
 export const metadata: Metadata = {
@@ -131,9 +132,13 @@ export default async function AdminMemberDetailPage({ params }: Props) {
                       </div>
                     ) : (
                       <p className="text-muted-foreground">
-                        {isPaid(booking.price)
-                          ? `현장 결제 · ${formatMoney(booking.price)}`
-                          : "무료 클래스"}
+                        {isPaid(booking.price.final) ? (
+                          <>
+                            현장 결제 · <PriceTag priced={booking.price} />
+                          </>
+                        ) : (
+                          "무료 클래스"
+                        )}
                       </p>
                     )}
                   </div>

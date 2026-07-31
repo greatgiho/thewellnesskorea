@@ -5,7 +5,7 @@ import {
   mapSessionSummary,
   type SessionSummaryRelation,
 } from "@/lib/bookings/session-summary"
-import { money, type Money } from "@/lib/payments/money"
+import { money, type Money, type PricedMoney } from "@/lib/payments/money"
 import type { BookingStatus } from "@/lib/bookings/types"
 
 /**
@@ -38,7 +38,7 @@ export type AdminMemberBooking = {
   sessionEndsAt: string
   floorName: string
   instructorName: string
-  price: Money
+  price: PricedMoney
   payment: {
     status: string
     amount: Money
