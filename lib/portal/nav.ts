@@ -8,7 +8,7 @@ export const ADMIN_NAV: PortalNavGroup[] = [
   {
     title: "회원관리",
     items: [
-      { label: "일반회원", href: "/a/members", status: "skeleton" },
+      { label: "일반회원", href: "/a/members" },
       { label: "파트너", href: "/a/partners" },
     ],
   },
