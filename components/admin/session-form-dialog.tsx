@@ -148,6 +148,17 @@ export function SessionFormDialog({
     setError(null)
   }, [open, session, dateKey, presetFloorId, presetStartTime, floors])
 
+  // Shows the admin exactly what a customer will see, via the same
+  // applyDiscount() the booking screens use.
+  //
+  // Above the `if (!open) return null` below: a hook after an early return
+  // runs on some renders and not others, which React rejects outright.
+  const discountPreview = useMemo(() => {
+    const discount = discountFrom(input.discount_type, input.discount_value)
+    if (!discount) return null
+    return applyDiscount(money(input.price_currency, input.price_amount), discount)
+  }, [input.discount_type, input.discount_value, input.price_currency, input.price_amount])
+
   const selectedInstructor = partners.find((p) => p.id === input.instructor_id)
   const programs = selectedInstructor?.programs ?? []
 
@@ -277,14 +288,6 @@ export function SessionFormDialog({
   if (!open) return null
 
   const fieldClass = FIELD
-
-  // Show the admin exactly what a customer will see, using the same
-  // applyDiscount() the booking screens use.
-  const discountPreview = useMemo(() => {
-    const discount = discountFrom(input.discount_type, input.discount_value)
-    if (!discount) return null
-    return applyDiscount(money(input.price_currency, input.price_amount), discount)
-  }, [input.discount_type, input.discount_value, input.price_currency, input.price_amount])
 
   const isProcessing = input.status === "processing"
   const readOnly = Boolean(session) && !isEditing
