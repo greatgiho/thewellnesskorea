@@ -56,6 +56,12 @@ export default async function PartnerDashboardPage() {
                     >
                       예약자 보기
                     </Link>
+                    <Link
+                      href={`/p/sessions/${session.id}/pricing`}
+                      className="inline-flex h-8 items-center rounded-lg border border-border px-3 text-xs text-foreground hover:bg-muted"
+                    >
+                      가격 설정
+                    </Link>
                   </div>
                 </div>
               </div>
