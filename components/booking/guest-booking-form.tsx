@@ -1,12 +1,13 @@
 "use client"
 
-import { useActionState } from "react"
+import { useActionState, useState } from "react"
 import Link from "next/link"
 import { submitGuestBooking, type GuestBookingState } from "@/app/book/actions"
 import type { SessionWithRelations } from "@/lib/schedule/types"
 import { FIELD_PUBLIC } from "@/lib/ui/field"
 import { money, applyDiscount, discountFrom, paymentMode } from "@/lib/payments/money"
 import { PriceTag } from "@/components/booking/price-tag"
+import { CouponField } from "@/components/booking/coupon-field"
 import { BookingSessionSummary } from "./booking-session-summary"
 
 const initialState: GuestBookingState = {}
@@ -26,6 +27,7 @@ export function GuestBookingForm({
   session,
   memberPrefill,
 }: GuestBookingFormProps) {
+  const [email, setEmail] = useState(memberPrefill?.email ?? "")
   const [state, formAction, pending] = useActionState(
     submitGuestBooking,
     initialState,
@@ -82,7 +84,8 @@ export function GuestBookingForm({
                 autoComplete="email"
                 className={FIELD_PUBLIC}
                 placeholder="you@example.com"
-                defaultValue={memberPrefill?.email ?? ""}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 readOnly={isMember}
               />
             </label>
@@ -120,6 +123,12 @@ export function GuestBookingForm({
               required. Reserve your spot below.
             </p>
           )}
+
+          <CouponField
+            sessionId={session.id}
+            email={email}
+            disabled={pending}
+          />
 
           {state.error ? (
             <p className="mt-4 text-sm text-destructive">{state.error}</p>

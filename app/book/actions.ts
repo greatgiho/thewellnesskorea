@@ -16,13 +16,14 @@ import {
   getBookingSummaryByCancelToken,
 } from "@/lib/bookings/queries"
 import { validateGuestBookingInput } from "@/lib/bookings/validate"
-import { money, paymentMode } from "@/lib/payments/money"
+import { formatMoney, money } from "@/lib/payments/money"
 import {
   sendBookingConfirmationEmail,
   sendBookingCancelledEmail,
 } from "@/lib/notifications/booking-email"
 import { notifyWaitlist } from "@/lib/waitlist/notify"
 import { formatBookingDateTime } from "@/lib/bookings/format"
+import { couponMessage, quoteBooking } from "@/lib/bookings/quote"
 
 export type GuestBookingState = {
   error?: string
@@ -41,6 +42,7 @@ export async function submitGuestBooking(
     const guestName = String(formData.get("guestName") ?? "")
     const guestEmail = String(formData.get("guestEmail") ?? "")
     const guestPhone = String(formData.get("guestPhone") ?? "")
+    const couponCode = String(formData.get("couponCode") ?? "").trim() || null
 
     validateGuestBookingInput({ guestName, guestEmail, guestPhone })
 
@@ -60,10 +62,13 @@ export async function submitGuestBooking(
 
     // Only online (PayPal/USD) classes go through the payment step. Free and
     // on-site classes reserve the spot directly — nothing to pay online.
-    if (
-      paymentMode(money(session.price_currency, session.price_amount)) ===
-      "online"
-    ) {
+    //
+    // The price after discounts decides, not the list price: a coupon or a
+    // 100% session discount makes this free, and the hold RPC refuses a
+    // zero-amount booking. Ask the database so this agrees with what the
+    // booking transaction will compute.
+    const quote = await quoteBooking(sessionId, couponCode, guestEmail)
+    if (quote.mode === "online") {
       const hold = await createBookingHoldRpc({
         sessionId,
         guestName,
@@ -71,6 +76,7 @@ export async function submitGuestBooking(
         guestPhone: guestPhone || null,
         userId,
         pgProvider: "paypal",
+        couponCode,
       })
 
       revalidatePath("/")
@@ -83,6 +89,7 @@ export async function submitGuestBooking(
       guestEmail,
       guestPhone: guestPhone || null,
       userId,
+      couponCode,
     })
 
     const summary = await getBookingSummaryById(result.bookingId)
@@ -202,4 +209,45 @@ export async function devMockConfirmPayment(bookingId: string): Promise<void> {
 
   revalidatePath("/")
   redirect(`/book/confirm?booking=${bookingId}`)
+}
+
+export type CouponPreview =
+  | { ok: true; total: string; discount: string; percentOff: number }
+  | { ok: false; message: string }
+
+/**
+ * Check a code for the booking form without committing to it. The booking
+ * transaction validates again under a lock, so this is presentation only —
+ * a code that sells out in between is refused there, not here.
+ */
+export async function previewCoupon(
+  sessionId: string,
+  code: string,
+  email: string,
+): Promise<CouponPreview> {
+  try {
+    const quote = await quoteBooking(sessionId, code, email)
+    if (!quote.coupon?.applied) {
+      const reason = quote.coupon && !quote.coupon.applied ? quote.coupon.reason : "not_found"
+      return { ok: false, message: couponMessage(reason) }
+    }
+    const percentOff =
+      quote.priced.original.amount > 0
+        ? Math.round(
+            ((quote.priced.original.amount - quote.total.amount) /
+              quote.priced.original.amount) *
+              100,
+          )
+        : 0
+    return {
+      ok: true,
+      total: formatMoney(quote.total),
+      discount: formatMoney(
+        money(quote.total.currency, quote.coupon.discountAmount),
+      ),
+      percentOff,
+    }
+  } catch {
+    return { ok: false, message: "코드를 확인할 수 없습니다." }
+  }
 }

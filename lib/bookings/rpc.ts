@@ -16,6 +16,7 @@ export async function createBookingRpc(
     p_guest_email: normalizeEmail(input.guestEmail),
     p_guest_phone: input.guestPhone?.trim() || null,
     p_user_id: input.userId ?? null,
+    p_coupon_code: input.couponCode?.trim() || null,
   })
 
   if (error) {

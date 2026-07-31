@@ -32,6 +32,8 @@ export type CreateBookingInput = {
   guestEmail: string
   guestPhone?: string | null
   userId?: string | null
+  /** Raw code from the form; validated server-side inside the booking txn. */
+  couponCode?: string | null
 }
 
 export type CreateBookingResult = {
