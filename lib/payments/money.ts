@@ -23,6 +23,32 @@ export function isPaid(m: Money): boolean {
   return m.amount > 0
 }
 
+/** Smallest unit a currency can actually be charged in: KRW has no subunit. */
+export function decimalPlaces(currency: Currency): number {
+  return currency === "KRW" ? 0 : 2
+}
+
+/**
+ * Round to what the currency can actually be charged in.
+ *
+ * A percentage discount rarely lands on a chargeable amount — 33% off ₩33,000
+ * is ₩10,890.00 and off $30.00 is $9.90 — so the result has to be snapped
+ * before it reaches the payment row, the PayPal order, or the price shown to
+ * the customer. All three must round identically: confirm_booking_payment
+ * rejects the capture if the amount does not match the stored one exactly.
+ *
+ * Half-up rather than JavaScript's round-half-to-even, so 0.125 -> 0.13 and
+ * the displayed price never disagrees with the charge by a cent.
+ */
+export function roundMoney(m: Money): Money {
+  const factor = 10 ** decimalPlaces(m.currency)
+  // Nudge by Number.EPSILON: 1.005 * 100 is 100.49999999999999 in binary
+  // floating point, which would round down and lose a cent.
+  const scaled = m.amount * factor
+  const rounded = Math.round(scaled + Math.sign(scaled) * Number.EPSILON * Math.abs(scaled))
+  return { currency: m.currency, amount: rounded / factor }
+}
+
 export type PaymentMode = "free" | "online" | "onsite"
 
 /**
