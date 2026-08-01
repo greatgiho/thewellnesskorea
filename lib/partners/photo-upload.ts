@@ -1,39 +1,28 @@
-import { createClient } from "@/lib/supabase/client"
 import { extFromMime, photoStoragePath } from "./utils"
+import {
+  uploadImage,
+  validateImageFile,
+  type ImageValidationMessages,
+} from "@/lib/ui/photo-upload"
 
-const ALLOWED_PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"] as const
-const MAX_PHOTO_BYTES = 5 * 1024 * 1024
-
-export type PersonPhotoValidationMessages = {
-  invalidType: string
-  tooLarge: string
-}
+export type PersonPhotoValidationMessages = ImageValidationMessages
 
 export function validatePersonPhotoFile(
   file: File,
   messages: PersonPhotoValidationMessages,
 ): string | null {
-  if (!ALLOWED_PHOTO_TYPES.includes(file.type as (typeof ALLOWED_PHOTO_TYPES)[number])) {
-    return messages.invalidType
-  }
-  if (file.size > MAX_PHOTO_BYTES) {
-    return messages.tooLarge
-  }
-  return null
+  return validateImageFile(file, messages)
 }
 
 export async function uploadPersonPhoto(
   personId: string,
   photo: File,
 ): Promise<string> {
-  const supabase = createClient()
-  const ext = extFromMime(photo.type)
-  const path = photoStoragePath(personId, ext)
-
-  const { error } = await supabase.storage
-    .from("person-photos")
-    .upload(path, photo, { upsert: true, contentType: photo.type })
-
-  if (error) throw new Error(error.message)
-  return path
+  // upsert: a partner has one photo, and replacing it reuses the same path.
+  return uploadImage({
+    bucket: "person-photos",
+    path: photoStoragePath(personId, extFromMime(photo.type)),
+    file: photo,
+    upsert: true,
+  })
 }

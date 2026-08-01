@@ -21,6 +21,7 @@ import { ImagePlus } from "lucide-react"
 import { useMemo, useRef, useState } from "react"
 import { FIELD } from "@/lib/ui/field"
 import { useRouter } from "next/navigation"
+import { IMAGE_ACCEPT } from "@/lib/ui/photo-upload"
 
 type ExperienceOption = {
   id: string
@@ -272,7 +273,7 @@ export function JournalForm({
         <input
           ref={coverInputRef}
           type="file"
-          accept="image/jpeg,image/png,image/webp"
+          accept={IMAGE_ACCEPT}
           className="hidden"
           disabled={pending}
           onChange={onFileChange}

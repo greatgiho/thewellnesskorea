@@ -1,6 +1,7 @@
 "use client"
 
 import Image from "next/image"
+import { IMAGE_ACCEPT } from "@/lib/ui/photo-upload"
 
 type PartnerPhotoFieldProps = {
   label: string
@@ -24,7 +25,7 @@ export function PartnerPhotoField({
         )}
         <input
           type="file"
-          accept="image/jpeg,image/png,image/webp"
+          accept={IMAGE_ACCEPT}
           onChange={onFileChange}
           className="text-sm text-muted-foreground file:mr-4 file:rounded-full file:border-0 file:bg-primary file:px-4 file:py-2 file:text-sm file:font-medium file:text-primary-foreground"
         />
