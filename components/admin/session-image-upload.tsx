@@ -3,7 +3,11 @@
 import Image from "next/image"
 import { useRef } from "react"
 import { X } from "lucide-react"
-import { createClient } from "@/lib/supabase/client"
+import {
+  IMAGE_ACCEPT,
+  uploadImage,
+  validateImageFile,
+} from "@/lib/ui/photo-upload"
 import {
   getSessionPhotoUrl,
   MAX_SESSION_IMAGES,
@@ -23,7 +27,7 @@ type SessionImageUploadProps = {
   disabled?: boolean
 }
 
-const ACCEPT = "image/jpeg,image/png,image/webp"
+const ACCEPT = IMAGE_ACCEPT
 
 function emptySlot(): SessionImageSlot {
   return { path: null, pendingFile: null, previewUrl: null }
@@ -50,20 +54,17 @@ export async function uploadSessionImageSlots(
   sessionId: string,
   slots: SessionImageSlot[],
 ): Promise<string[]> {
-  const supabase = createClient()
-
   const pathResults = await Promise.all(
     slots.map(async (slot, index) => {
       if (slot.pendingFile) {
-        const path = storagePathFromFile(sessionId, index, slot.pendingFile)
-        const { error } = await supabase.storage
-          .from(SESSION_PHOTOS_BUCKET)
-          .upload(path, slot.pendingFile, {
-            upsert: true,
-            contentType: slot.pendingFile.type,
-          })
-        if (error) throw new Error(error.message)
-        return path
+        // upsert: a slot's path is derived from its index, so re-picking an
+        // image for the same slot writes over the old one.
+        return uploadImage({
+          bucket: SESSION_PHOTOS_BUCKET,
+          path: storagePathFromFile(sessionId, index, slot.pendingFile),
+          file: slot.pendingFile,
+          upsert: true,
+        })
       }
       if (slot.path) return slot.path
       return null
@@ -87,12 +88,8 @@ export function SessionImageUpload({
   }
 
   const onPickFile = (index: number, file: File) => {
-    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
-      throw new Error("Use JPG, PNG, or WebP.")
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      throw new Error("Max file size is 5MB.")
-    }
+    const problem = validateImageFile(file)
+    if (problem) throw new Error(problem)
     setSlot(index, {
       path: null,
       pendingFile: file,

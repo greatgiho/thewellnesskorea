@@ -40,18 +40,14 @@ export function SessionBookingDetail({
     setError(null)
 
     startTransition(async () => {
-      try {
-        if (confirm.type === "cancel-booking") {
-          await cancelBookingAsAdmin(confirm.bookingId)
-        } else {
-          await deleteWaitlistEntryAsAdmin(confirm.entryId)
-        }
-        setConfirm(null)
-        router.refresh()
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Something went wrong.")
-        setConfirm(null)
-      }
+      const result =
+        confirm.type === "cancel-booking"
+          ? await cancelBookingAsAdmin(confirm.bookingId)
+          : await deleteWaitlistEntryAsAdmin(confirm.entryId)
+
+      setConfirm(null)
+      if (result.ok) router.refresh()
+      else setError(result.error)
     })
   }
 

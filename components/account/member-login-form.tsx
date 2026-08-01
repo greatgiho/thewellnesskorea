@@ -24,14 +24,14 @@ export function MemberLoginForm() {
     e.preventDefault()
     setError(null)
     setPending(true)
-    try {
-      await requestMemberLoginLink(email)
-      const params = new URLSearchParams({ email: email.trim().toLowerCase() })
-      window.location.href = `/u/check-email?${params.toString()}`
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to send login link.")
+    const result = await requestMemberLoginLink(email)
+    if (!result.ok) {
+      setError(result.error)
       setPending(false)
+      return
     }
+    const params = new URLSearchParams({ email: email.trim().toLowerCase() })
+    window.location.href = `/u/check-email?${params.toString()}`
   }
 
   return (

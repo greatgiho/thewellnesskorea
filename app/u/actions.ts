@@ -3,6 +3,11 @@
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { isRedirectError } from "next/dist/client/components/redirect-error"
+import {
+  asActionResult,
+  UserFacingError,
+  type ActionResult,
+} from "@/lib/errors"
 import { siteOrigin } from "@/lib/site-origin"
 import {
   completeMemberOnboarding,
@@ -24,10 +29,10 @@ function memberAuthRedirect(next = "/u/bookings"): string {
   return `${siteOrigin()}/auth/callback?${params.toString()}`
 }
 
-export async function requestMemberLoginLink(email: string): Promise<void> {
+async function requestMemberLoginLinkCore(email: string): Promise<void> {
   const normalized = email.trim().toLowerCase()
   if (!isValidEmail(normalized)) {
-    throw new Error("Please enter a valid email address.")
+    throw new UserFacingError("Please enter a valid email address.")
   }
 
   // Login (not signup): an existing account is expected, including one still
@@ -47,7 +52,7 @@ export async function requestMemberLoginLink(email: string): Promise<void> {
   if (error) throw new Error(error.message)
 }
 
-export async function requestMemberSignupLink(
+async function requestMemberSignupLinkCore(
   name: string,
   email: string,
 ): Promise<void> {
@@ -55,10 +60,10 @@ export async function requestMemberSignupLink(
   const normalized = email.trim().toLowerCase()
 
   if (!trimmedName) {
-    throw new Error("Please enter your name.")
+    throw new UserFacingError("Please enter your name.")
   }
   if (!isValidEmail(normalized)) {
-    throw new Error("Please enter a valid email address.")
+    throw new UserFacingError("Please enter a valid email address.")
   }
 
   await validateMemberSignupEmail(normalized)
@@ -77,6 +82,27 @@ export async function requestMemberSignupLink(
   })
 
   if (error) throw new Error(error.message)
+}
+
+export async function requestMemberLoginLink(
+  email: string,
+): Promise<ActionResult> {
+  return asActionResult(
+    "requestMemberLoginLink",
+    "Failed to send the sign-in link. Please try again.",
+    () => requestMemberLoginLinkCore(email),
+  )
+}
+
+export async function requestMemberSignupLink(
+  name: string,
+  email: string,
+): Promise<ActionResult> {
+  return asActionResult(
+    "requestMemberSignupLink",
+    "Failed to send the sign-up link. Please try again.",
+    () => requestMemberSignupLinkCore(name, email),
+  )
 }
 
 export async function signOutMember(): Promise<void> {

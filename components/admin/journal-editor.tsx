@@ -16,6 +16,7 @@ import {
 } from "lucide-react"
 import { getJournalPhotoUrl } from "@/lib/journal/images"
 import { uploadJournalInline } from "@/lib/journal/photo-upload"
+import { IMAGE_ACCEPT } from "@/lib/ui/photo-upload"
 
 type JournalEditorProps = {
   content: string
@@ -117,7 +118,7 @@ export function JournalEditor({
     if (!editor) return
     const input = document.createElement("input")
     input.type = "file"
-    input.accept = "image/jpeg,image/png,image/webp"
+    input.accept = IMAGE_ACCEPT
     input.onchange = async () => {
       const file = input.files?.[0]
       if (!file) return
