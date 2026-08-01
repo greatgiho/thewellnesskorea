@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useBodyScrollLock } from "@/lib/ui/use-body-scroll-lock"
 import { Menu, X } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 
@@ -31,14 +32,7 @@ export function Navbar() {
   const [open, setOpen] = useState(false)
   const [user, setUser] = useState<SessionUser | null>(null)
 
-  useEffect(() => {
-    if (!open) return
-    const prev = document.body.style.overflow
-    document.body.style.overflow = "hidden"
-    return () => {
-      document.body.style.overflow = prev
-    }
-  }, [open])
+  useBodyScrollLock(open)
 
   useEffect(() => {
     const supabase = createClient()

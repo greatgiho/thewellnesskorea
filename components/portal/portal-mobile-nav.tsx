@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useBodyScrollLock } from "@/lib/ui/use-body-scroll-lock"
 import { usePathname } from "next/navigation"
 import { Menu, X } from "lucide-react"
 import {
@@ -33,14 +34,7 @@ export function PortalMobileNav({
     setOpen(false)
   }, [pathname])
 
-  useEffect(() => {
-    if (!open) return
-    const prev = document.body.style.overflow
-    document.body.style.overflow = "hidden"
-    return () => {
-      document.body.style.overflow = prev
-    }
-  }, [open])
+  useBodyScrollLock(open)
 
   return (
     <>
