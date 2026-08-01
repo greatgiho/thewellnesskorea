@@ -30,18 +30,10 @@ export function PartnerLoginForm() {
     e.preventDefault()
     setError(null)
     setPending(true)
-    try {
-      await requestPartnerLoginLink(email)
-      setSent(true)
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "로그인 링크 발송에 실패했습니다.",
-      )
-    } finally {
-      setPending(false)
-    }
+    const result = await requestPartnerLoginLink(email)
+    if (result.ok) setSent(true)
+    else setError(result.error)
+    setPending(false)
   }
 
   const fieldClass = FIELD_ROOMY
