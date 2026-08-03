@@ -47,15 +47,14 @@ export function SessionBookingsPanel({
     if (!confirm(`Cancel booking for ${guestName}?`)) return
     setPendingId(bookingId)
     setError(null)
-    try {
-      await cancelBookingAsAdmin(bookingId)
+    const result = await cancelBookingAsAdmin(bookingId)
+    if (result.ok) {
       await load()
       onBookingChange?.()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to cancel booking.")
-    } finally {
-      setPendingId(null)
+    } else {
+      setError(result.error)
     }
+    setPendingId(null)
   }
 
   const confirmedCount = bookings.filter((b) => b.status === "confirmed").length

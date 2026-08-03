@@ -3,15 +3,19 @@
 import Image from "next/image"
 import { useRef } from "react"
 import { X } from "lucide-react"
-import { createClient } from "@/lib/supabase/client"
+import {
+  assertSignedInForUpload,
+  IMAGE_ACCEPT,
+  removeImages,
+  uploadImage,
+  validateImageFile,
+} from "@/lib/ui/photo-upload"
 import {
   getSessionPhotoUrl,
   MAX_SESSION_IMAGES,
   SESSION_PHOTOS_BUCKET,
-  SIGNED_OUT_MESSAGE,
   storagePathFromFile,
   unreferencedUploads,
-  uploadErrorMessage,
 } from "@/lib/schedule/images"
 
 export type SessionImageSlot = {
@@ -26,7 +30,7 @@ type SessionImageUploadProps = {
   disabled?: boolean
 }
 
-const ACCEPT = "image/jpeg,image/png,image/webp"
+const ACCEPT = IMAGE_ACCEPT
 
 function emptySlot(): SessionImageSlot {
   return { path: null, pendingFile: null, previewUrl: null }
@@ -61,9 +65,10 @@ export async function discardUnreferencedUploads(
   uploaded: string[],
   priorPaths: string[],
 ): Promise<void> {
-  const orphans = unreferencedUploads(uploaded, priorPaths)
-  if (orphans.length === 0) return
-  await createClient().storage.from(SESSION_PHOTOS_BUCKET).remove(orphans)
+  await removeImages(
+    SESSION_PHOTOS_BUCKET,
+    unreferencedUploads(uploaded, priorPaths),
+  )
 }
 
 export async function uploadSessionImageSlots(
@@ -71,15 +76,10 @@ export async function uploadSessionImageSlots(
   slots: SessionImageSlot[],
   priorPaths: string[] = [],
 ): Promise<SessionImageUploadResult> {
-  const supabase = createClient()
-
-  // Ask before writing rather than translating the refusal afterwards: the
-  // upload is the first thing in this dialog that needs a browser session, so
-  // an expired one surfaces here as a policy error about a table the admin
-  // never mentioned.
+  // Ask once, before any bytes move: the upload is the first thing in this
+  // dialog that needs a browser session, and the row is written after it.
   if (slots.some((slot) => slot.pendingFile)) {
-    const { error } = await supabase.auth.getUser()
-    if (error) throw new Error(SIGNED_OUT_MESSAGE)
+    await assertSignedInForUpload()
   }
 
   const uploaded: string[] = []
@@ -89,14 +89,14 @@ export async function uploadSessionImageSlots(
   const results = await Promise.allSettled(
     slots.map(async (slot, index) => {
       if (slot.pendingFile) {
-        const path = storagePathFromFile(sessionId, index, slot.pendingFile)
-        const { error } = await supabase.storage
-          .from(SESSION_PHOTOS_BUCKET)
-          .upload(path, slot.pendingFile, {
-            upsert: true,
-            contentType: slot.pendingFile.type,
-          })
-        if (error) throw new Error(uploadErrorMessage(error.message))
+        // upsert: a slot's path is derived from its index, so re-picking an
+        // image for the same slot writes over the old one.
+        const path = await uploadImage({
+          bucket: SESSION_PHOTOS_BUCKET,
+          path: storagePathFromFile(sessionId, index, slot.pendingFile),
+          file: slot.pendingFile,
+          upsert: true,
+        })
         uploaded.push(path)
         return path
       }
@@ -131,12 +131,8 @@ export function SessionImageUpload({
   }
 
   const onPickFile = (index: number, file: File) => {
-    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
-      throw new Error("Use JPG, PNG, or WebP.")
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      throw new Error("Max file size is 5MB.")
-    }
+    const problem = validateImageFile(file)
+    if (problem) throw new Error(problem)
     setSlot(index, {
       path: null,
       pendingFile: file,

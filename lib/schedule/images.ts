@@ -69,23 +69,6 @@ export function storagePathFromFile(sessionId: string, index: number, file: File
 }
 
 /**
- * The bucket lets any authenticated user write, so in practice its policy only
- * refuses a browser client that has no session — and then storage answers with
- * the raw Postgres row-level-security wording, which an admin cannot act on.
- * The dialog renders from server cookies, so it looks perfectly signed in right
- * up to the upload.
- */
-export const SIGNED_OUT_MESSAGE =
-  "Your session has expired. Sign in again and retry."
-
-export function uploadErrorMessage(message: string): string {
-  if (message.toLowerCase().includes("row-level security")) {
-    return SIGNED_OUT_MESSAGE
-  }
-  return `Photo upload failed: ${message}`
-}
-
-/**
  * Of the paths just uploaded, the ones no session row will point at.
  *
  * Paths the session already used are left alone: uploads are upserts, so

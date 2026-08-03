@@ -5,6 +5,11 @@ import { resolvePartnerLoginDeliveryEmail } from "@/lib/auth/partner-email"
 import { isValidEmail } from "@/lib/partners/utils"
 import { createServiceClient } from "@/lib/supabase/service"
 import { sendEmail } from "@/lib/notifications/email"
+import {
+  asActionResult,
+  UserFacingError,
+  type ActionResult,
+} from "@/lib/errors"
 
 /**
  * Send a partner sign-in magic link. The email must belong to an approved
@@ -14,10 +19,10 @@ import { sendEmail } from "@/lib/notifications/email"
  * carries a deliverable address in that field. The link still signs in as the
  * login account; the delivery address is only the channel.
  */
-export async function requestPartnerLoginLink(email: string): Promise<void> {
+async function requestPartnerLoginLinkCore(email: string): Promise<void> {
   const normalized = email.trim().toLowerCase()
   if (!isValidEmail(normalized)) {
-    throw new Error("Please enter a valid email address.")
+    throw new UserFacingError("Please enter a valid email address.")
   }
 
   const deliveryEmail = await resolvePartnerLoginDeliveryEmail(normalized)
@@ -57,4 +62,14 @@ export async function requestPartnerLoginLink(email: string): Promise<void> {
     </div>
   `
   await sendEmail(deliveryEmail, subject, html, "partner-login")
+}
+
+export async function requestPartnerLoginLink(
+  email: string,
+): Promise<ActionResult> {
+  return asActionResult(
+    "requestPartnerLoginLink",
+    "Failed to send the sign-in link. Please try again.",
+    () => requestPartnerLoginLinkCore(email),
+  )
 }

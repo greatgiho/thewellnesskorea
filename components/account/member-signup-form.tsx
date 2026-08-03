@@ -23,16 +23,16 @@ export function MemberSignupForm({
     e.preventDefault()
     setError(null)
     setPending(true)
-    try {
-      await requestMemberSignupLink(name, email)
-      const params = new URLSearchParams({
-        email: email.trim().toLowerCase(),
-      })
-      window.location.href = `/u/check-email?${params.toString()}`
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to send sign-up link.")
+    const result = await requestMemberSignupLink(name, email)
+    if (!result.ok) {
+      setError(result.error)
       setPending(false)
+      return
     }
+    const params = new URLSearchParams({
+      email: email.trim().toLowerCase(),
+    })
+    window.location.href = `/u/check-email?${params.toString()}`
   }
 
   return (
