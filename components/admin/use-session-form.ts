@@ -229,7 +229,12 @@ export function useSessionForm({
     if (!session || session.status !== "processing") return
     if (
       !confirm(
-        "Confirm this session? Competing sessions in the same slot will be cancelled.",
+        [
+          "Confirm this session?",
+          // confirmSessionCore publishes as part of confirming, so this click
+          // is what puts the session in front of the public.
+          "It will go on the public site, and competing sessions in the same slot will be cancelled.",
+        ].join("\n\n"),
       )
     ) {
       return
@@ -295,7 +300,6 @@ export function useSessionForm({
     setPending(false)
   }
 
-  const isProcessing = input.status === "processing"
   const readOnly = Boolean(session) && !isEditing
 
   const onRequestClose = () => {
@@ -323,7 +327,6 @@ export function useSessionForm({
     startOptions,
     endOptions,
     discountPreview,
-    isProcessing,
     readOnly,
     // handlers
     onProgramChange,
