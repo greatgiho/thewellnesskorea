@@ -1,22 +1,37 @@
 import { describe, expect, it } from "vitest"
-import { SIGNED_OUT_MESSAGE, uploadErrorMessage } from "@/lib/ui/photo-upload"
+import {
+  REFUSED_MESSAGE,
+  SIGNED_OUT_MESSAGE,
+  uploadErrorMessage,
+} from "@/lib/ui/photo-upload"
+
+// Storage says exactly this whether the client has no session or the bucket
+// has no policy, so the wording has to come from somewhere else.
+const RLS = "new row violates row-level security policy"
 
 describe("uploadErrorMessage", () => {
-  it("reads an RLS refusal as an expired session", () => {
-    // What storage actually returns when the browser client sends no token.
-    expect(uploadErrorMessage("new row violates row-level security policy")).toBe(
+  it("tells a signed-out user to sign in", () => {
+    expect(uploadErrorMessage(RLS, false)).toBe(SIGNED_OUT_MESSAGE)
+  })
+
+  it("does not blame the session when there is one", () => {
+    // 2026-08-03: a dev project cloned without its storage policies refused
+    // every upload, and an admin who was plainly signed in was told their
+    // session had expired.
+    expect(uploadErrorMessage(RLS, true)).toBe(REFUSED_MESSAGE)
+  })
+
+  it("matches the refusal whatever its case", () => {
+    expect(uploadErrorMessage("New Row Violates Row-Level Security Policy", false)).toBe(
       SIGNED_OUT_MESSAGE,
     )
   })
 
-  it("matches the wording whatever its case", () => {
-    expect(uploadErrorMessage("New row violates Row-Level Security policy")).toBe(
-      SIGNED_OUT_MESSAGE,
+  it("keeps any other cause visible, signed in or not", () => {
+    expect(uploadErrorMessage("Payload too large", true)).toBe(
+      "Photo upload failed: Payload too large",
     )
-  })
-
-  it("keeps any other cause visible", () => {
-    expect(uploadErrorMessage("Payload too large")).toBe(
+    expect(uploadErrorMessage("Payload too large", false)).toBe(
       "Photo upload failed: Payload too large",
     )
   })
