@@ -1,8 +1,26 @@
 /** @type {import('next').NextConfig} */
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseHostname = supabaseUrl
-  ? new URL(supabaseUrl).hostname
-  : undefined
+
+/**
+ * Allow images from whatever Supabase is configured, exactly as configured.
+ *
+ * The hostname used to be read off the URL while the protocol was pinned to
+ * https and the port dropped — fine for a hosted project, but a self-hosted
+ * one on http with a port never matched, so next/image refused every stored
+ * photo. It went unnoticed because no local partner had one until now.
+ */
+const supabaseImagePatterns = (() => {
+  if (!supabaseUrl) return []
+  const url = new URL(supabaseUrl)
+  return [
+    {
+      protocol: url.protocol.replace(":", ""),
+      hostname: url.hostname,
+      ...(url.port ? { port: url.port } : {}),
+      pathname: "/storage/v1/object/public/**",
+    },
+  ]
+})()
 
 const nextConfig = {
   // Pin the workspace root: multiple lockfiles exist above this dir
@@ -27,15 +45,7 @@ const nextConfig = {
   },
   images: {
     remotePatterns: [
-      ...(supabaseHostname
-        ? [
-            {
-              protocol: "https",
-              hostname: supabaseHostname,
-              pathname: "/storage/v1/object/public/**",
-            },
-          ]
-        : []),
+      ...supabaseImagePatterns,
       {
         protocol: "https",
         hostname: "*.supabase.co",
