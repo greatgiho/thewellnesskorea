@@ -8,10 +8,34 @@ import { shouldReleaseBooking } from "@/lib/bookings/reconcile-captures"
 
 /**
  * PayPal webhook. Finalizes payments whose capture was PENDING at checkout
- * (e.g. PENDING_REVIEW) once PayPal resolves the review.
+ * (e.g. PENDING_REVIEW) once PayPal resolves the review, and frees the seat
+ * when one is refunded or denied.
  *
  * Requires PAYPAL_WEBHOOK_ID (from the webhook registered in the PayPal
  * dashboard) — signature verification fails closed without it.
+ *
+ * ## What the registered webhook should subscribe to
+ *
+ * Acted on here:
+ *   PAYMENT.CAPTURE.COMPLETED   confirm the booking, send the email
+ *   PAYMENT.CAPTURE.DENIED      \
+ *   PAYMENT.CAPTURE.DECLINED     >  free the seat
+ *   PAYMENT.CAPTURE.REVERSED    /
+ *   PAYMENT.CAPTURE.REFUNDED    free the seat, if the refund was full
+ *
+ * Subscribed but not acted on, deliberately:
+ *   PAYMENT.CAPTURE.PENDING     a capture entering review
+ *
+ * That last one is the whole reason this list is written down. The
+ * subscription was once trimmed to "only what the code branches on", which
+ * dropped PENDING — and with it the record of *when* a capture went under
+ * review. That timestamp was the decisive clue when a booking was later found
+ * stuck for four weeks, and the trim removed the very evidence that had
+ * diagnosed it. Unrecognised events cost nothing: they fall through to
+ * `{ ignored: true }` below. A missing record costs an investigation.
+ *
+ * Anything outside PAYMENT.CAPTURE.* (tokenization, payouts, disputes) has no
+ * bearing on this service and stays unsubscribed.
  */
 export async function POST(request: Request) {
   const rawBody = await request.text()
