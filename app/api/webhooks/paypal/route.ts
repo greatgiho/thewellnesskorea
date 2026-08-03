@@ -4,6 +4,7 @@ import {
   finalizePaidBooking,
   releaseDeniedBooking,
 } from "@/lib/bookings/finalize-payment"
+import { shouldReleaseBooking } from "@/lib/bookings/reconcile-captures"
 
 /**
  * PayPal webhook. Finalizes payments whose capture was PENDING at checkout
@@ -55,7 +56,13 @@ export async function POST(request: Request) {
     } else if (
       type === "PAYMENT.CAPTURE.DENIED" ||
       type === "PAYMENT.CAPTURE.DECLINED" ||
-      type === "PAYMENT.CAPTURE.REVERSED"
+      type === "PAYMENT.CAPTURE.REVERSED" ||
+      // Waiting for the daily sweep would leave a seat taken for a day after
+      // the money went back. The capture is asked rather than the event
+      // believed: PayPal sends this for a partial refund too, and a refund
+      // event's resource.id is the refund's, not the capture's.
+      (type === "PAYMENT.CAPTURE.REFUNDED" &&
+        (await shouldReleaseBooking(bookingId)))
     ) {
       await releaseDeniedBooking(bookingId)
     }
