@@ -24,6 +24,7 @@ import {
 } from "@/app/a/schedule/actions"
 import { applyDiscount, discountFrom, money } from "@/lib/payments/money"
 import {
+  discardUnreferencedUploads,
   slotsFromPaths,
   uploadSessionImageSlots,
   type SessionImageSlot,
@@ -184,13 +185,24 @@ export function useSessionForm({
 
   const persistSession = async (): Promise<string> => {
     const sessionId = session?.id ?? crypto.randomUUID()
-    const image_paths = await uploadSessionImageSlots(sessionId, imageSlots)
+    const priorPaths = session?.image_paths ?? []
+    const { paths, uploaded } = await uploadSessionImageSlots(
+      sessionId,
+      imageSlots,
+      priorPaths,
+    )
     const result = await saveSession(
-      { ...input, image_paths },
+      { ...input, image_paths: paths },
       session?.id,
       session?.id ? undefined : sessionId,
     )
-    if (!result.ok) throw new Error(result.error)
+    if (!result.ok) {
+      // Photos go up before the row exists, under an id this client made. A
+      // failed save means that id never becomes a session, so the files would
+      // sit in the bucket with nothing able to reach them.
+      await discardUnreferencedUploads(uploaded, priorPaths)
+      throw new Error(result.error)
+    }
     return result.sessionId
   }
 

@@ -8,7 +8,10 @@ import {
   getSessionPhotoUrl,
   MAX_SESSION_IMAGES,
   SESSION_PHOTOS_BUCKET,
+  SIGNED_OUT_MESSAGE,
   storagePathFromFile,
+  unreferencedUploads,
+  uploadErrorMessage,
 } from "@/lib/schedule/images"
 
 export type SessionImageSlot = {
@@ -46,13 +49,44 @@ export function pathsFromSlots(slots: SessionImageSlot[]): string[] {
     .slice(0, MAX_SESSION_IMAGES)
 }
 
+export type SessionImageUploadResult = {
+  /** Every path the session row should reference: kept plus newly uploaded. */
+  paths: string[]
+  /** Only what this call created, so a failed save can drop it again. */
+  uploaded: string[]
+}
+
+/** Drop uploads that no session row will point at. */
+export async function discardUnreferencedUploads(
+  uploaded: string[],
+  priorPaths: string[],
+): Promise<void> {
+  const orphans = unreferencedUploads(uploaded, priorPaths)
+  if (orphans.length === 0) return
+  await createClient().storage.from(SESSION_PHOTOS_BUCKET).remove(orphans)
+}
+
 export async function uploadSessionImageSlots(
   sessionId: string,
   slots: SessionImageSlot[],
-): Promise<string[]> {
+  priorPaths: string[] = [],
+): Promise<SessionImageUploadResult> {
   const supabase = createClient()
 
-  const pathResults = await Promise.all(
+  // Ask before writing rather than translating the refusal afterwards: the
+  // upload is the first thing in this dialog that needs a browser session, so
+  // an expired one surfaces here as a policy error about a table the admin
+  // never mentioned.
+  if (slots.some((slot) => slot.pendingFile)) {
+    const { error } = await supabase.auth.getUser()
+    if (error) throw new Error(SIGNED_OUT_MESSAGE)
+  }
+
+  const uploaded: string[] = []
+
+  // Settled rather than all: the slots upload concurrently, so a later one can
+  // land after an earlier one fails, and those bytes still need clearing.
+  const results = await Promise.allSettled(
     slots.map(async (slot, index) => {
       if (slot.pendingFile) {
         const path = storagePathFromFile(sessionId, index, slot.pendingFile)
@@ -62,7 +96,8 @@ export async function uploadSessionImageSlots(
             upsert: true,
             contentType: slot.pendingFile.type,
           })
-        if (error) throw new Error(error.message)
+        if (error) throw new Error(uploadErrorMessage(error.message))
+        uploaded.push(path)
         return path
       }
       if (slot.path) return slot.path
@@ -70,9 +105,18 @@ export async function uploadSessionImageSlots(
     }),
   )
 
-  return pathResults
+  const failed = results.find((r) => r.status === "rejected")
+  if (failed) {
+    await discardUnreferencedUploads(uploaded, priorPaths)
+    throw failed.reason
+  }
+
+  const paths = results
+    .map((r) => (r.status === "fulfilled" ? r.value : null))
     .filter((path): path is string => Boolean(path))
     .slice(0, MAX_SESSION_IMAGES)
+
+  return { paths, uploaded }
 }
 
 export function SessionImageUpload({
