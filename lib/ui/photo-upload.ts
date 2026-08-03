@@ -31,6 +31,43 @@ export const DEFAULT_IMAGE_MESSAGES: ImageValidationMessages = {
   tooLarge: "Max file size is 5MB.",
 }
 
+/**
+ * Every image bucket allows authenticated writes, so in practice the only way
+ * these uploads get refused is a browser client with no session — and storage
+ * answers that with raw Postgres row-level-security wording, naming no table
+ * and suggesting no action. The pages render from server cookies, so they look
+ * signed in right up to the upload.
+ */
+export const SIGNED_OUT_MESSAGE =
+  "Your session has expired. Sign in again and retry."
+
+export function uploadErrorMessage(message: string): string {
+  if (message.toLowerCase().includes("row-level security")) {
+    return SIGNED_OUT_MESSAGE
+  }
+  return `Photo upload failed: ${message}`
+}
+
+/**
+ * Fail before writing when there is no session to write with.
+ *
+ * Kept out of uploadImage so a caller sending several files pays for one round
+ * trip rather than one per file.
+ */
+export async function assertSignedInForUpload(): Promise<void> {
+  const { error } = await createClient().auth.getUser()
+  if (error) throw new Error(SIGNED_OUT_MESSAGE)
+}
+
+/** Best-effort delete, for callers cleaning up after a failure. */
+export async function removeImages(
+  bucket: string,
+  paths: string[],
+): Promise<void> {
+  if (paths.length === 0) return
+  await createClient().storage.from(bucket).remove(paths)
+}
+
 /** The problem with this file, or null when it is fine. */
 export function validateImageFile(
   file: File,
@@ -71,6 +108,8 @@ export async function uploadImage({
     .from(bucket)
     .upload(path, file, { upsert, contentType: file.type })
 
-  if (error) throw new Error(error.message)
+  // Only the storage failure is translated — a validation problem above is
+  // already phrased for the person who picked the file.
+  if (error) throw new Error(uploadErrorMessage(error.message))
   return path
 }
