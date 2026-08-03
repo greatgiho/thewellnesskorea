@@ -5,7 +5,12 @@ import Link from "next/link"
 import { Search } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { FIELD } from "@/lib/ui/field"
-import { formatSessionTime, isSessionEnded } from "@/lib/partner/utils"
+import {
+  AWAITING_PAYMENT_LABEL,
+  formatSessionTime,
+  isAwaitingPayment,
+  isSessionEnded,
+} from "@/lib/partner/utils"
 import type { SessionRoster } from "@/lib/partner/queries"
 
 type Props = {
@@ -141,6 +146,11 @@ function RosterGroup({
                       <tr key={attendee.id}>
                         <td className="px-5 py-2.5 text-foreground">
                           {attendee.guest_name}
+                          {isAwaitingPayment(attendee) && (
+                            <span className="ml-2 inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-900">
+                              {AWAITING_PAYMENT_LABEL}
+                            </span>
+                          )}
                         </td>
                         <td className="px-5 py-2.5 text-muted-foreground">
                           {attendee.guest_email}
