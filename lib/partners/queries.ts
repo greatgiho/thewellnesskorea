@@ -11,11 +11,7 @@ import {
   PARTNER_ACTIVITY_REGIONS_SELECT,
 } from "./types"
 import type { PartnerActivityRegionRow } from "@/lib/regions/types"
-import {
-  modalitiesToPrograms,
-  sortPartnersByName,
-  toPartnerCard,
-} from "./utils"
+import { sortPartnersByName, toPartnerCard } from "./utils"
 import { getRegionsForForms } from "@/lib/regions/queries"
 import type { RegionRow } from "@/lib/regions/types"
 import { normalizeRelation } from "@/lib/supabase/normalize-relation"
@@ -118,25 +114,7 @@ export async function getPartnerBySlug(
     partner_programs?: PartnerProgramRow[]
     partner_activity_regions?: PartnerActivityRegionRow[]
   }
-  const attached = attachProgramsAndRegions(row)
-  const programs = attached.programs
-
-  if (programs.length === 0 && row.modalities?.length > 0) {
-    return {
-      ...attached,
-      programs: modalitiesToPrograms(row.modalities).map((p, i) => ({
-        id: `legacy-${i}`,
-        partner_id: row.id,
-        title: p.title,
-        description: null,
-        path_keys: p.path_keys,
-        sort_order: i,
-        created_at: row.created_at,
-      })),
-    }
-  }
-
-  return attached
+  return attachProgramsAndRegions(row)
 }
 
 export async function getAllPartnersAdmin(): Promise<PartnerWithPrograms[]> {
@@ -175,23 +153,5 @@ export async function getPartnerById(id: string): Promise<PartnerWithPrograms | 
     partner_programs?: PartnerProgramRow[]
     partner_activity_regions?: PartnerActivityRegionRow[]
   }
-  const attached = attachProgramsAndRegions(row)
-  const programs = attached.programs
-
-  if (programs.length === 0 && row.modalities?.length > 0) {
-    return {
-      ...attached,
-      programs: modalitiesToPrograms(row.modalities).map((p, i) => ({
-        id: `legacy-${i}`,
-        partner_id: row.id,
-        title: p.title,
-        description: null,
-        path_keys: p.path_keys,
-        sort_order: i,
-        created_at: row.created_at,
-      })),
-    }
-  }
-
-  return attached
+  return attachProgramsAndRegions(row)
 }

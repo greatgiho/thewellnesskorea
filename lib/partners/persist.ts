@@ -35,7 +35,6 @@ export function personRowFromInput(
     phone: input.phone.trim() || null,
     email: input.email.trim().toLowerCase() || null,
     instagram: normalizeInstagram(input.instagram),
-    modalities: input.programs.map((p) => p.title.trim()),
     sort_order: sortOrder,
     is_published: input.is_published,
   }
