@@ -4,12 +4,12 @@ import { X } from "lucide-react"
 import { type PathKey } from "@/lib/paths/paths-data"
 import type { PartnerWithPrograms } from "@/lib/partners/types"
 import type { FloorRow, SessionFormInput, SessionWithRelations } from "@/lib/schedule/types"
-import { sessionStatusLabel, SESSION_STATUS_RIBBON_CLASS } from "@/lib/schedule/session-status"
 import { PhilosophyPathPicker } from "@/components/admin/philosophy-path-picker"
 import { InstructorSearchPicker } from "@/components/admin/instructor-search-picker"
 import { SessionDescriptionFields } from "@/components/admin/session-description-fields"
 import { SessionDuplicateForm } from "@/components/admin/session-duplicate-form"
 import { SessionImageUpload } from "@/components/admin/session-image-upload"
+import { SessionStatusPanel } from "@/components/admin/session-status-panel"
 import { SessionBookingsPanel } from "@/components/admin/session-bookings-panel"
 import { defaultEndTime, formatTimeInKst } from "@/lib/schedule/utils"
 import { FIELD } from "@/lib/ui/field"
@@ -55,7 +55,6 @@ export function SessionFormDialog({
     startOptions,
     endOptions,
     discountPreview,
-    isProcessing,
     readOnly,
     onProgramChange,
     onSubmit,
@@ -101,32 +100,6 @@ export function SessionFormDialog({
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
             Schedule · {input.date}
-            {session && (
-              <>
-                {" "}
-                ·{" "}
-                {session.status === "processing" ||
-                session.status === "confirmed" ? (
-                  <button
-                    type="button"
-                    onClick={onStatusClick}
-                    disabled={pending}
-                    title={
-                      session.status === "confirmed"
-                        ? "Click to revert to processing"
-                        : "Click to confirm session"
-                    }
-                    className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold transition-opacity hover:opacity-90 disabled:opacity-50 ${SESSION_STATUS_RIBBON_CLASS[session.status]}`}
-                  >
-                    {sessionStatusLabel(session.status)}
-                  </button>
-                ) : (
-                  <span className="font-medium text-foreground">
-                    {sessionStatusLabel(session.status)}
-                  </span>
-                )}
-              </>
-            )}
           </p>
           {session?.created_by_email && (
             <p className="mt-0.5 text-xs text-muted-foreground">
@@ -137,9 +110,22 @@ export function SessionFormDialog({
 
         <form onSubmit={onSubmit} className="flex min-h-0 flex-1 flex-col">
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-5">
+            {/* Outside the fieldset below: it disables every control it wraps
+                while viewing, and confirming a session is not an edit. */}
+            <SessionStatusPanel
+              status={session?.status ?? null}
+              isPublished={input.is_published}
+              onPublishedChange={(is_published) =>
+                setInput((v) => ({ ...v, is_published }))
+              }
+              onStatusAction={onStatusClick}
+              readOnly={readOnly}
+              pending={pending}
+            />
+
             <fieldset
               disabled={readOnly || pending}
-              className="min-w-0 space-y-6 border-0 p-0 disabled:opacity-100"
+              className="mt-6 min-w-0 space-y-6 border-0 p-0 disabled:opacity-100"
             >
             {error && (
               <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
@@ -427,26 +413,6 @@ export function SessionFormDialog({
                 onBookingChange={onSaved}
               />
             ) : null}
-
-            <label className="flex items-center gap-3">
-              <input
-                type="checkbox"
-                checked={input.is_published}
-                disabled={isProcessing || readOnly || pending}
-                onChange={(e) =>
-                  setInput((v) => ({ ...v, is_published: e.target.checked }))
-                }
-                className="size-4 rounded border-border disabled:opacity-50"
-              />
-              <span className="text-sm font-medium">
-                Published on site
-                {isProcessing && (
-                  <span className="ml-1 font-normal text-muted-foreground">
-                    (confirm session first)
-                  </span>
-                )}
-              </span>
-            </label>
 
             {session && (
               <SessionDuplicateForm
