@@ -2,7 +2,11 @@ import { notFound } from "next/navigation"
 import Link from "next/link"
 import { requirePartnerSession } from "@/lib/auth/require-partner-session"
 import { getSessionBookings } from "@/lib/partner/queries"
-import { formatSessionTime } from "@/lib/partner/utils"
+import {
+  AWAITING_PAYMENT_LABEL,
+  formatSessionTime,
+  isAwaitingPayment,
+} from "@/lib/partner/utils"
 import { createClient } from "@/lib/supabase/server"
 
 type Props = { params: Promise<{ id: string }> }
@@ -79,7 +83,14 @@ export default async function SessionBookingsPage({ params }: Props) {
               {bookings.map((booking, i) => (
                 <tr key={booking.id} className="bg-card">
                   <td className="px-4 py-3 text-muted-foreground">{i + 1}</td>
-                  <td className="px-4 py-3 font-medium text-foreground">{booking.guest_name}</td>
+                  <td className="px-4 py-3 font-medium text-foreground">
+                    {booking.guest_name}
+                    {isAwaitingPayment(booking) && (
+                      <span className="ml-2 inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-xs font-normal text-amber-900">
+                        {AWAITING_PAYMENT_LABEL}
+                      </span>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-muted-foreground">{booking.guest_email}</td>
                   <td className="px-4 py-3 text-muted-foreground">{booking.guest_phone ?? "—"}</td>
                   <td className="px-4 py-3 text-muted-foreground text-xs">
