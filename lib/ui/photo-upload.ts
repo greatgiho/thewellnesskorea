@@ -32,31 +32,41 @@ export const DEFAULT_IMAGE_MESSAGES: ImageValidationMessages = {
 }
 
 /**
- * Every image bucket allows authenticated writes, so in practice the only way
- * these uploads get refused is a browser client with no session — and storage
- * answers that with raw Postgres row-level-security wording, naming no table
- * and suggesting no action. The pages render from server cookies, so they look
- * signed in right up to the upload.
+ * Storage refuses a write with raw Postgres row-level-security wording that
+ * names no table and suggests no action. Two very different things produce it:
+ * a browser client with no session, and a bucket whose policies are missing.
+ * Both were seen on 2026-08-03 — the second on a dev project cloned without
+ * its storage policies, where an admin who was plainly signed in was told
+ * their session had expired.
+ *
+ * So the wording is chosen by asking who we are, not by assuming.
  */
-export const SIGNED_OUT_MESSAGE =
-  "Your session has expired. Sign in again and retry."
+export const SIGNED_OUT_MESSAGE = "You are signed out. Sign in again and retry."
 
-export function uploadErrorMessage(message: string): string {
-  if (message.toLowerCase().includes("row-level security")) {
-    return SIGNED_OUT_MESSAGE
+export const REFUSED_MESSAGE =
+  "Storage refused the upload even though you are signed in — the bucket's policies need checking."
+
+export function uploadErrorMessage(message: string, signedIn: boolean): string {
+  if (!message.toLowerCase().includes("row-level security")) {
+    return `Photo upload failed: ${message}`
   }
-  return `Photo upload failed: ${message}`
+  return signedIn ? REFUSED_MESSAGE : SIGNED_OUT_MESSAGE
 }
 
 /**
  * Fail before writing when there is no session to write with.
  *
- * Kept out of uploadImage so a caller sending several files pays for one round
- * trip rather than one per file.
+ * getSession reads what is already stored rather than calling out, so a flaky
+ * network cannot masquerade as a signed-out user and block an upload that
+ * would have worked. The upload itself stays the authority on whether the
+ * write is allowed.
+ *
+ * Kept out of uploadImage so a caller sending several files checks once rather
+ * than once per file.
  */
 export async function assertSignedInForUpload(): Promise<void> {
-  const { error } = await createClient().auth.getUser()
-  if (error) throw new Error(SIGNED_OUT_MESSAGE)
+  const { data } = await createClient().auth.getSession()
+  if (!data.session) throw new Error(SIGNED_OUT_MESSAGE)
 }
 
 /** Best-effort delete, for callers cleaning up after a failure. */
@@ -109,7 +119,11 @@ export async function uploadImage({
     .upload(path, file, { upsert, contentType: file.type })
 
   // Only the storage failure is translated — a validation problem above is
-  // already phrased for the person who picked the file.
-  if (error) throw new Error(uploadErrorMessage(error.message))
+  // already phrased for the person who picked the file. The session lookup is
+  // on the error path alone, and reads what is stored rather than calling out.
+  if (error) {
+    const { data } = await supabase.auth.getSession()
+    throw new Error(uploadErrorMessage(error.message, Boolean(data.session)))
+  }
   return path
 }
