@@ -84,18 +84,6 @@ export function toPartnerCard(
   }
 }
 
-export function modalitiesToPrograms(modalities: string[]): {
-  title: string
-  description: string
-  path_keys: PathKey[]
-}[] {
-  return modalities.map((title) => ({
-    title,
-    description: "",
-    path_keys: [] as PathKey[],
-  }))
-}
-
 export function sortPartnersByName<T extends { name_en: string; created_at: string }>(
   partners: T[],
 ): T[] {
