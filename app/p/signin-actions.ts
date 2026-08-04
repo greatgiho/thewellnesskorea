@@ -39,7 +39,7 @@ async function requestPartnerLoginLinkCore(email: string): Promise<void> {
   // callback can't read, so it fell through to the homepage.)
   const hashedToken = data?.properties?.hashed_token
   if (error || !hashedToken) {
-    throw new Error(error?.message ?? "로그인 링크 생성에 실패했습니다.")
+    throw new Error(error?.message ?? "Failed to create a sign-in link.")
   }
   const params = new URLSearchParams({
     token_hash: hashedToken,

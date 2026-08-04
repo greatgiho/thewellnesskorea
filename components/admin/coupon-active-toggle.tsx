@@ -32,7 +32,7 @@ export function CouponActiveToggle({
     startTransition(async () => {
       const result = await setCouponActive(couponId, next)
       if (!result.ok) {
-        setError(result.error ?? "변경하지 못했습니다.")
+        setError(result.error ?? "Failed to apply the change.")
         return
       }
       router.refresh()

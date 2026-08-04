@@ -12,13 +12,13 @@ export function PartnerLoginForm() {
   const errorParam = searchParams.get("error")
   const queryError =
     errorParam === "not_partner"
-      ? "파트너 계정이 아닙니다. 관리자에게 문의해 주세요."
+      ? "This is not a partner account. Please contact an administrator."
       : errorParam === "not_approved"
-        ? "아직 승인 대기 중인 계정입니다. 승인 후 로그인할 수 있습니다."
+        ? "This account is still awaiting approval. You can sign in once it is approved."
         : errorParam === "no_profile"
-          ? "연결된 파트너 프로필이 없습니다. 관리자에게 문의해 주세요."
+          ? "No partner profile is linked to this account. Please contact an administrator."
           : errorParam === "auth"
-            ? "로그인 링크가 만료되었거나 유효하지 않습니다. 다시 시도해 주세요."
+            ? "That sign-in link has expired or is not valid. Please try again."
             : null
 
   const [email, setEmail] = useState("")
@@ -42,8 +42,9 @@ export function PartnerLoginForm() {
     return (
       <div className="space-y-4">
         <p className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-foreground">
-          <span className="font-medium">{email}</span>로 로그인 링크를 보냈습니다.
-          메일함을 확인해 링크를 눌러 로그인하세요.
+          We sent a sign-in link to{" "}
+          <span className="font-medium">{email}</span>. Check your inbox and
+          follow the link to sign in.
         </p>
         <button
           type="button"

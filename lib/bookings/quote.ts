@@ -46,20 +46,20 @@ export type BookingQuote = {
 }
 
 const COUPON_MESSAGES: Record<CouponReason, string> = {
-  not_found: "존재하지 않는 코드입니다.",
-  inactive: "사용할 수 없는 코드입니다.",
-  not_started: "아직 사용 기간이 아닙니다.",
-  expired: "사용 기간이 지난 코드입니다.",
-  not_applicable: "이 수업에는 사용할 수 없는 코드입니다.",
-  currency_mismatch: "이 수업의 결제 통화에는 사용할 수 없는 코드입니다.",
-  limit_reached: "사용 한도가 모두 소진된 코드입니다.",
-  user_limit_reached: "이미 사용하신 코드입니다.",
-  not_better: "이미 적용된 할인이 더 유리합니다.",
-  session_not_found: "수업을 찾을 수 없습니다.",
+  not_found: "That code doesn't exist.",
+  inactive: "This code can't be used.",
+  not_started: "This code isn't active yet.",
+  expired: "This code has expired.",
+  not_applicable: "This code can't be used for this session.",
+  currency_mismatch: "This code can't be used with this session's payment currency.",
+  limit_reached: "This code has reached its usage limit.",
+  user_limit_reached: "You've already used this code.",
+  not_better: "The discount already applied is a better deal.",
+  session_not_found: "Session not found.",
 }
 
 export function couponMessage(reason: CouponReason): string {
-  return COUPON_MESSAGES[reason] ?? "사용할 수 없는 코드입니다."
+  return COUPON_MESSAGES[reason] ?? "This code can't be used."
 }
 
 export async function quoteBooking(

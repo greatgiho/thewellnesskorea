@@ -20,7 +20,11 @@ export function PartnerAccountPanel({ person }: Props) {
     const result = await provisionPartnerAccount(person.id)
     if (result.ok) {
       setStatus("ok")
-      setMessage(result.isNew ? "계정을 만들고 초대 링크를 이메일로 보냈습니다." : "초대 링크를 이메일로 다시 보냈습니다.")
+      setMessage(
+        result.isNew
+          ? "Created the account and emailed the invite link."
+          : "Emailed the invite link again.",
+      )
     } else {
       setStatus("error")
       setMessage(result.error)
