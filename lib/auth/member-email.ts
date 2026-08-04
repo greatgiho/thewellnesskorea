@@ -66,12 +66,12 @@ export async function assertMemberLoginEmailAllowed(email: string): Promise<void
   const role = appMeta?.role
   if (role === "admin") {
     throw new UserFacingError(
-      "이 이메일은 관리자 계정입니다. 관리자 로그인 페이지를 이용해 주세요.",
+      "This email belongs to an admin account. Please use the admin sign-in page.",
     )
   }
   if (role === "partner") {
     throw new UserFacingError(
-      "이 이메일은 파트너 계정입니다. 파트너 로그인 페이지를 이용해 주세요.",
+      "This email belongs to a partner account. Please use the partner sign-in page.",
     )
   }
 }

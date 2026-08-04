@@ -49,7 +49,9 @@ export function PartnerProfilePhoto({ partnerId, initialUrl }: Props) {
       if (!result.ok) throw new Error(result.error)
     } catch (err) {
       setUrl(previous)
-      setError(err instanceof Error ? err.message : "사진을 저장하지 못했습니다.")
+      setError(
+        err instanceof Error ? err.message : "Failed to save the photo.",
+      )
     } finally {
       URL.revokeObjectURL(preview)
       setPending(false)

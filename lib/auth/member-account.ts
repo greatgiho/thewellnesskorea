@@ -100,7 +100,7 @@ export async function completeMemberOnboarding(
   // instead; the caller signs the user out and shows a "wrong account" notice.
   if (typeof role === "string" && role !== "member") {
     throw new UserFacingError(
-      "이 이메일은 회원 계정이 아닙니다. 파트너·관리자는 각자 로그인 페이지를 이용해 주세요.",
+      "This email is not a member account. Partners and admins should use their own sign-in page.",
     )
   }
 

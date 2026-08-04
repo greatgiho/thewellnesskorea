@@ -44,6 +44,6 @@ export async function savePartnerPhoto(
     revalidatePath("/", "layout")
     return { ok: true }
   } catch {
-    return { ok: false, error: "사진을 저장하지 못했습니다." }
+    return { ok: false, error: "Failed to save the photo." }
   }
 }

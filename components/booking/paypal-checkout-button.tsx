@@ -48,23 +48,25 @@ export function PaypalCheckoutButton({ bookingId, clientId, currency }: Props) {
                 router.refresh()
               } else if (res.pending) {
                 setError(
-                  "결제가 접수되어 검토 중입니다. 확정되면 이메일로 안내드립니다. (예약 내역에서 상태를 확인할 수 있어요.)",
+                  "Your payment was received and is under review. We'll email you once it's confirmed. (You can check the status in your bookings.)",
                 )
               } else {
-                setError(`결제가 완료되지 않았습니다 (${res.status}).`)
+                setError(`Payment did not complete (${res.status}).`)
               }
             } catch (e) {
               setError(
                 e instanceof Error
                   ? e.message
-                  : "결제 확정 중 오류가 발생했습니다.",
+                  : "Something went wrong while confirming your payment.",
               )
             } finally {
               setBusy(false)
             }
           }}
-          onCancel={() => setError("결제가 취소되었습니다.")}
-          onError={() => setError("결제 처리 중 오류가 발생했습니다.")}
+          onCancel={() => setError("Payment was cancelled.")}
+          onError={() =>
+            setError("Something went wrong while processing your payment.")
+          }
         />
       </PayPalScriptProvider>
     </div>

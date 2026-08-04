@@ -31,11 +31,12 @@ export async function signUpPartner(
 ): Promise<PartnerSignupResult> {
   try {
     const email = input.email.trim().toLowerCase()
-    if (!/.+@.+\..+/.test(email)) throw new Error("올바른 이메일을 입력해 주세요.")
+    if (!/.+@.+\..+/.test(email))
+      throw new Error("Please enter a valid email address.")
     if (input.password.length < 8)
-      throw new Error("비밀번호는 8자 이상이어야 합니다.")
+      throw new Error("Password must be at least 8 characters.")
     if (!input.nameKo.trim() || !input.nameEn.trim())
-      throw new Error("이름(한글·영문)을 입력해 주세요.")
+      throw new Error("Enter your name in both Korean and English.")
 
     await assertPartnerSignupEmailAvailable(email)
 
@@ -68,7 +69,7 @@ export async function signUpPartner(
       // Roll back the orphan auth account on any failure.
       await service.auth.admin.deleteUser(userId)
       if (rpcErr.message?.includes("already_registered")) {
-        throw new Error("이미 가입된 이메일입니다. 로그인해 주세요.")
+        throw new Error("This email is already registered. Please sign in.")
       }
       throw new Error(rpcErr.message)
     }
@@ -81,7 +82,7 @@ export async function signUpPartner(
       error:
         isUserFacingError(error) || error instanceof Error
           ? (error as Error).message
-          : "가입에 실패했습니다. 잠시 후 다시 시도해 주세요.",
+          : "Sign-up failed. Please try again in a moment.",
     }
   }
 }

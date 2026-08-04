@@ -248,6 +248,6 @@ export async function previewCoupon(
       percentOff,
     }
   } catch {
-    return { ok: false, message: "코드를 확인할 수 없습니다." }
+    return { ok: false, message: "That code could not be checked." }
   }
 }

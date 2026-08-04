@@ -26,25 +26,25 @@ export type CouponSaveResult =
  * violation into a sentence the admin can act on.
  */
 function validate(input: CouponInput): string | null {
-  if (!input.code.trim()) return "코드를 입력하세요."
+  if (!input.code.trim()) return "Coupon code is required."
   if (!/^[A-Za-z0-9_-]+$/.test(input.code.trim())) {
-    return "코드는 영문·숫자·하이픈·밑줄만 사용할 수 있습니다."
+    return "A code may only use letters, digits, hyphens and underscores."
   }
-  if (!(input.discountValue > 0)) return "할인 값은 0보다 커야 합니다."
+  if (!(input.discountValue > 0)) return "Discount value must be greater than 0."
   if (input.discountType === "percent" && input.discountValue > 100) {
-    return "정률 할인은 100%를 넘을 수 없습니다."
+    return "A percentage discount cannot exceed 100%."
   }
   if (input.discountType === "fixed" && !input.currency) {
-    return "정액 할인은 통화를 지정해야 합니다."
+    return "A fixed discount must specify a currency."
   }
   if (input.startsAt && input.endsAt && input.startsAt > input.endsAt) {
-    return "시작일이 종료일보다 늦을 수 없습니다."
+    return "The start date cannot be later than the end date."
   }
   if (input.maxRedemptions !== null && input.maxRedemptions <= 0) {
-    return "전체 사용 한도는 1 이상이어야 합니다."
+    return "Total redemption limit must be at least 1."
   }
   if (input.maxPerUser !== null && input.maxPerUser <= 0) {
-    return "1인 사용 한도는 1 이상이어야 합니다."
+    return "Per-person redemption limit must be at least 1."
   }
   return null
 }
@@ -86,11 +86,11 @@ export async function saveCoupon(
     // The unique index is on upper(btrim(code)), so a clash here means the
     // code already exists in some other casing.
     if (error.code === "23505") {
-      return { ok: false, error: "이미 존재하는 코드입니다." }
+      return { ok: false, error: "That code already exists." }
     }
     return { ok: false, error: error.message }
   }
-  if (!data?.id) return { ok: false, error: "쿠폰을 저장하지 못했습니다." }
+  if (!data?.id) return { ok: false, error: "Failed to save the coupon." }
 
   revalidatePath("/a/coupons")
   revalidatePath(`/a/coupons/${data.id}`)

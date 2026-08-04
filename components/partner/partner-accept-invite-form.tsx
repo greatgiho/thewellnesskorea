@@ -20,7 +20,7 @@ export function PartnerAcceptInviteForm({ token }: { token: string }) {
     const password = String(f.get("password") ?? "")
     const confirm = String(f.get("confirm") ?? "")
     if (password !== confirm) {
-      setError("비밀번호가 일치하지 않습니다.")
+      setError("The passwords don't match.")
       return
     }
     setPending(true)
@@ -36,7 +36,7 @@ export function PartnerAcceptInviteForm({ token }: { token: string }) {
   if (!token) {
     return (
       <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-        잘못된 초대 링크입니다. 관리자에게 문의해 주세요.
+        This invite link is not valid. Please contact an administrator.
       </p>
     )
   }
