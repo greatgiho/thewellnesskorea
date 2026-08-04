@@ -1,44 +1,27 @@
 import { createClient } from "@/lib/supabase/server"
-import koreaRegions from "./korea-regions.json"
 import type { RegionRow, RegionsForForms } from "./types"
 
-function jsonToRegionRows(): RegionsForForms {
-  return {
-    sido: koreaRegions.sido.map((row) => ({
-      code: row.code,
-      parent_code: row.parentCode,
-      level: row.level,
-      name_ko: row.nameKo,
-      name_en: row.nameEn,
-      sort_order: row.sortOrder,
-    })),
-    sigungu: koreaRegions.sigungu.map((row) => ({
-      code: row.code,
-      parent_code: row.parentCode,
-      level: row.level,
-      name_ko: row.nameKo,
-      name_en: row.nameEn,
-      sort_order: row.sortOrder,
-    })),
-  }
-}
-
+/**
+ * The nationwide region list, from the database.
+ *
+ * There used to be a bundled JSON copy to fall back on. It never fired —
+ * prod, dev, and local all carry the same 269 seeded rows — but while it
+ * existed, an environment missing the seed would quietly serve a second copy
+ * of the list instead of saying so. Regions drive partner activity areas, so
+ * a missing seed is worth a failed page rather than a silent substitution.
+ */
 export async function getRegionsForForms(): Promise<RegionsForForms> {
-  if (
-    !process.env.NEXT_PUBLIC_SUPABASE_URL ||
-    !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  ) {
-    return jsonToRegionRows()
-  }
-
   const supabase = await createClient()
   const { data, error } = await supabase
     .from("regions")
     .select("code, parent_code, level, name_ko, name_en, sort_order")
     .order("sort_order", { ascending: true })
 
-  if (error || !data?.length) {
-    return jsonToRegionRows()
+  if (error) throw new Error(`Could not read regions: ${error.message}`)
+  if (!data?.length) {
+    throw new Error(
+      "The regions table is empty. Apply supabase/migrations/010_regions_seed.sql.",
+    )
   }
 
   const rows = data as RegionRow[]

@@ -102,6 +102,27 @@ export async function captureOrder(orderId: string): Promise<CaptureResult> {
   }
 }
 
+/**
+ * Current state of a capture, straight from PayPal.
+ *
+ * A capture that came back PENDING at checkout is resolved by webhook, so
+ * nothing polls this in the normal case. It exists for the abnormal one: a
+ * webhook that never arrives leaves the booking holding a seat with no way
+ * back, so the daily cron asks PayPal directly instead of waiting forever.
+ */
+export async function getCaptureStatus(captureId: string): Promise<string | undefined> {
+  const token = await accessToken()
+  const res = await fetch(`${BASE}/v2/payments/captures/${captureId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store",
+  })
+  const data = await res.json()
+  if (!res.ok) {
+    throw new Error(`PayPal getCapture failed: ${res.status} ${JSON.stringify(data)}`)
+  }
+  return data?.status as string | undefined
+}
+
 export type WebhookHeaders = {
   transmissionId: string
   transmissionTime: string

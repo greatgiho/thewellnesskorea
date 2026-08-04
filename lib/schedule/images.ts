@@ -67,3 +67,17 @@ export function extFromPath(path: string): string {
 export function storagePathFromFile(sessionId: string, index: number, file: File): string {
   return sessionPhotoStoragePath(sessionId, index, extFromMime(file.type))
 }
+
+/**
+ * Of the paths just uploaded, the ones no session row will point at.
+ *
+ * Paths the session already used are left alone: uploads are upserts, so
+ * writing over an existing path has replaced that row's current image, and
+ * removing it would leave a live row referencing nothing.
+ */
+export function unreferencedUploads(
+  uploaded: string[],
+  priorPaths: string[],
+): string[] {
+  return uploaded.filter((path) => !priorPaths.includes(path))
+}

@@ -35,3 +35,14 @@ values
    'We reimagine heritage as something that breathes now.',
    array['Reinterpretation', 'Stage', 'Light'], 5, true)
 on conflict (slug) do nothing;
+
+-- Programs are what the app reads; the modalities array above is legacy and on
+-- its way out. Seeding only the array left local data in a shape production has
+-- not been in for a long time — every partner there carries both.
+insert into public.partner_programs (partner_id, title, sort_order)
+select p.id, m.title, m.ord - 1
+from public.partners p
+cross join lateral unnest(p.modalities) with ordinality as m(title, ord)
+where not exists (
+  select 1 from public.partner_programs pp where pp.partner_id = p.id
+);

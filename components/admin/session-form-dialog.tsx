@@ -1,36 +1,20 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
 import { X } from "lucide-react"
 import { type PathKey } from "@/lib/paths/paths-data"
 import type { PartnerWithPrograms } from "@/lib/partners/types"
-import { filterSessionInstructors } from "@/lib/partners/utils"
-import { EMPTY_SESSION_DESCRIPTION } from "@/lib/schedule/images"
 import type { FloorRow, SessionFormInput, SessionWithRelations } from "@/lib/schedule/types"
-import {
-  buildTimeOptions,
-  defaultEndTime,
-  formatTimeInKst,
-} from "@/lib/schedule/utils"
-import {
-  deleteSession,
-  confirmSession,
-  saveSession,
-  unconfirmSession,
-} from "@/app/a/schedule/actions"
-import { sessionStatusLabel, SESSION_STATUS_RIBBON_CLASS } from "@/lib/schedule/session-status"
 import { PhilosophyPathPicker } from "@/components/admin/philosophy-path-picker"
 import { InstructorSearchPicker } from "@/components/admin/instructor-search-picker"
 import { SessionDescriptionFields } from "@/components/admin/session-description-fields"
 import { SessionDuplicateForm } from "@/components/admin/session-duplicate-form"
-import {
-  SessionImageUpload,
-  slotsFromPaths,
-  uploadSessionImageSlots,
-  type SessionImageSlot,
-} from "@/components/admin/session-image-upload"
+import { SessionImageUpload } from "@/components/admin/session-image-upload"
+import { SessionStatusPanel } from "@/components/admin/session-status-panel"
 import { SessionBookingsPanel } from "@/components/admin/session-bookings-panel"
+import { defaultEndTime, formatTimeInKst } from "@/lib/schedule/utils"
 import { FIELD } from "@/lib/ui/field"
+import { useSessionForm } from "@/components/admin/use-session-form"
+import { PriceTag } from "@/components/booking/price-tag"
 
 type SessionFormDialogProps = {
   open: boolean
@@ -44,28 +28,6 @@ type SessionFormDialogProps = {
   onSaved: () => void
 }
 
-const defaultInput = (
-  dateKey: string,
-  floorId: string,
-  startTime: string,
-): SessionFormInput => ({
-  floor_id: floorId,
-  is_all_floors: false,
-  instructor_id: "",
-  partner_program_id: null,
-  title: "",
-  path_keys: [],
-  date: dateKey,
-  start_time: startTime,
-  end_time: defaultEndTime(startTime, 60),
-  capacity: 12,
-  price_currency: "USD",
-  price_amount: 0,
-  is_published: false,
-  status: "processing",
-  image_paths: [],
-  description_blocks: { ...EMPTY_SESSION_DESCRIPTION },
-})
 
 export function SessionFormDialog({
   open,
@@ -78,209 +40,42 @@ export function SessionFormDialog({
   onClose,
   onSaved,
 }: SessionFormDialogProps) {
-  const instructors = useMemo(
-    () => filterSessionInstructors(partners),
-    [partners],
-  )
-
-  const [input, setInput] = useState<SessionFormInput>(
-    defaultInput(dateKey, floors[0]?.id ?? "", "09:00"),
-  )
-  const [imageSlots, setImageSlots] = useState<SessionImageSlot[]>(
-    slotsFromPaths([]),
-  )
-  const [error, setError] = useState<string | null>(null)
-  const [pending, setPending] = useState(false)
-  const [isEditing, setIsEditing] = useState(false)
-
-  useEffect(() => {
-    if (!open) return
-    const previousOverflow = document.body.style.overflow
-    document.body.style.overflow = "hidden"
-    return () => {
-      document.body.style.overflow = previousOverflow
-    }
-  }, [open])
-
-  useEffect(() => {
-    if (!open) {
-      setPending(false)
-      setIsEditing(false)
-      return
-    }
-
-    setIsEditing(!session)
-
-    if (session) {
-      setInput({
-        floor_id: session.floor_id,
-        is_all_floors: session.is_all_floors ?? false,
-        instructor_id: session.instructor_id,
-        partner_program_id: session.partner_program_id,
-        title: session.title,
-        path_keys: session.path_keys ?? [],
-        date: dateKey,
-        start_time: formatTimeInKst(session.starts_at),
-        end_time: formatTimeInKst(session.ends_at),
-        capacity: session.capacity,
-        price_currency: session.price_currency ?? "USD",
-        price_amount: Number(session.price_amount ?? 0),
-        is_published: session.is_published,
-        status: session.status ?? "confirmed",
-        image_paths: session.image_paths ?? [],
-        description_blocks: session.description_blocks ?? {
-          ...EMPTY_SESSION_DESCRIPTION,
-        },
-      })
-      setImageSlots(slotsFromPaths(session.image_paths ?? []))
-    } else {
-      const floorId = presetFloorId ?? floors[0]?.id ?? ""
-      const start = presetStartTime ?? "09:00"
-      setInput(defaultInput(dateKey, floorId, start))
-      setImageSlots(slotsFromPaths([]))
-    }
-    setError(null)
-  }, [open, session, dateKey, presetFloorId, presetStartTime, floors])
-
-  const selectedInstructor = partners.find((p) => p.id === input.instructor_id)
-  const programs = selectedInstructor?.programs ?? []
-
-  const startOptions = buildTimeOptions()
-  const endOptions = buildTimeOptions(true)
-
-  const onProgramChange = (programId: string) => {
-    if (!programId) {
-      setInput((v) => ({ ...v, partner_program_id: null }))
-      return
-    }
-    const program = programs.find((p) => p.id === programId)
-    if (!program) return
-    setInput((v) => ({
-      ...v,
-      partner_program_id: programId,
-      title: program.title,
-      path_keys: program.path_keys ?? [],
-      description_blocks: {
-        ...v.description_blocks,
-        intro: program.description?.trim() || v.description_blocks.intro,
-      },
-    }))
-  }
-
-  const persistSession = async (): Promise<string> => {
-    const sessionId = session?.id ?? crypto.randomUUID()
-    const image_paths = await uploadSessionImageSlots(sessionId, imageSlots)
-    const result = await saveSession(
-      { ...input, image_paths },
-      session?.id,
-      session?.id ? undefined : sessionId,
-    )
-    if (!result.ok) throw new Error(result.error)
-    return result.sessionId
-  }
-
-  const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError(null)
-    if (!input.instructor_id) {
-      setError("Select an instructor.")
-      return
-    }
-    setPending(true)
-    try {
-      await persistSession()
-      onSaved()
-      onClose()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save session.")
-    } finally {
-      setPending(false)
-    }
-  }
-
-  const onConfirmStatus = async () => {
-    if (!session || session.status !== "processing") return
-    if (
-      !confirm(
-        "Confirm this session? Competing sessions in the same slot will be cancelled.",
-      )
-    ) {
-      return
-    }
-    setError(null)
-    setPending(true)
-    try {
-      if (isEditing) await persistSession()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save session.")
-      setPending(false)
-      return
-    }
-    const result = await confirmSession(session.id)
-    if (!result.ok) {
-      setError(result.error)
-    } else {
-      onSaved()
-      onClose()
-    }
-    setPending(false)
-  }
-
-  const onRevertStatus = async () => {
-    if (!session) return
-    const lines = [
-      "Revert this session to processing?",
-      "Sessions cancelled during confirmation will not be restored.",
-    ]
-    if (session.is_published) {
-      lines.splice(1, 0, "This will remove it from the public site.")
-    }
-    if (!confirm(lines.join("\n\n"))) return
-    setError(null)
-    setPending(true)
-    const result = await unconfirmSession(session.id)
-    if (!result.ok) {
-      setError(result.error)
-    } else {
-      onSaved()
-      onClose()
-    }
-    setPending(false)
-  }
-
-  const onStatusClick = () => {
-    if (!session || pending) return
-    if (session.status === "confirmed") void onRevertStatus()
-    else if (session.status === "processing") void onConfirmStatus()
-  }
-
-  const onDelete = async () => {
-    if (!session) return
-    if (!confirm(`Delete "${session.title}"?`)) return
-    setPending(true)
-    const result = await deleteSession(session.id)
-    if (!result.ok) {
-      setError(result.error)
-    } else {
-      onSaved()
-      onClose()
-    }
-    setPending(false)
-  }
+  const {
+    input,
+    setInput,
+    imageSlots,
+    setImageSlots,
+    error,
+    pending,
+    isEditing,
+    setIsEditing,
+    instructors,
+    selectedInstructor,
+    programs,
+    startOptions,
+    endOptions,
+    discountPreview,
+    readOnly,
+    onProgramChange,
+    onSubmit,
+    onStatusClick,
+    onDelete,
+    onRequestClose,
+  } = useSessionForm({
+    open,
+    dateKey,
+    floors,
+    partners,
+    session,
+    presetFloorId,
+    presetStartTime,
+    onClose,
+    onSaved,
+  })
 
   if (!open) return null
 
   const fieldClass = FIELD
-
-  const isProcessing = input.status === "processing"
-  const readOnly = Boolean(session) && !isEditing
-
-  const onRequestClose = () => {
-    if (isEditing && session) {
-      if (!confirm("Discard unsaved changes and close?")) return
-    }
-    onClose()
-  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -305,32 +100,6 @@ export function SessionFormDialog({
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
             Schedule · {input.date}
-            {session && (
-              <>
-                {" "}
-                ·{" "}
-                {session.status === "processing" ||
-                session.status === "confirmed" ? (
-                  <button
-                    type="button"
-                    onClick={onStatusClick}
-                    disabled={pending}
-                    title={
-                      session.status === "confirmed"
-                        ? "Click to revert to processing"
-                        : "Click to confirm session"
-                    }
-                    className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold transition-opacity hover:opacity-90 disabled:opacity-50 ${SESSION_STATUS_RIBBON_CLASS[session.status]}`}
-                  >
-                    {sessionStatusLabel(session.status)}
-                  </button>
-                ) : (
-                  <span className="font-medium text-foreground">
-                    {sessionStatusLabel(session.status)}
-                  </span>
-                )}
-              </>
-            )}
           </p>
           {session?.created_by_email && (
             <p className="mt-0.5 text-xs text-muted-foreground">
@@ -341,9 +110,22 @@ export function SessionFormDialog({
 
         <form onSubmit={onSubmit} className="flex min-h-0 flex-1 flex-col">
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-5">
+            {/* Outside the fieldset below: it disables every control it wraps
+                while viewing, and confirming a session is not an edit. */}
+            <SessionStatusPanel
+              status={session?.status ?? null}
+              isPublished={input.is_published}
+              onPublishedChange={(is_published) =>
+                setInput((v) => ({ ...v, is_published }))
+              }
+              onStatusAction={onStatusClick}
+              readOnly={readOnly}
+              pending={pending}
+            />
+
             <fieldset
               disabled={readOnly || pending}
-              className="min-w-0 space-y-6 border-0 p-0 disabled:opacity-100"
+              className="mt-6 min-w-0 space-y-6 border-0 p-0 disabled:opacity-100"
             >
             {error && (
               <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
@@ -569,6 +351,60 @@ export function SessionFormDialog({
               </p>
             </label>
 
+            <label className="block space-y-1">
+              <span className="text-sm font-medium">Discount</span>
+              <div className="flex gap-2">
+                <select
+                  className={fieldClass}
+                  value={input.discount_type ?? ""}
+                  onChange={(e) => {
+                    const type = e.target.value as "" | "fixed" | "percent"
+                    setInput((v) => ({
+                      ...v,
+                      // Both columns travel together — the DB rejects one
+                      // without the other.
+                      discount_type: type === "" ? null : type,
+                      discount_value: type === "" ? null : (v.discount_value ?? 0),
+                    }))
+                  }}
+                >
+                  <option value="">없음</option>
+                  <option value="percent">정률 (%)</option>
+                  <option value="fixed">정액 ({input.price_currency})</option>
+                </select>
+                <input
+                  type="number"
+                  min={0}
+                  max={input.discount_type === "percent" ? 100 : input.price_amount}
+                  step={
+                    input.discount_type === "percent"
+                      ? 1
+                      : input.price_currency === "KRW"
+                        ? 1000
+                        : 1
+                  }
+                  disabled={input.discount_type === null}
+                  className={fieldClass}
+                  value={input.discount_value ?? ""}
+                  onChange={(e) =>
+                    setInput((v) => ({
+                      ...v,
+                      discount_value: Math.max(0, Number(e.target.value) || 0),
+                    }))
+                  }
+                />
+              </div>
+              {discountPreview ? (
+                <p className="text-xs text-muted-foreground">
+                  고객 화면: <PriceTag priced={discountPreview} />
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  정률은 1–100%, 정액은 정가 이하. 100% 할인은 무료 수업이 됩니다.
+                </p>
+              )}
+            </label>
+
             {session ? (
               <SessionBookingsPanel
                 sessionId={session.id}
@@ -577,26 +413,6 @@ export function SessionFormDialog({
                 onBookingChange={onSaved}
               />
             ) : null}
-
-            <label className="flex items-center gap-3">
-              <input
-                type="checkbox"
-                checked={input.is_published}
-                disabled={isProcessing || readOnly || pending}
-                onChange={(e) =>
-                  setInput((v) => ({ ...v, is_published: e.target.checked }))
-                }
-                className="size-4 rounded border-border disabled:opacity-50"
-              />
-              <span className="text-sm font-medium">
-                Published on site
-                {isProcessing && (
-                  <span className="ml-1 font-normal text-muted-foreground">
-                    (confirm session first)
-                  </span>
-                )}
-              </span>
-            </label>
 
             {session && (
               <SessionDuplicateForm

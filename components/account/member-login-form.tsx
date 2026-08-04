@@ -11,9 +11,9 @@ export function MemberLoginForm() {
   const errorParam = searchParams.get("error")
   const queryError =
     errorParam === "wrong_account"
-      ? "이 이메일은 회원 계정이 아닙니다. 파트너·관리자는 각자 로그인 페이지를 이용해 주세요."
+      ? "This email is not a member account. Partners and admins should use their own sign-in page."
       : errorParam === "auth"
-        ? "로그인 링크가 만료되었거나 유효하지 않습니다. 다시 시도해 주세요."
+        ? "That sign-in link has expired or is not valid. Please try again."
         : null
 
   const [email, setEmail] = useState("")
@@ -24,14 +24,14 @@ export function MemberLoginForm() {
     e.preventDefault()
     setError(null)
     setPending(true)
-    try {
-      await requestMemberLoginLink(email)
-      const params = new URLSearchParams({ email: email.trim().toLowerCase() })
-      window.location.href = `/u/check-email?${params.toString()}`
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to send login link.")
+    const result = await requestMemberLoginLink(email)
+    if (!result.ok) {
+      setError(result.error)
       setPending(false)
+      return
     }
+    const params = new URLSearchParams({ email: email.trim().toLowerCase() })
+    window.location.href = `/u/check-email?${params.toString()}`
   }
 
   return (

@@ -1,6 +1,10 @@
 /**
- * Generates lib/regions/korea-regions.json and supabase/migrations/010_regions_seed.sql
+ * Generates supabase/migrations/010_regions_seed.sql
  * Run: node scripts/generate-regions-data.mjs
+ *
+ * This also wrote lib/regions/korea-regions.json, for a runtime fallback that
+ * has since been removed. The region list lives in the database now, and the
+ * source of truth for both is the table below.
  */
 import fs from "node:fs"
 import path from "node:path"
@@ -324,10 +328,6 @@ const sigunguRows = SIGUNGU.map(([code, parentCode, nameKo, nameEn], index) => (
 
 const allRows = [...sidoRows, ...sigunguRows]
 
-const json = { sido: sidoRows, sigungu: sigunguRows }
-const jsonPath = path.join(root, "lib/regions/korea-regions.json")
-fs.writeFileSync(jsonPath, JSON.stringify(json, null, 2))
-
 const values = allRows
   .map((row) => {
     const parent = row.parentCode ? `'${row.parentCode}'` : "null"
@@ -350,5 +350,4 @@ on conflict (code) do update set
 const sqlPath = path.join(root, "supabase/migrations/010_regions_seed.sql")
 fs.writeFileSync(sqlPath, sql)
 
-console.log(`Wrote ${jsonPath} (${sidoRows.length} sido, ${sigunguRows.length} sigungu)`)
-console.log(`Wrote ${sqlPath}`)
+console.log(`Wrote ${sqlPath} (${sidoRows.length} sido, ${sigunguRows.length} sigungu)`)

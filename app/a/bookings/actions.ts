@@ -15,6 +15,7 @@ import type { BookingStatus } from "@/lib/bookings/types"
 import { todayDateKeyInKst, addDaysToDateKey } from "@/lib/schedule/utils"
 import { formatBookingDateTime } from "@/lib/bookings/format"
 import { notifyWaitlist } from "@/lib/waitlist/notify"
+import { asActionResult, type ActionResult } from "@/lib/errors"
 
 function revalidateBookingCaches() {
   revalidatePath("/a/bookings")
@@ -43,7 +44,7 @@ export async function fetchAdminBookings(
   return getAdminBookings(supabase, filter)
 }
 
-export async function cancelBookingAsAdmin(bookingId: string): Promise<void> {
+async function cancelBookingAsAdminCore(bookingId: string): Promise<void> {
   await requireAdminSession()
 
   // Fetch summary before cancelling so we have session info for waitlist
@@ -72,13 +73,33 @@ export async function fetchAdminSessionList(filter: AdminSessionFilter) {
   return getAdminSessionList(supabase, filter)
 }
 
-export async function deleteWaitlistEntryAsAdmin(entryId: string): Promise<void> {
+async function deleteWaitlistEntryAsAdminCore(entryId: string): Promise<void> {
   const { supabase } = await requireAdminSession()
   const { error } = await supabase.rpc("delete_waitlist_entry", {
     p_entry_id: entryId,
   })
   if (error) throw new Error(error.message)
   revalidateBookingCaches()
+}
+
+export async function cancelBookingAsAdmin(
+  bookingId: string,
+): Promise<ActionResult> {
+  return asActionResult(
+    "cancelBookingAsAdmin",
+    "Failed to cancel the booking. Please try again.",
+    () => cancelBookingAsAdminCore(bookingId),
+  )
+}
+
+export async function deleteWaitlistEntryAsAdmin(
+  entryId: string,
+): Promise<ActionResult> {
+  return asActionResult(
+    "deleteWaitlistEntryAsAdmin",
+    "Failed to remove the waitlist entry. Please try again.",
+    () => deleteWaitlistEntryAsAdminCore(entryId),
+  )
 }
 
 export async function getDefaultBookingsDateRange() {

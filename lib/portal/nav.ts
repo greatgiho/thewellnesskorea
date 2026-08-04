@@ -16,6 +16,7 @@ export const ADMIN_NAV: PortalNavGroup[] = [
     title: "결제 · 정산",
     items: [
       { label: "결제", href: "/a/bookings" },
+      { label: "쿠폰", href: "/a/coupons" },
       { label: "정산 승인", href: "/a/settlements", status: "skeleton" },
     ],
   },

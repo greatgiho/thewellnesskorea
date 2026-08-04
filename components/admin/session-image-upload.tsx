@@ -3,12 +3,19 @@
 import Image from "next/image"
 import { useRef } from "react"
 import { X } from "lucide-react"
-import { createClient } from "@/lib/supabase/client"
+import {
+  assertSignedInForUpload,
+  IMAGE_ACCEPT,
+  removeImages,
+  uploadImage,
+  validateImageFile,
+} from "@/lib/ui/photo-upload"
 import {
   getSessionPhotoUrl,
   MAX_SESSION_IMAGES,
   SESSION_PHOTOS_BUCKET,
   storagePathFromFile,
+  unreferencedUploads,
 } from "@/lib/schedule/images"
 
 export type SessionImageSlot = {
@@ -23,7 +30,7 @@ type SessionImageUploadProps = {
   disabled?: boolean
 }
 
-const ACCEPT = "image/jpeg,image/png,image/webp"
+const ACCEPT = IMAGE_ACCEPT
 
 function emptySlot(): SessionImageSlot {
   return { path: null, pendingFile: null, previewUrl: null }
@@ -46,23 +53,51 @@ export function pathsFromSlots(slots: SessionImageSlot[]): string[] {
     .slice(0, MAX_SESSION_IMAGES)
 }
 
+export type SessionImageUploadResult = {
+  /** Every path the session row should reference: kept plus newly uploaded. */
+  paths: string[]
+  /** Only what this call created, so a failed save can drop it again. */
+  uploaded: string[]
+}
+
+/** Drop uploads that no session row will point at. */
+export async function discardUnreferencedUploads(
+  uploaded: string[],
+  priorPaths: string[],
+): Promise<void> {
+  await removeImages(
+    SESSION_PHOTOS_BUCKET,
+    unreferencedUploads(uploaded, priorPaths),
+  )
+}
+
 export async function uploadSessionImageSlots(
   sessionId: string,
   slots: SessionImageSlot[],
-): Promise<string[]> {
-  const supabase = createClient()
+  priorPaths: string[] = [],
+): Promise<SessionImageUploadResult> {
+  // Ask once, before any bytes move: the upload is the first thing in this
+  // dialog that needs a browser session, and the row is written after it.
+  if (slots.some((slot) => slot.pendingFile)) {
+    await assertSignedInForUpload()
+  }
 
-  const pathResults = await Promise.all(
+  const uploaded: string[] = []
+
+  // Settled rather than all: the slots upload concurrently, so a later one can
+  // land after an earlier one fails, and those bytes still need clearing.
+  const results = await Promise.allSettled(
     slots.map(async (slot, index) => {
       if (slot.pendingFile) {
-        const path = storagePathFromFile(sessionId, index, slot.pendingFile)
-        const { error } = await supabase.storage
-          .from(SESSION_PHOTOS_BUCKET)
-          .upload(path, slot.pendingFile, {
-            upsert: true,
-            contentType: slot.pendingFile.type,
-          })
-        if (error) throw new Error(error.message)
+        // upsert: a slot's path is derived from its index, so re-picking an
+        // image for the same slot writes over the old one.
+        const path = await uploadImage({
+          bucket: SESSION_PHOTOS_BUCKET,
+          path: storagePathFromFile(sessionId, index, slot.pendingFile),
+          file: slot.pendingFile,
+          upsert: true,
+        })
+        uploaded.push(path)
         return path
       }
       if (slot.path) return slot.path
@@ -70,9 +105,18 @@ export async function uploadSessionImageSlots(
     }),
   )
 
-  return pathResults
+  const failed = results.find((r) => r.status === "rejected")
+  if (failed) {
+    await discardUnreferencedUploads(uploaded, priorPaths)
+    throw failed.reason
+  }
+
+  const paths = results
+    .map((r) => (r.status === "fulfilled" ? r.value : null))
     .filter((path): path is string => Boolean(path))
     .slice(0, MAX_SESSION_IMAGES)
+
+  return { paths, uploaded }
 }
 
 export function SessionImageUpload({
@@ -87,12 +131,8 @@ export function SessionImageUpload({
   }
 
   const onPickFile = (index: number, file: File) => {
-    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
-      throw new Error("Use JPG, PNG, or WebP.")
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      throw new Error("Max file size is 5MB.")
-    }
+    const problem = validateImageFile(file)
+    if (problem) throw new Error(problem)
     setSlot(index, {
       path: null,
       pendingFile: file,

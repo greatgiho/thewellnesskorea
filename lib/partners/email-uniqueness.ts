@@ -20,7 +20,7 @@ export async function assertPartnerEmailUnique(
   if (error) throw new Error(error.message)
   if (data) {
     throw new UserFacingError(
-      "이 이메일은 이미 다른 파트너 프로필에 등록되어 있습니다.",
+      "This email is already registered to another partner profile.",
     )
   }
 }
@@ -34,7 +34,7 @@ export function throwPartnerPersistError(error: {
     error.message.includes("people_email_unique_idx")
   ) {
     throw new UserFacingError(
-      "이 이메일은 이미 다른 파트너 프로필에 등록되어 있습니다.",
+      "This email is already registered to another partner profile.",
     )
   }
   throw new Error(error.message)

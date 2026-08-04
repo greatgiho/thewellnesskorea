@@ -4,259 +4,36 @@ import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
 import { requireAdminSession } from "@/lib/auth/require-session"
 import { UserFacingError, isUserFacingError } from "@/lib/errors"
-import {
-  extFromPath,
-  SESSION_PHOTOS_BUCKET,
-  sessionPhotoStoragePath,
-} from "@/lib/schedule/images"
 import type {
   SessionDescriptionBlocks,
   SessionFormInput,
 } from "@/lib/schedule/types"
+import { formatTimeInKst } from "@/lib/schedule/utils"
+import { validateSessionInput } from "@/lib/schedule/session-validate"
+import { sessionRowFromInput } from "@/lib/schedule/session-row"
 import {
-  formatTimeInKst,
-  isWithinOperatingHours,
-  kstDayRange,
-  sessionsOverlap,
-  toKstIso,
-} from "@/lib/schedule/utils"
+  copySessionPhotos,
+  removeSessionPhotos,
+} from "@/lib/schedule/session-photos"
 import {
-  resolveSlotLane,
-  type SessionConflictRow,
-} from "@/lib/schedule/conflicts"
+  cancelCompetingProcessing,
+  resolveExperienceIdForFloor,
+  resolveSessionSlot,
+} from "@/lib/schedule/session-slots"
 
 async function requireAuth() {
   const { supabase, userId, userEmail } = await requireAdminSession()
   return { supabase, userId, userEmail }
 }
 
-function validateSessionInput(input: SessionFormInput): {
-  starts_at: string
-  ends_at: string
-} {
-  if (!input.title.trim()) throw new UserFacingError("Session title is required.")
-  if (input.capacity <= 0) throw new UserFacingError("Capacity must be greater than 0.")
-  if (input.price_amount < 0) throw new UserFacingError("Price cannot be negative.")
-  if (input.path_keys.length === 0) {
-    throw new UserFacingError("Select at least one philosophy path.")
-  }
-  if (input.image_paths.length > 3) {
-    throw new UserFacingError("Maximum 3 images per session.")
-  }
-  if (!isWithinOperatingHours(input.date, input.start_time, input.end_time)) {
-    throw new UserFacingError("Session must be within operating hours (06:00–24:00).")
-  }
-  if (input.status === "processing" && input.is_published) {
-    throw new UserFacingError("Only confirmed sessions can be published.")
-  }
-
-  const starts_at = toKstIso(input.date, input.start_time)
-  const ends_at = toKstIso(input.date, input.end_time)
-
-  if (new Date(ends_at) <= new Date(starts_at)) {
-    throw new UserFacingError("End time must be after start time.")
-  }
-
-  return { starts_at, ends_at }
-}
-
+/**
+ * The database enforces these too. Checking here as well turns a constraint
+ * violation into a message the admin can act on, and keeps the two columns
+ * from being saved half-set.
+ */
 function revalidateSessionCaches(isPublished: boolean) {
   revalidatePath("/a/schedule")
   if (isPublished) revalidatePath("/")
-}
-
-async function resolveExperienceIdForFloor(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  floorId: string,
-): Promise<string> {
-  const { data, error } = await supabase
-    .from("floors")
-    .select("experience_id")
-    .eq("id", floorId)
-    .maybeSingle()
-
-  if (error) throw new Error(error.message)
-  if (!data?.experience_id) {
-    throw new Error("Selected floor is missing an experience. Check Floors in the database.")
-  }
-
-  return data.experience_id as string
-}
-
-async function fetchOverlappingSessions(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  input: SessionFormInput,
-  starts_at: string,
-  ends_at: string,
-  excludeId?: string,
-): Promise<SessionConflictRow[]> {
-  const { start, end } = kstDayRange(input.date)
-
-  // Fetch every non-cancelled session in the day. All-floor sessions can
-  // conflict across floors, so we can't pre-filter by floor_id here; the
-  // day-scoped set is tiny, so we resolve conflicts in memory below.
-  const { data, error } = await supabase
-    .from("sessions")
-    .select(
-      "id, experience_id, floor_id, is_all_floors, instructor_id, starts_at, ends_at, title, status, slot_lane",
-    )
-    .gte("starts_at", start)
-    .lt("starts_at", end)
-    .neq("status", "cancelled")
-
-  if (error) throw new Error(error.message)
-
-  return (data ?? []).filter((row) => {
-    if (excludeId && row.id === excludeId) return false
-    return sessionsOverlap(starts_at, ends_at, row.starts_at, row.ends_at)
-  }) as SessionConflictRow[]
-}
-
-async function resolveSessionSlot(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  input: SessionFormInput,
-  experienceId: string,
-  starts_at: string,
-  ends_at: string,
-  excludeId?: string,
-): Promise<{ slot_lane: number }> {
-  const overlapping = await fetchOverlappingSessions(
-    supabase,
-    input,
-    starts_at,
-    ends_at,
-    excludeId,
-  )
-  return resolveSlotLane(input, experienceId, overlapping)
-}
-
-function trimDescriptionBlocks(
-  blocks: SessionDescriptionBlocks,
-): SessionDescriptionBlocks {
-  return {
-    intro: blocks.intro.trim(),
-    progress: blocks.progress.trim(),
-    preparation: blocks.preparation.trim(),
-  }
-}
-
-function sessionRowFromInput(
-  input: SessionFormInput,
-  starts_at: string,
-  ends_at: string,
-  slot_lane: number,
-  experience_id: string,
-) {
-  return {
-    experience_id,
-    floor_id: input.floor_id,
-    is_all_floors: input.is_all_floors,
-    instructor_id: input.instructor_id,
-    partner_program_id: input.partner_program_id || null,
-    title: input.title.trim(),
-    path_keys: input.path_keys,
-    starts_at,
-    ends_at,
-    capacity: input.capacity,
-    price_currency: input.price_currency,
-    price_amount: input.price_amount,
-    is_published: input.status === "confirmed" ? input.is_published : false,
-    status: input.status,
-    slot_lane,
-    image_paths: input.image_paths,
-    description_blocks: trimDescriptionBlocks(input.description_blocks),
-  }
-}
-
-async function removeSessionPhotos(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  paths: string[],
-) {
-  if (paths.length === 0) return
-  await supabase.storage.from(SESSION_PHOTOS_BUCKET).remove(paths)
-}
-
-async function copySessionPhotos(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  sourcePaths: string[],
-  targetSessionId: string,
-): Promise<string[]> {
-  const copied: string[] = []
-
-  for (let i = 0; i < sourcePaths.length; i++) {
-    const src = sourcePaths[i]
-    const ext = extFromPath(src)
-    const dest = sessionPhotoStoragePath(targetSessionId, i, ext)
-
-    const { data, error } = await supabase.storage
-      .from(SESSION_PHOTOS_BUCKET)
-      .download(src)
-
-    if (error || !data) continue
-
-    const { error: uploadError } = await supabase.storage
-      .from(SESSION_PHOTOS_BUCKET)
-      .upload(dest, data, { upsert: true, contentType: data.type || undefined })
-
-    if (!uploadError) copied.push(dest)
-  }
-
-  return copied
-}
-
-async function cancelCompetingProcessing(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  winnerId: string,
-  scope: { isAllFloors: boolean; floorId: string; experienceId: string },
-  starts_at: string,
-  ends_at: string,
-  cancelledBy: string,
-): Promise<number> {
-  const date = starts_at.slice(0, 10)
-  const { start, end } = kstDayRange(date)
-
-  // A confirmed all-floor winner clears competing processing sessions on every
-  // floor of its experience; a normal winner only clears its own floor.
-  let query = supabase
-    .from("sessions")
-    .select("id, starts_at, ends_at")
-    .eq("status", "processing")
-    .neq("id", winnerId)
-    .gte("starts_at", start)
-    .lt("starts_at", end)
-
-  query = scope.isAllFloors
-    ? query.eq("experience_id", scope.experienceId)
-    : query.eq("floor_id", scope.floorId)
-
-  const { data, error } = await query
-
-  if (error) throw new Error(error.message)
-
-  const losers = (data ?? []).filter((s) =>
-    sessionsOverlap(starts_at, ends_at, s.starts_at, s.ends_at),
-  )
-  if (losers.length === 0) return 0
-
-  const now = new Date().toISOString()
-  const { error: updateError } = await supabase
-    .from("sessions")
-    .update({
-      status: "cancelled",
-      cancelled_at: now,
-      cancelled_by: cancelledBy,
-      cancel_reason: "competition_lost",
-    })
-    .in(
-      "id",
-      losers.map((s) => s.id),
-    )
-
-  if (updateError) throw new Error(updateError.message)
-
-  // TODO: notify each cancelled session's created_by
-
-  return losers.length
 }
 
 export type SessionSaveResult =
@@ -382,6 +159,8 @@ async function confirmSessionCore(
     capacity: session.capacity,
     price_currency: session.price_currency ?? "USD",
     price_amount: session.price_amount ?? 0,
+    discount_type: session.discount_type ?? null,
+    discount_value: session.discount_value ?? null,
     is_published: session.is_published,
     status: "confirmed",
     image_paths: session.image_paths ?? [],
@@ -477,6 +256,8 @@ async function unconfirmSessionCore(
     capacity: session.capacity,
     price_currency: session.price_currency ?? "USD",
     price_amount: session.price_amount ?? 0,
+    discount_type: session.discount_type ?? null,
+    discount_value: session.discount_value ?? null,
     is_published: false,
     status: "processing",
     image_paths: session.image_paths ?? [],
@@ -561,6 +342,8 @@ async function duplicateSessionCore(
     capacity: source.capacity,
     price_currency: source.price_currency ?? "USD",
     price_amount: source.price_amount ?? 0,
+    discount_type: source.discount_type ?? null,
+    discount_value: source.discount_value ?? null,
     is_published: false,
     status: "processing",
     image_paths: [],

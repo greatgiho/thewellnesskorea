@@ -1,4 +1,5 @@
 import { extFromMime } from "@/lib/partners/utils"
+import { validateImageFile } from "@/lib/ui/photo-upload"
 
 export const JOURNAL_PHOTOS_BUCKET = "journal-photos"
 
@@ -36,9 +37,5 @@ export function validateJournalPhotoFile(
   file: File,
   messages: { invalidType: string; tooLarge: string },
 ): string | null {
-  if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
-    return messages.invalidType
-  }
-  if (file.size > 5 * 1024 * 1024) return messages.tooLarge
-  return null
+  return validateImageFile(file, messages)
 }

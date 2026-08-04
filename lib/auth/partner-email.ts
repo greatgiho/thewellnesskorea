@@ -31,11 +31,11 @@ export async function assertPartnerSignupEmailAvailable(
     ?.role
   if (role === "partner") {
     throw new UserFacingError(
-      "이미 가입된 파트너 계정입니다. 로그인해 주세요.",
+      "This email already has a partner account. Please sign in.",
     )
   }
   throw new UserFacingError(
-    "이 이메일은 이미 다른 계정으로 사용 중입니다.",
+    "This email is already used by another account.",
   )
 }
 
@@ -53,14 +53,14 @@ export async function resolvePartnerLoginDeliveryEmail(
 ): Promise<string> {
   const existing = await findAuthUserByEmail(normalize(email))
   if (!existing) {
-    throw new UserFacingError("등록된 파트너 계정을 찾을 수 없습니다.")
+    throw new UserFacingError("No partner account found for this email.")
   }
 
   const role = (existing.app_metadata as Record<string, unknown> | undefined)
     ?.role
   if (role !== "partner") {
     throw new UserFacingError(
-      "파트너 계정이 아닙니다. 관리자에게 문의해 주세요.",
+      "This is not a partner account. Please contact an administrator.",
     )
   }
 
@@ -72,7 +72,7 @@ export async function resolvePartnerLoginDeliveryEmail(
 
   if (!partner) {
     throw new UserFacingError(
-      "연결된 파트너 프로필이 없습니다. 관리자에게 문의해 주세요.",
+      "No partner profile is linked to this account. Please contact an administrator.",
     )
   }
 
@@ -82,14 +82,14 @@ export async function resolvePartnerLoginDeliveryEmail(
     )
   ) {
     throw new UserFacingError(
-      "아직 승인 대기 중인 계정입니다. 승인 후 로그인할 수 있습니다.",
+      "This account is still awaiting approval. You can sign in once it is approved.",
     )
   }
 
   const contact = typeof partner.email === "string" ? partner.email.trim() : ""
   if (!contact) {
     throw new UserFacingError(
-      "파트너 연락 이메일이 설정돼 있지 않습니다. 관리자에게 문의해 주세요.",
+      "This partner has no contact email set. Please contact an administrator.",
     )
   }
 

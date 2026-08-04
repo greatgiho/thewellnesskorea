@@ -52,11 +52,11 @@ export async function savePartner(
     if (isUserFacingError(error) || error instanceof Error) {
       return {
         ok: false,
-        error: error.message || "저장에 실패했습니다.",
+        error: error.message || "Failed to save.",
       }
     }
     console.error("[savePartner]", error)
-    return { ok: false, error: "저장에 실패했습니다. 잠시 후 다시 시도해 주세요." }
+    return { ok: false, error: "Failed to save. Please try again in a moment." }
   }
 }
 
@@ -118,10 +118,10 @@ export async function setPartnerRegistrationStatus(
     return { ok: true, personId: id }
   } catch (error) {
     if (isUserFacingError(error) || error instanceof Error) {
-      return { ok: false, error: error.message || "처리에 실패했습니다." }
+      return { ok: false, error: error.message || "The request failed." }
     }
     console.error("[setPartnerRegistrationStatus]", error)
-    return { ok: false, error: "처리에 실패했습니다. 잠시 후 다시 시도해 주세요." }
+    return { ok: false, error: "The request failed. Please try again in a moment." }
   }
 }
 
@@ -183,7 +183,7 @@ export async function provisionPartnerAccount(
     if (infoError) throw new Error(infoError.message)
     const partner = infoRows?.[0]
     if (!partner?.email?.trim()) {
-      throw new Error("이메일을 먼저 입력해 주세요.")
+      throw new Error("Enter an email address first.")
     }
 
     const email = partner.email.trim()
@@ -233,7 +233,7 @@ export async function provisionPartnerAccount(
   } catch (error) {
     return {
       ok: false,
-      error: error instanceof Error ? error.message : "초대 발송에 실패했습니다.",
+      error: error instanceof Error ? error.message : "Failed to send the invite.",
     }
   }
 }

@@ -21,7 +21,8 @@ export async function getViewAs(): Promise<ViewAsPayload | null> {
 export async function assertNotViewAs(): Promise<void> {
   if (await getViewAs()) {
     throw new UserFacingError(
-      "보기 전용(view-as) 상태에서는 변경할 수 없습니다. 먼저 'View-as 종료'를 눌러주세요.",
+      // The quoted label is the banner button, which stays Korean.
+      "You can't make changes while viewing as someone else. Press 'View-as 종료' first.",
     )
   }
 }

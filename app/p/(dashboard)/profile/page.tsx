@@ -1,6 +1,6 @@
-import Image from "next/image"
 import { requirePartnerSession } from "@/lib/auth/require-partner-session"
 import { getPartnerPhotoUrl } from "@/lib/partners/utils"
+import { PartnerProfilePhoto } from "@/components/partner/partner-profile-photo"
 
 export default async function PartnerProfilePage() {
   const { partner, user } = await requirePartnerSession()
@@ -10,20 +10,15 @@ export default async function PartnerProfilePage() {
       <div>
         <h1 className="font-serif text-3xl font-light text-foreground">내 프로필</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          프로필 수정이 필요하면 관리자에게 문의해 주세요.
+          사진은 직접 바꿀 수 있습니다. 나머지 수정이 필요하면 관리자에게 문의해 주세요.
         </p>
       </div>
 
       <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
-        <div className="relative size-32 shrink-0 overflow-hidden rounded-2xl bg-secondary">
-          <Image
-            src={getPartnerPhotoUrl(partner.photo_path)}
-            alt=""
-            fill
-            className="object-cover"
-            priority
-          />
-        </div>
+        <PartnerProfilePhoto
+          partnerId={partner.id}
+          initialUrl={getPartnerPhotoUrl(partner.photo_path)}
+        />
         <div className="space-y-2">
           <h2 className="font-serif text-2xl font-light">{partner.name_en}</h2>
           <p className="text-lg text-muted-foreground">{partner.name_ko}</p>

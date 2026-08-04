@@ -19,7 +19,6 @@ export type PartnerRow = {
   role_ko: string
   role_en: string
   quote: string | null
-  modalities: string[]
   photo_path: string | null
   phone: string | null
   email: string | null

@@ -82,7 +82,7 @@ export default async function BookPayPage({ searchParams }: BookPayPageProps) {
     process.env.PAYMENT_DEV_MOCK === "true"
 
   const paypalClientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID
-  const currency = pending.summary.price.currency
+  const currency = pending.summary.price.final.currency
   // Only online (USD, amount > 0) classes get the PayPal button — never a free
   // ($0) or on-site hold, even if reached here directly.
   const isOnline = paymentMode(money(currency, pending.amount)) === "online"

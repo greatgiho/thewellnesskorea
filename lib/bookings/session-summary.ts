@@ -1,5 +1,10 @@
 import { normalizeRelation } from "@/lib/supabase/normalize-relation"
-import { money, type Money } from "@/lib/payments/money"
+import {
+  applyDiscount,
+  discountFrom,
+  money,
+  type PricedMoney,
+} from "@/lib/payments/money"
 
 /**
  * Shared "booking -> session" summary embed. Used by every query that lists
@@ -13,6 +18,8 @@ export const SESSION_SUMMARY_SELECT = `
     ends_at,
     price_currency,
     price_amount,
+    discount_type,
+    discount_value,
     floor:floors (name_en),
     instructor:partners (name_en)
 `
@@ -25,6 +32,8 @@ export type SessionSummaryRelation = Rel<{
   ends_at: string
   price_currency?: string
   price_amount?: number | string
+  discount_type?: string | null
+  discount_value?: number | string | null
   floor?: Rel<{ name_en: string }>
   instructor?: Rel<{ name_en: string }>
 }>
@@ -35,7 +44,8 @@ export type SessionSummary = {
   endsAt: string
   floorName: string
   instructorName: string
-  price: Money
+  /** List price and the discounted price actually charged. */
+  price: PricedMoney
 }
 
 const DEFAULT_FALLBACK = { floor: "Brickwell", instructor: "Wellness Guide" }
@@ -56,6 +66,9 @@ export function mapSessionSummary(
     endsAt: session.ends_at,
     floorName: floor?.name_en ?? fallback.floor,
     instructorName: instructor?.name_en ?? fallback.instructor,
-    price: money(session.price_currency, session.price_amount),
+    price: applyDiscount(
+      money(session.price_currency, session.price_amount),
+      discountFrom(session.discount_type, session.discount_value),
+    ),
   }
 }

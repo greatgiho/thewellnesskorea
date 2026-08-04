@@ -11,7 +11,7 @@ export async function createSessionPost(
   content: string,
 ): Promise<PostResult> {
   const trimmed = content.trim()
-  if (!trimmed) return { ok: false, error: "내용을 입력해 주세요." }
+  if (!trimmed) return { ok: false, error: "Please write something first." }
 
   try {
     await assertNotViewAs()
@@ -25,10 +25,13 @@ export async function createSessionPost(
       .maybeSingle()
 
     if (!session || session.instructor_id !== partner.id) {
-      return { ok: false, error: "권한이 없습니다." }
+      return { ok: false, error: "You don't have permission to do that." }
     }
     if (new Date(session.ends_at) > new Date()) {
-      return { ok: false, error: "수업 종료 후에만 작성할 수 있습니다." }
+      return {
+        ok: false,
+        error: "You can only post after the session has ended.",
+      }
     }
 
     const { error } = await supabase.from("session_posts").insert({
@@ -44,7 +47,7 @@ export async function createSessionPost(
     revalidatePath(`/p/sessions/${sessionId}/board`)
     return { ok: true }
   } catch {
-    return { ok: false, error: "작성에 실패했습니다." }
+    return { ok: false, error: "Failed to post." }
   }
 }
 
@@ -67,6 +70,6 @@ export async function deleteSessionPost(
     revalidatePath(`/p/sessions/${sessionId}/board`)
     return { ok: true }
   } catch {
-    return { ok: false, error: "삭제에 실패했습니다." }
+    return { ok: false, error: "Failed to delete." }
   }
 }

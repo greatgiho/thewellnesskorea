@@ -34,6 +34,13 @@ export type AdminSessionFilter = {
   guestSearch?: string    // guest name / email / phone search
 }
 
+export type AdminBookingPayment = {
+  status: string
+  amount: number
+  currency: string
+  provider: string
+}
+
 export type AdminBookingItem = {
   id: string
   sessionId: string
@@ -49,6 +56,8 @@ export type AdminBookingItem = {
   sessionEndsAt: string
   floorName: string
   instructorName: string
+  /** null for a free class — those deliberately have no payment row. */
+  payment: AdminBookingPayment | null
 }
 
 type BookingQueryRow = {
@@ -62,6 +71,7 @@ type BookingQueryRow = {
   cancelled_at: string | null
   created_at: string
   session: SessionSummaryRelation
+  payments?: RawPayment[] | RawPayment | null
 }
 
 const BOOKING_WITH_SESSION = `
@@ -74,8 +84,29 @@ const BOOKING_WITH_SESSION = `
   status,
   cancelled_at,
   created_at,
-  session:sessions (${SESSION_SUMMARY_SELECT})
+  session:sessions (${SESSION_SUMMARY_SELECT}),
+  payments ( status, amount, currency, pg_provider )
 `
+
+type RawPayment = {
+  status: string
+  amount: number | string
+  currency: string
+  pg_provider: string
+}
+
+function mapPayment(
+  payments: RawPayment[] | RawPayment | null | undefined,
+): AdminBookingPayment | null {
+  const row = Array.isArray(payments) ? payments[0] : payments
+  if (!row) return null
+  return {
+    status: row.status,
+    amount: Number(row.amount),
+    currency: row.currency,
+    provider: row.pg_provider,
+  }
+}
 
 function mapAdminBookingRow(row: BookingQueryRow): AdminBookingItem | null {
   const summary = mapSessionSummary(row.session, {
@@ -99,6 +130,7 @@ function mapAdminBookingRow(row: BookingQueryRow): AdminBookingItem | null {
     sessionEndsAt: summary.endsAt,
     floorName: summary.floorName,
     instructorName: summary.instructorName,
+    payment: mapPayment(row.payments),
   }
 }
 

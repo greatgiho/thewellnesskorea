@@ -8,6 +8,10 @@ export type PartnerSession = {
   capacity: number
   booked_count: number
   status: string
+  price_currency: "KRW" | "USD"
+  price_amount: number
+  discount_type: "fixed" | "percent" | null
+  discount_value: number | null
   floor: { name_ko: string; level: number } | null
 }
 
@@ -22,6 +26,7 @@ export type PartnerBooking = {
 
 const SESSION_SELECT = `
   id, title, starts_at, ends_at, capacity, booked_count, status,
+  price_currency, price_amount, discount_type, discount_value,
   floor:floors (name_ko, level)
 `
 
@@ -83,7 +88,15 @@ export async function getSessionPosts(
   return (data ?? []) as SessionPost[]
 }
 
-/** 특정 세션의 예약자 목록 (confirmed만) */
+/**
+ * 자리를 차지하고 있는 예약 — 확정 + 결제 대기.
+ *
+ * `sessions.booked_count` 가 세는 것과 같은 집합이다. create_booking_hold 가
+ * 홀드를 만들 때 이미 +1 하기 때문. 확정된 것만 보여주면 강사 화면에서
+ * "예약 1명"인데 "예약자가 없습니다"가 함께 뜬다.
+ */
+const SEAT_TAKING_STATUSES = ["confirmed", "pending_payment"]
+
 export async function getSessionBookings(
   supabase: SupabaseClient,
   sessionId: string,
@@ -92,7 +105,7 @@ export async function getSessionBookings(
     .from("bookings")
     .select("id, guest_name, guest_email, guest_phone, status, created_at")
     .eq("session_id", sessionId)
-    .eq("status", "confirmed")
+    .in("status", SEAT_TAKING_STATUSES)
     .order("created_at", { ascending: true })
 
   return (data ?? []) as PartnerBooking[]
@@ -133,7 +146,7 @@ export async function getPartnerSessionRosters(
       "session_id",
       sessions.map((session) => session.id),
     )
-    .eq("status", "confirmed")
+    .in("status", SEAT_TAKING_STATUSES)
     .order("created_at", { ascending: true })
 
   const bySession = new Map<string, PartnerBooking[]>()

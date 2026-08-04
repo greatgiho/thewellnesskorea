@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { cancelBookingAsAdmin, deleteWaitlistEntryAsAdmin } from "@/app/a/bookings/actions"
 import { formatBookingDateTime } from "@/lib/bookings/format"
+import { formatMoney, money } from "@/lib/payments/money"
+import { OnsitePaymentButton } from "@/components/admin/onsite-payment-button"
 import type { AdminBookingItem } from "@/lib/bookings/admin-queries"
 import type { WaitlistEntry } from "@/lib/waitlist/admin-queries"
 
@@ -38,18 +40,14 @@ export function SessionBookingDetail({
     setError(null)
 
     startTransition(async () => {
-      try {
-        if (confirm.type === "cancel-booking") {
-          await cancelBookingAsAdmin(confirm.bookingId)
-        } else {
-          await deleteWaitlistEntryAsAdmin(confirm.entryId)
-        }
-        setConfirm(null)
-        router.refresh()
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Something went wrong.")
-        setConfirm(null)
-      }
+      const result =
+        confirm.type === "cancel-booking"
+          ? await cancelBookingAsAdmin(confirm.bookingId)
+          : await deleteWaitlistEntryAsAdmin(confirm.entryId)
+
+      setConfirm(null)
+      if (result.ok) router.refresh()
+      else setError(result.error)
     })
   }
 
@@ -103,6 +101,7 @@ export function SessionBookingDetail({
                   <th className="px-4 py-3 text-left">Contact</th>
                   <th className="px-4 py-3 text-left">Booked at</th>
                   <th className="px-4 py-3 text-left">Type</th>
+                  <th className="px-4 py-3 text-left">결제</th>
                   <th className="px-4 py-3" />
                 </tr>
               </thead>
@@ -122,6 +121,33 @@ export function SessionBookingDetail({
                     </td>
                     <td className="px-4 py-3 text-xs text-muted-foreground">
                       {b.userId ? "Member" : "Guest"}
+                    </td>
+                    <td className="px-4 py-3 text-xs">
+                      {!b.payment ? (
+                        <span className="text-muted-foreground">무료</span>
+                      ) : b.payment.provider === "onsite" ? (
+                        <span className="inline-flex flex-wrap items-center gap-2">
+                          <span
+                            className={
+                              b.payment.status === "paid"
+                                ? "text-muted-foreground"
+                                : "font-medium text-destructive"
+                            }
+                          >
+                            {formatMoney(money(b.payment.currency, b.payment.amount))}
+                            {b.payment.status === "paid" ? " 수령됨" : " 미수령"}
+                          </span>
+                          <OnsitePaymentButton
+                            bookingId={b.id}
+                            paid={b.payment.status === "paid"}
+                          />
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">
+                          {formatMoney(money(b.payment.currency, b.payment.amount))} ·{" "}
+                          {b.payment.status}
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <button

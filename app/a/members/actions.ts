@@ -25,7 +25,7 @@ export async function setMemberBanned(
   const { userId } = await requireAdminSession()
 
   if (memberId === userId) {
-    return { ok: false, error: "본인 계정은 차단할 수 없습니다." }
+    return { ok: false, error: "You cannot ban your own account." }
   }
 
   const service = createServiceClient()
@@ -38,7 +38,7 @@ export async function setMemberBanned(
 
   const role = target?.user?.app_metadata?.role
   if (role && role !== "member") {
-    return { ok: false, error: `회원이 아닌 계정(role=${role})입니다.` }
+    return { ok: false, error: `This is not a member account (role=${role}).` }
   }
 
   const { error } = await service.auth.admin.updateUserById(memberId, {

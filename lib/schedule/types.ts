@@ -37,6 +37,8 @@ export type SessionRow = {
   booked_count: number
   price_currency: Currency
   price_amount: number
+  discount_type: "fixed" | "percent" | null
+  discount_value: number | null
   is_published: boolean
   status: SessionStatus
   slot_lane: number
@@ -77,6 +79,8 @@ export type SessionFormInput = {
   capacity: number
   price_currency: Currency
   price_amount: number
+  discount_type: "fixed" | "percent" | null
+  discount_value: number | null
   is_published: boolean
   status: SessionStatus
   image_paths: string[]

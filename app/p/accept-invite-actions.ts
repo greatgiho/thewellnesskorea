@@ -17,9 +17,9 @@ export async function acceptPartnerInvite(input: {
 }): Promise<AcceptInviteResult> {
   try {
     const token = input.token?.trim()
-    if (!token) throw new Error("잘못된 초대 링크입니다.")
+    if (!token) throw new Error("This invite link is not valid.")
     if (input.password.length < 8)
-      throw new Error("비밀번호는 8자 이상이어야 합니다.")
+      throw new Error("Password must be at least 8 characters.")
 
     const service = createServiceClient()
     const tokenHash = createHash("sha256").update(token).digest("hex")
@@ -30,10 +30,12 @@ export async function acceptPartnerInvite(input: {
     )
     if (rpcError) {
       if (rpcError.message?.includes("invalid_or_expired")) {
-        throw new Error("만료되었거나 이미 사용된 초대 링크입니다.")
+        throw new Error("This invite link has expired or was already used.")
       }
       if (rpcError.message?.includes("not_linked")) {
-        throw new Error("계정 연결에 문제가 있습니다. 관리자에게 문의해 주세요.")
+        throw new Error(
+          "There is a problem with this account link. Please contact an administrator.",
+        )
       }
       throw new Error(rpcError.message)
     }
@@ -51,7 +53,7 @@ export async function acceptPartnerInvite(input: {
       error:
         isUserFacingError(error) || error instanceof Error
           ? (error as Error).message
-          : "비밀번호 설정에 실패했습니다. 잠시 후 다시 시도해 주세요.",
+          : "Failed to set your password. Please try again in a moment.",
     }
   }
 }
