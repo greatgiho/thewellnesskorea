@@ -40,14 +40,14 @@ export function CommunityDeleteButton({ postId }: CommunityDeleteButtonProps) {
         onClick={() => setIsOpen(true)}
         disabled={isDeleting}
       >
-        <Trash className="mr-2 h-4 w-4" /> 삭제
+        <Trash className="mr-2 h-4 w-4" /> Delete
       </Button>
 
       <ConfirmDialog
         open={isOpen}
-        title="게시글 삭제"
-        description="이 게시글을 삭제하시겠습니까? 삭제된 게시글은 목록에서 숨겨집니다."
-        confirmLabel={isDeleting ? "삭제 중..." : "삭제"}
+        title="Delete Post"
+        description="Are you sure you want to delete this post? Deleted posts will be hidden from the list."
+        confirmLabel={isDeleting ? "Deleting..." : "Delete"}
         destructive={true}
         onConfirm={handleDelete}
         onCancel={() => setIsOpen(false)}

@@ -2,14 +2,15 @@ import { getCommunityPostById } from '@/lib/actions/community-actions';
 import { createClient } from '@/lib/supabase/server';
 import { canAccessPartnerPortal, PartnerRegistrationStatus } from '@/lib/partners/registration-status';
 import { journalBodyToHtml } from '@/lib/journal/body';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Edit, ArrowLeft } from 'lucide-react';
+import { Edit } from 'lucide-react';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { CommunityCopyButton } from '../_components/community-copy-button';
 import { CommunityDeleteButton } from '../_components/community-delete-button';
+import { cn } from '@/lib/utils'; // cn 임포트
 
 interface CommunityPostDetailPageProps {
   params: Promise<{
@@ -72,41 +73,44 @@ export default async function CommunityPostDetailPage({
   const canModify = isAuthor || isAdmin;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6"> {/* 롤백된 상태의 최상위 div */}
       <div className="flex items-center justify-between">
-        <Button variant="outline" asChild>
-          <Link href="/p/community">
-            <ArrowLeft className="mr-2 h-4 w-4" /> 목록으로 돌아가기
-          </Link>
-        </Button>
+        <Link
+          href="/p/community"
+          className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1"
+        >
+          ← Back to List
+        </Link>
         <div className="flex space-x-2">
           <CommunityCopyButton />
           {canModify && (
-            <Button asChild>
-              <Link href={`/p/community/${id}/edit`}>
-                <Edit className="mr-2 h-4 w-4" /> 수정
-              </Link>
-            </Button>
+            <Link
+              href={`/p/community/${id}/edit`}
+              className={cn(buttonVariants({ variant: "outline", size: "default" }), "flex items-center gap-2 whitespace-nowrap")}
+            >
+              <Edit className="mr-1 h-4 w-4" /> Edit
+            </Link>
           )}
-          {canModify && <CommunityDeleteButton postId={id} />}
+          {canModify && <CommunityDeleteButton postId={id} variant="destructive" className="flex items-center gap-2 whitespace-nowrap" />}
         </div>
       </div>
-
+    
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>{post.title}</CardTitle>
-            <span className="text-sm text-muted-foreground">
-              {new Date(post.created_at).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}
-            </span>
-          </div>
-          <CardDescription className="flex items-center gap-2">
-            <span className="font-semibold">작성자: {post.authorName}</span>
+          <div className="flex items-center gap-2"> {/* 제목과 공지 뱃지를 위한 flex 컨테이너 */}
+            <CardTitle className="font-serif text-3xl font-light text-foreground">{post.title}</CardTitle>
             {post.post_type === 'announcement' && (
               <span className="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/10">
-                공지사항
+                공지 {/* Announcement 텍스트를 '공지'로 변경 */}
               </span>
             )}
+          </div>
+          <CardDescription className="flex items-center justify-end gap-4 text-muted-foreground text-sm mt-2"> {/* 작성자와 작성일을 오른쪽 끝으로 정렬 */}
+            <span className="font-semibold">By {post.authorName}</span>
+            <span>&bull;</span>
+            <span className="text-sm">
+              {new Date(post.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+            </span>
           </CardDescription>
         </CardHeader>
         <CardContent>

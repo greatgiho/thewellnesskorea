@@ -16,7 +16,7 @@ export function CommunityCopyButton() {
 
   return (
     <Button variant="outline" onClick={copyToClipboard} type="button">
-      <Copy className="mr-2 h-4 w-4" /> URL 복사
+      <Copy className="mr-2 h-4 w-4" /> Copy URL
     </Button>
   );
 }
