@@ -2,7 +2,7 @@
 # Apply one migration file to the production Supabase database.
 #
 # Prod has no CLI access token, so migrations go through the session pooler
-# with the password from .env.prod.local. This wraps that so there is a single
+# with the password from .env.www. This wraps that so there is a single
 # reviewed entry point rather than an ad-hoc psql line each time, and so the
 # before/after state gets printed for the hand-kept ledger.
 #
@@ -15,7 +15,7 @@ set -euo pipefail
 FILE="${1:?usage: apply-prod-migration.sh <migration.sql>}"
 [ -f "$FILE" ] || { echo "no such migration: $FILE" >&2; exit 1; }
 
-ENV_FILE=".env.prod.local"
+ENV_FILE=".env.www"
 [ -f "$ENV_FILE" ] || { echo "missing $ENV_FILE" >&2; exit 1; }
 
 set -a; . "./$ENV_FILE"; set +a

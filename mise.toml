@@ -1,2 +1,3 @@
 [tools]
 node = "24.18.0"
+vercel = { version = "58.4.4", allow_builds = ["esbuild"], trust_policy_excludes = ["undici"] }
