@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import { CommunitySearchBar } from './_components/community-search-bar';
 
 export const metadata = {
   title: '파트너 커뮤니티',
@@ -14,16 +15,20 @@ export const metadata = {
 };
 
 interface CommunityPageProps {
-  searchParams: Promise<{
+  searchParams: {
     page?: string;
     category?: CommunityPostType;
-  }>;
+    searchType?: string;
+    searchQuery?: string;
+  };
 }
 
 export default async function CommunityPage({ searchParams }: CommunityPageProps) {
   const resolvedSearchParams = await searchParams;
   const page = Number(resolvedSearchParams.page) || 1;
-  const category = resolvedSearchParams.category || null;
+  // const category = resolvedSearchParams.category || null; // 카테고리 필터 제거
+  const searchType = resolvedSearchParams.searchType || undefined;
+  const searchQuery = resolvedSearchParams.searchQuery || undefined;
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -43,27 +48,33 @@ export default async function CommunityPage({ searchParams }: CommunityPageProps
   }
 
   // 서버 액션을 통한 페이지네이션 데이터 조회
-  const { posts, totalPages } = await getCommunityPosts(page, category);
+  const { posts, totalPages, totalCount } = await getCommunityPosts(page, undefined, searchType, searchQuery);
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto py-6">
+    <div className="flex flex-col space-y-6 pt-6 pb-12">
+      {/* 헤더 영역 - /a/journal 페이지 참고 */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">파트너 커뮤니티</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <h1 className="mt-2 font-serif text-3xl text-foreground">파트너 커뮤니티</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
             소식과 공지사항을 확인하고 동료 파트너들과 소통하세요.
           </p>
         </div>
-        <Button asChild>
-          <Link href="/p/community/new">
-            <Plus className="mr-2 h-4 w-4" /> 글쓰기
-          </Link>
-        </Button>
+        <Link href="/p/community/new">
+          <Button className="flex items-center gap-2">
+            <Plus className="h-4 w-4" /> <span>새 게시글</span>
+          </Button>
+        </Link>
       </div>
 
-      <CommunityPostList posts={posts} />
 
-      {/* 페이지네이션 컴포넌트 노출 */}
+      {/* 검색 바 영역 */}
+      <CommunitySearchBar />
+
+      {/* 게시글 목록 */}
+      <CommunityPostList posts={posts} currentPage={page} itemsPerPage={10} totalCount={totalCount} />
+
+      {/* 페이지네이션 컴포넌트 */}
       <div className="pt-4">
         <CommunityPagination currentPage={page} totalPages={totalPages} />
       </div>
