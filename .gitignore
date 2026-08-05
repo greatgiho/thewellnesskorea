@@ -6,8 +6,11 @@ __v0_jsx-dev-runtime.ts
 .v0-trash/
 .vercel/
 
-# Environment variables
-.env*.local
+# Environment variables — every .env* holds live credentials and stays local.
+# The names are environments, not Next.js modes (.env.www, .env.dev), so that a
+# production build cannot silently pick one up the way .env.production.local did.
+.env*
+!.env.local.example
 
 # Common ignores
 node_modules

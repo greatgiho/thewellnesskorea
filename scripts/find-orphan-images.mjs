@@ -13,7 +13,8 @@
  * Usage:
  *   node scripts/find-orphan-images.mjs                        # report, local
  *   node scripts/find-orphan-images.mjs --apply                # delete, local
- *   node scripts/find-orphan-images.mjs --env .env.prod.local  # report, prod
+ *   node scripts/find-orphan-images.mjs --env .env.www         # report, www
+ *   node scripts/find-orphan-images.mjs --env .env.dev         # report, dev clone
  *
  * Requires NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY in the env file.
  */
