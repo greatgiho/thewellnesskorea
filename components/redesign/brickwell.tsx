@@ -4,21 +4,14 @@ import { useEffect, useState, useCallback } from "react"
 import Image from "next/image"
 import { Sun, Moon, Frame, Clock, MapPin, X, ArrowRight } from "lucide-react"
 import { useLang } from "@/components/redesign/language-provider"
+import type { BilingualText, BrickwellItem } from "@/lib/schedule/map-redesign-content"
 
-type Bi = { en: string; ko: string }
-
-type Item = {
-  title: Bi
-  meta: Bi
-  place: Bi
-  blurb: Bi
-  body: Bi
-  // Swap these with your own event photos later.
-  image: string
-}
+type Bi = BilingualText
+type Item = BrickwellItem
+type CategoryId = "day" | "night" | "exhibition"
 
 type Category = {
-  id: "day" | "night" | "exhibition"
+  id: CategoryId
   label: Bi
   tagline: Bi
   Icon: typeof Sun
@@ -26,7 +19,10 @@ type Category = {
   items: Item[]
 }
 
-const CATEGORIES: Category[] = [
+// Label/tagline/icon/cover are fixed UI chrome for these three fixed slots —
+// only `items` (real upcoming sessions tagged with this content_category,
+// see lib/schedule/redesign-content.ts) comes from the DB.
+const CATEGORY_META: Omit<Category, "items">[] = [
   {
     id: "day",
     label: { en: "Day", ko: "낮" },
@@ -36,50 +32,6 @@ const CATEGORIES: Category[] = [
     },
     Icon: Sun,
     cover: "/images/courtyard-tree.jpeg",
-    items: [
-      {
-        title: { en: "Morning Grounding Walk", ko: "아침 걷기 명상" },
-        meta: { en: "Sun · 8:30 AM · 60 min", ko: "일요일 · 오전 8:30 · 60분" },
-        place: { en: "Seochon & Brickwell", ko: "서촌 & 브릭웰" },
-        blurb: {
-          en: "A slow walk through Seochon's old alleys into the courtyard.",
-          ko: "서촌의 오래된 골목을 지나 중정으로 향하는 느린 걷기.",
-        },
-        body: {
-          en: "Begin the day with a quiet walk through Seochon's old alleys, arriving at the Brickwell courtyard for breathing practice by the reflecting pool. A gentle way to arrive in your body before the city wakes.",
-          ko: "서촌의 오래된 골목을 조용히 걸으며 하루를 시작하고, 브릭웰 중정에 도착해 반영 연못 곁에서 호흡을 수련합니다. 도시가 깨어나기 전, 몸으로 돌아오는 부드러운 방법입니다.",
-        },
-        image: "/images/courtyard-tree.jpeg",
-      },
-      {
-        title: { en: "Daytime Meditation Journey", ko: "낮 명상 여정" },
-        meta: { en: "Wed–Fri · 11:00 AM · 90 min", ko: "수–금 · 오전 11:00 · 90분" },
-        place: { en: "Garden → Glass House", ko: "정원 → 글라스하우스" },
-        blurb: {
-          en: "Singing-bowl breathing, a mindful walk, and warm tea.",
-          ko: "싱잉볼 호흡, 알아차림의 걷기, 그리고 따뜻한 차.",
-        },
-        body: {
-          en: "A guided arc through the space — singing-bowl breathing in the garden, a mindful walk to the glass house, and a warm tea meditation. Moving with the light as it shifts through the vertical courtyard.",
-          ko: "공간을 관통하는 하나의 여정입니다. 정원에서의 싱잉볼 호흡, 글라스하우스로 향하는 알아차림의 걷기, 그리고 따뜻한 차명상. 수직의 중정을 지나 변해가는 빛과 함께 움직입니다.",
-        },
-        image: "/images/meditation-program.jpeg",
-      },
-      {
-        title: { en: "Weekend Wellness Retreat", ko: "주말 웰니스 리트릿" },
-        meta: { en: "Sat · 10:00 AM · Half day", ko: "토요일 · 오전 10:00 · 반나절" },
-        place: { en: "Brickwell, full space", ko: "브릭웰 전 공간" },
-        blurb: {
-          en: "A half-day of grounding, walking, holding, and emptying.",
-          ko: "머무르기, 이어지기, 머금기, 비워내기로 이어지는 반나절.",
-        },
-        body: {
-          en: "A half-day retreat that moves through all four rhythms of Brickwell — grounding, walking, holding, and emptying — with seasonal tea and rest between practices. For those who want to stay a little longer.",
-          ko: "브릭웰의 네 가지 리듬 — 머무르기, 이어지기, 머금기, 비워내기 — 를 모두 지나는 반나절 리트릿입니다. 수련 사이사이 계절의 차와 쉼이 함께합니다. 조금 더 머물고 싶은 분들을 위해.",
-        },
-        image: "/images/reflecting-pool.jpeg",
-      },
-    ],
   },
   {
     id: "night",
@@ -90,50 +42,6 @@ const CATEGORIES: Category[] = [
     },
     Icon: Moon,
     cover: "/images/brickwell-atrium.jpeg",
-    items: [
-      {
-        title: { en: "Evening Sound Bath", ko: "저녁 사운드 배스" },
-        meta: { en: "Fri · 7:00 PM · 75 min", ko: "금요일 · 오후 7:00 · 75분" },
-        place: { en: "Vertical Courtyard", ko: "수직의 중정" },
-        blurb: {
-          en: "Lie back as sound rises through the open atrium.",
-          ko: "열린 아트리움을 타고 오르는 소리에 몸을 맡기세요.",
-        },
-        body: {
-          en: "Lie beneath the open sky as sound rises through the vertical space and the courtyard darkens. An evening of emptying out, closing with a quiet seasonal tea ceremony.",
-          ko: "열린 하늘 아래 누워, 소리가 수직의 공간을 타고 오르고 중정이 어둑해지는 시간. 비워내는 저녁이며, 조용한 계절의 차 의식으로 마무리됩니다.",
-        },
-        image: "/images/brickwell-atrium.jpeg",
-      },
-      {
-        title: { en: "Candlelit Tea Meditation", ko: "촛불 차명상" },
-        meta: { en: "Fri · 7:30 PM · 60 min", ko: "금요일 · 오후 7:30 · 60분" },
-        place: { en: "Glass House", ko: "글라스하우스" },
-        blurb: {
-          en: "A tea meditation as dusk settles over the city.",
-          ko: "도시에 어스름이 내려앉는 시간의 차명상.",
-        },
-        body: {
-          en: "An evening tea meditation with artist Shin Kyung-hee, holding space as dusk settles over the city. Warm light, slow pours, and the stillness of being contained.",
-          ko: "신경희 작가와 함께하는 저녁 차명상. 도시에 어스름이 내려앉는 동안 자리를 지킵니다. 따뜻한 빛, 느린 차 따르기, 그리고 머금어지는 고요함.",
-        },
-        image: "/images/reflecting-pool.jpeg",
-      },
-      {
-        title: { en: "Full Moon Sound Ceremony", ko: "보름달 사운드 세리머니" },
-        meta: { en: "Monthly · 8:00 PM · 90 min", ko: "매월 · 오후 8:00 · 90분" },
-        place: { en: "Courtyard, open sky", ko: "열린 하늘의 중정" },
-        blurb: {
-          en: "A monthly ceremony held under the full moon.",
-          ko: "보름달 아래 매월 열리는 의식.",
-        },
-        body: {
-          en: "Once a month, as the moon rises over the open courtyard, we gather for a longer sound ceremony. Deep resonance, warm blankets, and a shared silence beneath the sky.",
-          ko: "한 달에 한 번, 달이 열린 중정 위로 떠오를 때 우리는 조금 더 긴 사운드 의식을 위해 모입니다. 깊은 울림, 따뜻한 담요, 그리고 하늘 아래 함께 나누는 침묵.",
-        },
-        image: "/images/courtyard-tree.jpeg",
-      },
-    ],
   },
   {
     id: "exhibition",
@@ -144,88 +52,58 @@ const CATEGORIES: Category[] = [
     },
     Icon: Frame,
     cover: "/images/reflecting-pool.jpeg",
-    items: [
-      {
-        title: { en: "Shin Kyung-hee — Holding", ko: "신경희 — 보듬이" },
-        meta: { en: "Now – Jun 2026", ko: "현재 – 2026년 6월" },
-        place: { en: "Glass House Gallery", ko: "글라스하우스 갤러리" },
-        blurb: {
-          en: "Ceramic vessels made to be held during tea meditation.",
-          ko: "차명상 중에 손에 쥐도록 만들어진 도자 기물.",
-        },
-        body: {
-          en: "A collection of ceramic vessels by artist Shin Kyung-hee, made to be held — warm in the palm during our tea meditations. The exhibition moves through the glass house, each piece resting where the light finds it.",
-          ko: "신경희 작가의 도자 기물 모음으로, 차명상 중 손바닥 안에서 따뜻하게 쥐도록 만들어졌습니다. 전시는 글라스하우스를 따라 이어지며, 각 작품은 빛이 닿는 자리에 놓여 있습니다.",
-        },
-        image: "/images/meditation-program.jpeg",
-      },
-      {
-        title: { en: "Ink & Emptiness", ko: "먹과 비움" },
-        meta: { en: "Now – May 2026", ko: "현재 – 2026년 5월" },
-        place: { en: "Courtyard Corridor", ko: "중정 회랑" },
-        blurb: {
-          en: "Ink brushwork exploring the space between strokes.",
-          ko: "획과 획 사이의 공간을 탐구하는 먹 작업.",
-        },
-        body: {
-          en: "An ink brushwork exhibition exploring the space between strokes — the emptiness that gives a line its meaning. Hung along the courtyard corridor, the works shift with the daylight passing through the rods.",
-          ko: "획과 획 사이의 공간 — 선에 의미를 부여하는 비움 — 을 탐구하는 먹 작업 전시입니다. 중정 회랑을 따라 걸린 작품들은 봉 사이로 스미는 햇빛과 함께 변합니다.",
-        },
-        image: "/images/reflecting-pool.jpeg",
-      },
-      {
-        title: { en: "Light Through Rods", ko: "봉을 통과하는 빛" },
-        meta: { en: "Ongoing", ko: "상시" },
-        place: { en: "The Building Itself", ko: "건축물 그 자체" },
-        blurb: {
-          en: "The architecture as a living, changing artwork.",
-          ko: "살아 움직이며 변화하는 작품으로서의 건축.",
-        },
-        body: {
-          en: "Brickwell's own architecture as a living work — thousands of thin vertical rods that catch and release the light through the day. A standing invitation to look up and watch the space breathe.",
-          ko: "브릭웰의 건축 그 자체가 살아 있는 작품입니다. 수천 개의 가느다란 수직 봉이 하�� 동안 빛을 붙잡았다 놓아줍니다. 고개를 들어 공간이 숨 쉬는 모습을 바라보라는, 늘 열려 있는 초대.",
-        },
-        image: "/images/brickwell-atrium.jpeg",
-      },
-    ],
   },
 ]
 
 const T = {
   en: {
     eyebrow: "Brickwell",
-    heading: "One space, three rhythms",
-    intro:
-      "Brickwell changes through the day. Explore what unfolds in daylight, after dark, and on the gallery walls — tap a panel, then open any moment to see more.",
     readMore: "Read more",
     reserveSeat: "Reserve a seat",
     planVisit: "Plan a visit",
     close: "Close",
     open: (label: string) => `Open ${label}`,
+    whereLabel: "Where",
+    whereValue: "18-8, Jahamun-ro 6-gil, Jongno-gu, Seoul, Korea",
+    hoursLabel: "Hours",
+    hoursValue: "Mon – Sun · 10:00 AM – 10:00 PM",
+    contactLabel: "Contact",
+    contactValue: "Giho.watt.lee@thewellnesskorea.com",
   },
   ko: {
     eyebrow: "브릭웰",
-    heading: "하나의 공간, 세 개의 리듬",
-    intro:
-      "브릭웰은 하루 동안 변합니다. 낮에, 어둠이 내린 뒤에, 그리고 갤러리 벽에서 펼쳐지는 것들을 살펴보세요. 패널을 누르고, 원하는 순간을 열어 더 깊이 들여다보세요.",
     readMore: "자세히 보기",
     reserveSeat: "자리 예약하기",
     planVisit: "방문 계획하기",
     close: "닫기",
     open: (label: string) => `${label} 열기`,
+    whereLabel: "장소",
+    whereValue: "서울특별시 종로구 자하문로6길 18-8",
+    hoursLabel: "운영 시간",
+    hoursValue: "월 – 일 · 오전 10:00 – 오후 10:00",
+    contactLabel: "연락처",
+    contactValue: "Giho.watt.lee@thewellnesskorea.com",
   },
 }
 
-const OVERLAY: Record<Category["id"], string> = {
+const OVERLAY: Record<CategoryId, string> = {
   day: "from-[oklch(0.35_0.03_75)]/85 via-[oklch(0.4_0.03_80)]/40",
   night: "from-[oklch(0.18_0.02_260)]/90 via-[oklch(0.22_0.02_250)]/55",
   exhibition: "from-[oklch(0.24_0.012_60)]/85 via-[oklch(0.3_0.012_60)]/45",
 }
 
-export function Brickwell() {
+export function Brickwell({
+  itemsByCategory,
+}: {
+  itemsByCategory: Record<CategoryId, Item[]>
+}) {
   const { lang } = useLang()
   const t = T[lang]
-  const [active, setActive] = useState<Category["id"] | null>("day")
+  const CATEGORIES: Category[] = CATEGORY_META.map((meta) => ({
+    ...meta,
+    items: itemsByCategory[meta.id] ?? [],
+  }))
+  const [active, setActive] = useState<CategoryId | null>("day")
   const [selected, setSelected] = useState<{ cat: Category; item: Item } | null>(null)
 
   // Let the menu buttons (#day / #night / #exhibition) open the right panel.
@@ -261,10 +139,20 @@ export function Brickwell() {
 
       <div className="mx-auto max-w-6xl px-6">
         <div className="max-w-2xl">
-          <h2 className="font-serif text-4xl leading-tight text-foreground text-balance sm:text-5xl">
-            {t.heading}
-          </h2>
-          <p className="mt-4 text-base leading-relaxed text-muted-foreground text-pretty">{t.intro}</p>
+          <dl className="flex flex-wrap gap-x-8 gap-y-2 text-sm">
+            <div>
+              <dt className="inline text-[var(--sage)]">{t.whereLabel}: </dt>
+              <dd className="inline text-foreground">{t.whereValue}</dd>
+            </div>
+            <div>
+              <dt className="inline text-[var(--sage)]">{t.hoursLabel}: </dt>
+              <dd className="inline text-foreground">{t.hoursValue}</dd>
+            </div>
+            <div>
+              <dt className="inline text-[var(--sage)]">{t.contactLabel}: </dt>
+              <dd className="inline text-foreground">{t.contactValue}</dd>
+            </div>
+          </dl>
         </div>
 
         {/* Mobile tabs */}
@@ -338,7 +226,7 @@ export function Brickwell() {
                     <div className="flex gap-4 overflow-x-auto pb-1">
                       {c.items.map((item) => (
                         <button
-                          key={item.title.en}
+                          key={item.id}
                           onClick={() => setSelected({ cat: c, item })}
                           className="group w-52 flex-none overflow-hidden rounded-lg bg-background/95 text-left shadow-lg backdrop-blur transition-transform hover:-translate-y-1"
                         >
@@ -389,7 +277,7 @@ export function Brickwell() {
               <div className="space-y-4">
                 {c.items.map((item) => (
                   <button
-                    key={item.title.en}
+                    key={item.id}
                     onClick={() => setSelected({ cat: c, item })}
                     className="flex w-full gap-4 overflow-hidden rounded-lg border border-border bg-card text-left"
                   >

@@ -48,14 +48,13 @@ export function Philosophy() {
           <p>
             {lang === "en" ? (
               <>
-                Beside Gyeongbokgung Palace lies Seochon, an old neighborhood. Here we practice a wellness rooted in
-                Korean life.
+                Beside Gyeongbokgung Palace lies Seochon, an old neighborhood.
+                <br />
+                Here we practice a wellness rooted in Korean life.
                 <br />
                 Not adding, but emptying — refinement without coldness.
                 <br />
                 Like the plainness of baek-ui, the traditional white robe.
-                <br />
-                It is a beauty free of excess.
                 <br />
                 Where jeong, the warmth between people, quietly flows.
                 <br />
