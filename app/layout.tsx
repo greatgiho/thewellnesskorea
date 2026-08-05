@@ -1,4 +1,5 @@
-import { Analytics } from '@vercel/analytics/next'
+import { Toaster } from '@/components/ui/sonner';
+import { Analytics } from '@vercel/analytics/next';
 import type { Metadata } from 'next'
 import {
   Cormorant_Garamond,
@@ -64,6 +65,7 @@ export default function RootLayout({
       <body className="font-sans antialiased">
         {children}
         {process.env.NODE_ENV === 'production' && <Analytics />}
+        <Toaster />
       </body>
     </html>
   )
