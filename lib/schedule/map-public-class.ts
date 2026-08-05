@@ -39,6 +39,7 @@ export function mapSessionToClassItem(session: SessionWithRelations): ClassItem 
     initials: getInitials(teacher),
     spots,
     period: periodFromTime(start),
+    hasStarted: new Date(session.starts_at).getTime() <= Date.now(),
   }
 }
 
