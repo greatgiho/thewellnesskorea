@@ -16,6 +16,10 @@ export type ClassItem = {
   initials: string
   spots: number
   period: "AM" | "PM"
+  /** Booking has closed because the class already began. Decided on the server
+   *  so it uses the same clock as getBookableSession; the card ships to the
+   *  client, and a browser clock could disagree with the page it links to. */
+  hasStarted: boolean
 }
 
 export type WeekDay = {

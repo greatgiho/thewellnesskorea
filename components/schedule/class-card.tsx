@@ -9,6 +9,10 @@ type ClassCardProps = {
 
 export function ClassCard({ classItem: c }: ClassCardProps) {
   const isFull = c.spots === 0
+  // The schedule lists the whole day, so a class that already started is still
+  // on screen. getBookableSession only accepts starts_at in the future, so
+  // linking to it anyway sent people to a 404.
+  const canBook = !isFull && !c.hasStarted
 
   return (
     <article
@@ -52,20 +56,20 @@ export function ClassCard({ classItem: c }: ClassCardProps) {
       <div className="flex shrink-0 items-center justify-between gap-4 sm:w-40 sm:flex-col sm:items-end sm:justify-center sm:gap-3">
         <span
           className={`text-xs font-medium ${
-            isFull
+            !canBook
               ? "text-muted-foreground"
               : c.spots <= 3
                 ? "text-[oklch(0.55_0.12_55)]"
                 : "text-primary"
           }`}
         >
-          {isFull ? "Full" : `${c.spots} spots left`}
+          {c.hasStarted ? "Started" : isFull ? "Full" : `${c.spots} spots left`}
         </span>
-        {isFull ? (
+        {!canBook ? (
           <span
             className="inline-flex items-center justify-center rounded-full border border-border px-6 py-2.5 text-sm font-medium text-muted-foreground"
           >
-            Full
+            {c.hasStarted ? "Closed" : "Full"}
           </span>
         ) : (
           <Link
