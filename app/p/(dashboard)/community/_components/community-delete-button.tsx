@@ -10,9 +10,11 @@ import { toast } from 'sonner';
 
 interface CommunityDeleteButtonProps {
   postId: string;
+  /** Layout classes from the caller; the destructive variant is set here. */
+  className?: string;
 }
 
-export function CommunityDeleteButton({ postId }: CommunityDeleteButtonProps) {
+export function CommunityDeleteButton({ postId, className }: CommunityDeleteButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const router = useRouter();
@@ -37,6 +39,7 @@ export function CommunityDeleteButton({ postId }: CommunityDeleteButtonProps) {
     <>
       <Button
         variant="destructive"
+        className={className}
         onClick={() => setIsOpen(true)}
         disabled={isDeleting}
       >

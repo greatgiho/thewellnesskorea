@@ -87,7 +87,8 @@ export function CommunityPostForm({
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="block space-y-2">
             <span className="text-sm font-medium">Category</span>
-            <Select value={postType} onValueChange={(value: CommunityPostType) => setPostType(value)} disabled={isPending}>
+            {/* Select reports null when a selection is cleared; keep the last one. */}
+            <Select value={postType} onValueChange={(value) => value && setPostType(value)} disabled={isPending}>
               <SelectTrigger className={cn("w-full", fieldClass)}> {/* SelectTrigger의 children으로 선택된 텍스트 표시 */}
                 <span>
                   {postType === 'general' ? '일반' : postType === 'announcement' ? '공지사항' : '카테고리 선택'}

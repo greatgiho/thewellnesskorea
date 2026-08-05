@@ -1,7 +1,8 @@
 import { getCommunityPostById } from '@/lib/actions/community-actions';
 import { updateCommunityPost } from '@/lib/actions/community-mutations';
 import { createClient } from '@/lib/supabase/server';
-import { canAccessPartnerPortal, PartnerRegistrationStatus } from '@/lib/partners/registration-status';
+import { canAccessPartnerPortal } from '@/lib/partners/registration-status';
+import type { PartnerRegistrationStatus } from '@/lib/partners/types';
 import { CommunityPostForm } from '../../_components/community-post-form';
 import { notFound, redirect } from 'next/navigation';
 
@@ -73,6 +74,7 @@ export default async function CommunityPostEditPage({
     <div className="space-y-6 max-w-2xl mx-auto py-6">
       <CommunityPostForm
         postId={id}
+        isAdmin={isAdmin}
         defaultValues={{
           title: post.title,
           content: post.content,
