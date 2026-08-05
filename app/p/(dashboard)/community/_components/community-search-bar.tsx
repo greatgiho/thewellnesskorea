@@ -58,7 +58,8 @@ export function CommunitySearchBar() {
 
   return (
     <div className="flex ml-auto w-full sm:w-fit space-x-2">
-      <Select value={searchType} onValueChange={(value: SearchType) => setSearchType(value)}>
+      {/* Select reports null when a selection is cleared; keep the last one. */}
+      <Select value={searchType} onValueChange={(value) => value && setSearchType(value)}>
         <SelectTrigger className="w-[100px]">
           <SelectValue>{searchTypeLabels[searchType]}</SelectValue>
         </SelectTrigger>

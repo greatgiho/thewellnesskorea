@@ -80,7 +80,7 @@ export function CommunityPagination({ currentPage, totalPages }: CommunityPagina
             ) : (
               <PaginationLink
                 href={createPageURL(pageNumber as number)}
-                active={pageNumber === currentPage ? "true" : "false"}
+                isActive={pageNumber === currentPage}
               >
                 {pageNumber}
               </PaginationLink>
