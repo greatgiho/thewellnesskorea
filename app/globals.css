@@ -83,6 +83,9 @@
   --sidebar-accent-foreground: oklch(0.43 0.04 155);
   --sidebar-border: oklch(0.88 0.014 90);
   --sidebar-ring: oklch(0.43 0.04 155);
+  /* Alias for v0-sourced redesign components (components/redesign/*), which
+     reference var(--sage) directly instead of the --primary token. */
+  --sage: var(--primary);
 }
 
 .dark {
