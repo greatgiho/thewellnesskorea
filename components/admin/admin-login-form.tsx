@@ -6,15 +6,20 @@ import { createClient } from "@/lib/supabase/client"
 import { FIELD_ROOMY } from "@/lib/ui/field"
 import { Button } from "@/components/ui/button"
 
+/**
+ * Viewers sign in here too. There is no /v/signin: the read-only dashboard
+ * shares this form, and requireViewerSession sends unauthenticated visitors
+ * back to it. Refusing them here left the viewer role with no way in at all.
+ */
 function adminAccessError(role: string | undefined): string | null {
-  if (role === "admin") return null
+  if (role === "admin" || role === "viewer") return null
   if (role === "partner") {
     return "This is a partner account. Sign in at /p/signin instead."
   }
   if (role === "member") {
     return "Member accounts cannot access admin. Use /u/signin for member sign-in."
   }
-  return "This account does not have admin access (app_metadata.role is not \"admin\"). Run: npm run set-admin-role -- your@email.com"
+  return "This account has neither admin nor viewer access (app_metadata.role is not \"admin\" or \"viewer\"). Run: npm run set-admin-role -- your@email.com"
 }
 
 export function AdminLoginForm() {
@@ -58,7 +63,8 @@ export function AdminLoginForm() {
     }
 
     setPending(false)
-    router.push("/a/partners")
+    // A viewer has no admin screen to land on — /a would bounce them right back.
+    router.push(role === "viewer" ? "/v" : "/a/partners")
     router.refresh()
   }
 
