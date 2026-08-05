@@ -2,7 +2,8 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
-import { canAccessPartnerPortal, PartnerRegistrationStatus } from '@/lib/partners/registration-status';
+import { canAccessPartnerPortal } from '@/lib/partners/registration-status';
+import type { PartnerRegistrationStatus } from '@/lib/partners/types';
 import { CommunityPostFormInput, CommunityPostType } from './community-actions';
 
 // RLS 정책을 위한 파트너 세션 유틸리티

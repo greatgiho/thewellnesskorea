@@ -1,6 +1,7 @@
 import { getCommunityPostById } from '@/lib/actions/community-actions';
 import { createClient } from '@/lib/supabase/server';
-import { canAccessPartnerPortal, PartnerRegistrationStatus } from '@/lib/partners/registration-status';
+import { canAccessPartnerPortal } from '@/lib/partners/registration-status';
+import type { PartnerRegistrationStatus } from '@/lib/partners/types';
 import { journalBodyToHtml } from '@/lib/journal/body';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -91,7 +92,7 @@ export default async function CommunityPostDetailPage({
               <Edit className="mr-1 h-4 w-4" /> Edit
             </Link>
           )}
-          {canModify && <CommunityDeleteButton postId={id} variant="destructive" className="flex items-center gap-2 whitespace-nowrap" />}
+          {canModify && <CommunityDeleteButton postId={id} className="flex items-center gap-2 whitespace-nowrap" />}
         </div>
       </div>
     
