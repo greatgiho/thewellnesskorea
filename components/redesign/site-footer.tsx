@@ -8,7 +8,13 @@ const LINKS: { href: string; label: { en: string; ko: string } }[] = [
   { href: "#day", label: { en: "Day", ko: "낮" } },
   { href: "#night", label: { en: "Night", ko: "밤" } },
   { href: "#exhibition", label: { en: "Exhibition", ko: "전시" } },
-  { href: "#reserve", label: { en: "Reserve", ko: "예약" } },
+  // #reserve is not rendered on this page; UpcomingEvents carries id="upcoming".
+  { href: "#upcoming", label: { en: "Reserve", ko: "예약" } },
+  // The old footer linked these; dropping them would take Privacy and Terms
+  // off every page that only ever reached them from here.
+  { href: "/journal", label: { en: "Journal", ko: "저널" } },
+  { href: "/privacy", label: { en: "Privacy", ko: "개인정보" } },
+  { href: "/terms", label: { en: "Terms", ko: "이용약관" } },
 ]
 
 const T = {

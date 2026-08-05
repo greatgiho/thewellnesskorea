@@ -42,6 +42,12 @@ export type ReservationItem = {
   body: BilingualText
   spots: number
   image: string
+  /** The upcoming query keeps everything from 00:00 KST today, but
+   *  getBookableSession only accepts starts_at in the future, so a class that
+   *  ran this morning would link to a 404. Decided here rather than in the
+   *  component: the card ships to the client, and a browser clock must not
+   *  disagree with the page it links to. */
+  hasStarted: boolean
 }
 
 // UpcomingEvents/PastEvents show this instead of the real session photo
@@ -191,6 +197,7 @@ export function toReservationItem(session: RedesignSessionRow): ReservationItem 
     body: { en: body, ko: bodyKo },
     spots: Math.max(0, session.capacity - session.booked_count),
     image: TEMP_PLACEHOLDER_IMAGE,
+    hasStarted: new Date(session.starts_at).getTime() <= Date.now(),
   }
 }
 

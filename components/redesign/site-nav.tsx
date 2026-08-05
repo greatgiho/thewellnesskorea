@@ -2,15 +2,20 @@
 
 import { useEffect, useState } from "react"
 import Image from "next/image"
+import Link from "next/link"
 import { Menu, X } from "lucide-react"
 import { useLang, type Lang } from "@/components/redesign/language-provider"
 
+// #reserve belongs to components/redesign/reservation.tsx, which the homepage
+// does not render — the section that actually lists bookable classes is
+// UpcomingEvents, id="upcoming". Pointing at #reserve made every Reserve
+// control on the page do nothing.
 const LINKS: { href: string; label: { en: string; ko: string } }[] = [
   { href: "#philosophy", label: { en: "Philosophy", ko: "철학" } },
   { href: "#day", label: { en: "Day", ko: "낮" } },
   { href: "#night", label: { en: "Night", ko: "밤" } },
   { href: "#exhibition", label: { en: "Exhibition", ko: "전시" } },
-  { href: "#reserve", label: { en: "Reserve", ko: "예약" } },
+  { href: "#upcoming", label: { en: "Reserve", ko: "예약" } },
 ]
 
 function LangToggle({ className = "" }: { className?: string }) {
@@ -88,8 +93,14 @@ export function SiteNav() {
 
         <div className="hidden items-center gap-4 md:flex">
           <LangToggle />
+          <Link
+            href="/u/signin"
+            className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+          >
+            {lang === "ko" ? "로그인" : "Sign in"}
+          </Link>
           <a
-            href="#reserve"
+            href="#upcoming"
             className="rounded-full bg-primary px-5 py-2 text-sm text-primary-foreground transition-opacity hover:opacity-90"
           >
             {lang === "ko" ? "방문 예약" : "Book a visit"}
@@ -123,6 +134,16 @@ export function SiteNav() {
                 </a>
               </li>
             ))}
+            <li>
+              <Link href="/u/signin" onClick={() => setOpen(false)} className="block py-3 text-base text-foreground">
+                {lang === "ko" ? "로그인" : "Sign in"}
+              </Link>
+            </li>
+            <li>
+              <Link href="/u" onClick={() => setOpen(false)} className="block py-3 text-base text-foreground">
+                {lang === "ko" ? "내 예약" : "My bookings"}
+              </Link>
+            </li>
           </ul>
         </div>
       )}

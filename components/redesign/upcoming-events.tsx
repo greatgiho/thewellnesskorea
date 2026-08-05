@@ -40,6 +40,7 @@ const T = {
     introLine2: "(and payment, where required) on the next page.",
     spotsLeft: (n: number) => `${n} spot${n === 1 ? "" : "s"} left`,
     full: "Full — join waitlist",
+    started: "Booking closed",
     reserve: "Reserve",
     empty: "No upcoming classes are open for booking right now. Please check back soon.",
     open: (label: string) => `Open ${label}`,
@@ -51,6 +52,7 @@ const T = {
     intro: "아래에서 원하는 클래스를 선택하면, 다음 페이지에서 예약(및 필요한 경우 결제)을 완료하실 수 있습니다.",
     spotsLeft: (n: number) => `${n}자리 남음`,
     full: "마감 — 대기 신청",
+    started: "예약 마감",
     reserve: "예약하기",
     empty: "현재 예약 가능한 클래스가 없습니다. 곧 새로운 일정이 열립니다.",
     open: (label: string) => `${label} 열기`,
@@ -137,16 +139,26 @@ export function UpcomingEvents({ items }: { items: ReservationItem[] }) {
                             {item.title[lang]}
                           </p>
                           <p className="mt-2 text-sm text-background/80">
-                            {item.spots > 0 ? t.spotsLeft(item.spots) : t.full}
+                            {item.hasStarted
+                              ? t.started
+                              : item.spots > 0
+                                ? t.spotsLeft(item.spots)
+                                : t.full}
                           </p>
-                          <Link
-                            href={`/book/${item.id}`}
-                            onClick={(e) => e.stopPropagation()}
-                            className="mt-4 inline-flex w-fit items-center gap-1.5 rounded-full bg-primary px-5 py-2.5 text-sm text-primary-foreground transition-opacity hover:opacity-90"
-                          >
-                            {item.spots > 0 ? t.reserve : t.full}
-                            <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
-                          </Link>
+                          {item.hasStarted ? (
+                            <span className="mt-4 inline-flex w-fit items-center rounded-full border border-background/40 px-5 py-2.5 text-sm text-background/70">
+                              {t.started}
+                            </span>
+                          ) : (
+                            <Link
+                              href={`/book/${item.id}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="mt-4 inline-flex w-fit items-center gap-1.5 rounded-full bg-primary px-5 py-2.5 text-sm text-primary-foreground transition-opacity hover:opacity-90"
+                            >
+                              {item.spots > 0 ? t.reserve : t.full}
+                              <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+                            </Link>
+                          )}
                         </div>
                       </div>
                     ) : (
@@ -188,15 +200,25 @@ export function UpcomingEvents({ items }: { items: ReservationItem[] }) {
                   <div className="flex flex-1 flex-col p-6">
                     <h3 className="font-serif text-xl text-foreground">{item.title[lang]}</h3>
                     <p className="mt-2 text-xs text-muted-foreground">
-                      {item.spots > 0 ? t.spotsLeft(item.spots) : t.full}
+                      {item.hasStarted
+                        ? t.started
+                        : item.spots > 0
+                          ? t.spotsLeft(item.spots)
+                          : t.full}
                     </p>
-                    <Link
-                      href={`/book/${item.id}`}
-                      className="mt-4 inline-flex w-fit items-center gap-1.5 rounded-full bg-primary px-5 py-2.5 text-sm text-primary-foreground transition-opacity hover:opacity-90"
-                    >
-                      {item.spots > 0 ? t.reserve : t.full}
-                      <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
-                    </Link>
+                    {item.hasStarted ? (
+                      <span className="mt-4 inline-flex w-fit items-center rounded-full border border-border px-5 py-2.5 text-sm text-muted-foreground">
+                        {t.started}
+                      </span>
+                    ) : (
+                      <Link
+                        href={`/book/${item.id}`}
+                        className="mt-4 inline-flex w-fit items-center gap-1.5 rounded-full bg-primary px-5 py-2.5 text-sm text-primary-foreground transition-opacity hover:opacity-90"
+                      >
+                        {item.spots > 0 ? t.reserve : t.full}
+                        <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+                      </Link>
+                    )}
                   </div>
                 </article>
               ))}
