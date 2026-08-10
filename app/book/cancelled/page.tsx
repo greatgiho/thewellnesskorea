@@ -15,7 +15,7 @@ export default function BookCancelledPage() {
       description="We've sent a confirmation email. You can book another class anytime spots are available."
     >
       <Link
-        href="/#schedule"
+        href="/#upcoming"
         className="inline-flex rounded-full bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
       >
         Browse upcoming classes

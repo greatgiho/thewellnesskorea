@@ -18,10 +18,10 @@ export function MemberBookingsList({ bookings }: MemberBookingsListProps) {
       <div className="rounded-3xl border border-dashed border-border px-6 py-16 text-center">
         <p className="font-serif text-2xl text-foreground">No reservations yet.</p>
         <p className="mt-2 text-sm text-muted-foreground">
-          Book a class from the schedule and it will appear here.
+          Book a class from the upcoming list and it will appear here.
         </p>
         <a
-          href="/#schedule"
+          href="/#upcoming"
           className="mt-6 inline-flex rounded-full bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
         >
           Browse classes

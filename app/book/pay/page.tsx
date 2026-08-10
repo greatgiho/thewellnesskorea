@@ -48,10 +48,10 @@ export default async function BookPayPage({ searchParams }: BookPayPageProps) {
         description="The spot may have been released. Please choose another class from the schedule."
       >
         <Link
-          href="/#schedule"
+          href="/#upcoming"
           className="inline-flex rounded-full bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
         >
-          Back to schedule
+          Back to upcoming classes
         </Link>
       </BookingPageLayout>
     )
@@ -68,10 +68,10 @@ export default async function BookPayPage({ searchParams }: BookPayPageProps) {
         description="Your reservation hold timed out after 10 minutes. Please book again if spots remain."
       >
         <Link
-          href="/#schedule"
+          href="/#upcoming"
           className="inline-flex rounded-full bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
         >
-          Back to schedule
+          Back to upcoming classes
         </Link>
       </BookingPageLayout>
     )
@@ -142,10 +142,10 @@ export default async function BookPayPage({ searchParams }: BookPayPageProps) {
             Cancel hold
           </Link>
           <Link
-            href="/#schedule"
+            href="/#upcoming"
             className="inline-flex rounded-full border border-border px-6 py-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary"
           >
-            Back to schedule
+            Back to upcoming classes
           </Link>
         </div>
       </div>

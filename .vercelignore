@@ -1,0 +1,7 @@
+# Files excluded from the deployment source uploaded to Vercel.
+#
+# design-reference holds design originals kept only for reading (see its
+# README). It is a standalone Next.js project with its own package.json and
+# public/, so leaving it in the upload ships ~15MB of images that no route can
+# serve, and puts a second lockfile inside the build context.
+design-reference

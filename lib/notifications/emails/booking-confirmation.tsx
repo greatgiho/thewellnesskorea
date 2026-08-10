@@ -55,7 +55,7 @@ export function BookingConfirmationEmail({
 
       <Section style={{ margin: "24px 0" }}>
         <Link href={scheduleUrl} style={styles.button}>
-          View Schedule
+          Browse Upcoming Classes
         </Link>
       </Section>
 

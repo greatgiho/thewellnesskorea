@@ -27,7 +27,7 @@ export async function sendBookingConfirmationEmail(
   cancelToken: string,
 ): Promise<void> {
   const cancelUrl = `${siteOrigin()}/book/cancel/${cancelToken}`
-  const scheduleUrl = `${siteOrigin()}/#schedule`
+  const scheduleUrl = `${siteOrigin()}/#upcoming`
 
   const html = await renderBookingConfirmationEmail({
     guestName: summary.guestName,
@@ -47,7 +47,7 @@ export async function sendBookingConfirmationEmail(
 export async function sendBookingCancelledEmail(
   summary: BookingSummary,
 ): Promise<void> {
-  const scheduleUrl = `${siteOrigin()}/#schedule`
+  const scheduleUrl = `${siteOrigin()}/#upcoming`
 
   const html = await renderBookingCancelledEmail({
     guestName: summary.guestName,

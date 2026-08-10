@@ -1,21 +1,14 @@
 "use client"
 
 import Image from "next/image"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
 import { useLang } from "@/components/redesign/language-provider"
-
-const LINKS: { href: string; label: { en: string; ko: string } }[] = [
-  { href: "#philosophy", label: { en: "Philosophy", ko: "철학" } },
-  { href: "#day", label: { en: "Day", ko: "낮" } },
-  { href: "#night", label: { en: "Night", ko: "밤" } },
-  { href: "#exhibition", label: { en: "Exhibition", ko: "전시" } },
-  // #reserve is not rendered on this page; UpcomingEvents carries id="upcoming".
-  { href: "#upcoming", label: { en: "Reserve", ko: "예약" } },
-  // The old footer linked these; dropping them would take Privacy and Terms
-  // off every page that only ever reached them from here.
-  { href: "/journal", label: { en: "Journal", ko: "저널" } },
-  { href: "/privacy", label: { en: "Privacy", ko: "개인정보" } },
-  { href: "/terms", label: { en: "Terms", ko: "이용약관" } },
-]
+import {
+  FOOTER_SECTION_LINKS,
+  PAGE_LINKS,
+  sectionHref,
+} from "@/components/redesign/nav-links"
 
 const T = {
   en: {
@@ -36,6 +29,7 @@ const T = {
 
 export function SiteFooter() {
   const { lang } = useLang()
+  const pathname = usePathname()
   const t = T[lang]
 
   return (
@@ -56,11 +50,27 @@ export function SiteFooter() {
           <nav aria-label="Footer">
             <p className="text-sm text-[var(--sage)]">{t.explore}</p>
             <ul className="mt-3 space-y-2">
-              {LINKS.map((l) => (
-                <li key={l.href}>
-                  <a href={l.href} className="text-sm text-muted-foreground transition-colors hover:text-foreground">
+              {FOOTER_SECTION_LINKS.map((l) => (
+                <li key={l.id}>
+                  <a
+                    href={sectionHref(pathname, l.id)}
+                    className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                  >
                     {l.label[lang]}
                   </a>
+                </li>
+              ))}
+              {/* The old footer carried these. Dropping them would take
+                  Journal, Privacy, and Terms off every page that only ever
+                  reached them from here. */}
+              {PAGE_LINKS.map((l) => (
+                <li key={l.href}>
+                  <Link
+                    href={l.href}
+                    className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    {l.label[lang]}
+                  </Link>
                 </li>
               ))}
             </ul>

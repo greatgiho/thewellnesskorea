@@ -4,6 +4,12 @@ import { useEffect, useState, useCallback } from "react"
 import Image from "next/image"
 import { Sun, Moon, Frame, Clock, MapPin, X, ArrowRight } from "lucide-react"
 import { useLang } from "@/components/redesign/language-provider"
+import {
+  MetaItem,
+  MetaList,
+  Section,
+  SectionHeader,
+} from "@/components/redesign/primitives"
 import type { BilingualText, BrickwellItem } from "@/lib/schedule/map-redesign-content"
 
 type Bi = BilingualText
@@ -57,7 +63,9 @@ const CATEGORY_META: Omit<Category, "items">[] = [
 
 const T = {
   en: {
-    eyebrow: "Brickwell",
+    heading: "One space, three rhythms",
+    intro:
+      "Brickwell changes through the day. Explore what unfolds in daylight, after dark, and on the gallery walls — tap a panel, then open any moment to see more.",
     readMore: "Read more",
     reserveSeat: "Reserve a seat",
     planVisit: "Plan a visit",
@@ -71,7 +79,9 @@ const T = {
     contactValue: "Giho.watt.lee@thewellnesskorea.com",
   },
   ko: {
-    eyebrow: "브릭웰",
+    heading: "하나의 공간, 세 개의 리듬",
+    intro:
+      "브릭웰은 하루 동안 변합니다. 낮에, 어둠이 내린 뒤에, 그리고 갤러리 벽에서 펼쳐지는 것들을 살펴보세요. 패널을 누르고, 원하는 순간을 열어 더 깊이 들여다보세요.",
     readMore: "자세히 보기",
     reserveSeat: "자리 예약하기",
     planVisit: "방문 계획하기",
@@ -131,29 +141,32 @@ export function Brickwell({
   }, [selected, close])
 
   return (
-    <section id="brickwell" className="scroll-mt-20 bg-secondary/40 py-24 sm:py-32">
-      {/* Anchor targets so nav buttons can scroll here and open a panel */}
-      <span id="day" className="block h-0 scroll-mt-24" aria-hidden="true" />
-      <span id="night" className="block h-0 scroll-mt-24" aria-hidden="true" />
-      <span id="exhibition" className="block h-0 scroll-mt-24" aria-hidden="true" />
+    <>
+      <Section id="brickwell" tone="muted">
+        {/* Anchor targets so nav buttons can scroll here and open a panel */}
+        <span id="day" className="block h-0 scroll-mt-24" aria-hidden="true" />
+        <span id="night" className="block h-0 scroll-mt-24" aria-hidden="true" />
+        <span id="exhibition" className="block h-0 scroll-mt-24" aria-hidden="true" />
 
-      <div className="mx-auto max-w-6xl px-6">
-        <div className="max-w-2xl">
-          <dl className="flex flex-wrap gap-x-8 gap-y-2 text-sm">
-            <div>
-              <dt className="inline text-[var(--sage)]">{t.whereLabel}: </dt>
-              <dd className="inline text-foreground">{t.whereValue}</dd>
-            </div>
-            <div>
-              <dt className="inline text-[var(--sage)]">{t.hoursLabel}: </dt>
-              <dd className="inline text-foreground">{t.hoursValue}</dd>
-            </div>
-            <div>
-              <dt className="inline text-[var(--sage)]">{t.contactLabel}: </dt>
-              <dd className="inline text-foreground">{t.contactValue}</dd>
-            </div>
-          </dl>
-        </div>
+        <SectionHeader heading={t.heading} lead={t.intro} />
+
+        {/* Where/Hours/Contact. In the original these sat in the Reservation
+            panel, which this page does not render — without them the address
+            and opening hours appear nowhere on the homepage. */}
+        <dl className="mt-8 flex flex-wrap gap-x-8 gap-y-2 text-sm">
+          <div>
+            <dt className="inline text-[var(--sage)]">{t.whereLabel}: </dt>
+            <dd className="inline text-foreground">{t.whereValue}</dd>
+          </div>
+          <div>
+            <dt className="inline text-[var(--sage)]">{t.hoursLabel}: </dt>
+            <dd className="inline text-foreground">{t.hoursValue}</dd>
+          </div>
+          <div>
+            <dt className="inline text-[var(--sage)]">{t.contactLabel}: </dt>
+            <dd className="inline text-foreground">{t.contactValue}</dd>
+          </div>
+        </dl>
 
         {/* Mobile tabs */}
         <div className="mt-10 flex gap-2 md:hidden">
@@ -294,7 +307,7 @@ export function Brickwell({
             </div>
           ))}
         </div>
-      </div>
+      </Section>
 
       {/* Detail modal */}
       {selected && (
@@ -326,21 +339,21 @@ export function Brickwell({
               <h3 className="mt-3 font-serif text-3xl leading-tight text-foreground text-balance">
                 {selected.item.title[lang]}
               </h3>
-              <div className="mt-4 flex flex-wrap gap-x-5 gap-y-1.5 text-xs text-muted-foreground">
-                <span className="inline-flex items-center gap-1.5">
-                  <Clock className="h-3.5 w-3.5" aria-hidden="true" />
-                  {selected.item.meta[lang]}
-                </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <MapPin className="h-3.5 w-3.5" aria-hidden="true" />
-                  {selected.item.place[lang]}
-                </span>
-              </div>
+              <MetaList className="mt-4">
+                <MetaItem icon={Clock}>{selected.item.meta[lang]}</MetaItem>
+                {selected.item.place[lang] && (
+                  <MetaItem icon={MapPin}>{selected.item.place[lang]}</MetaItem>
+                )}
+              </MetaList>
               <p className="mt-5 flex-1 text-sm leading-relaxed text-muted-foreground text-pretty">
                 {selected.item.body[lang]}
               </p>
+              {/* Sends the reader to the list of bookable classes rather than
+                  straight to /book/[id] for this item: a Brickwell panel also
+                  carries exhibitions, which are not booked, and sessions that
+                  have already started, which /book refuses. */}
               <a
-                href="#reserve"
+                href="#upcoming"
                 onClick={close}
                 className="mt-7 inline-flex items-center justify-center gap-2 rounded-full bg-primary px-6 py-3 text-sm text-primary-foreground transition-opacity hover:opacity-90"
               >
@@ -358,6 +371,6 @@ export function Brickwell({
           </div>
         </div>
       )}
-    </section>
+    </>
   )
 }

@@ -1,9 +1,16 @@
-import Link from "next/link"
-import { signOutMember } from "@/app/u/actions"
 import { completeMemberOnboarding } from "@/lib/auth/member-account"
 import { requireMemberSession } from "@/lib/auth/require-session"
 import { ViewAsBanner } from "@/components/view-as-banner"
+import { PublicShell } from "@/components/redesign/public-shell"
 
+/**
+ * The member area sits inside the public chrome rather than carrying its own.
+ *
+ * It used to render a thin header of its own: wordmark, a Schedule link, and a
+ * sign-out button. All three are in SiteNav now — including sign-out, which the
+ * nav does client-side and follows with a hard navigation so server components
+ * re-render without the session cookie.
+ */
 export default async function AccountLayout({
   children,
 }: {
@@ -16,34 +23,7 @@ export default async function AccountLayout({
     : await completeMemberOnboarding(user)
 
   return (
-    <div className="min-h-screen bg-background">
-      <ViewAsBanner />
-      <header className="border-b border-border">
-        <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-6 py-6">
-          <Link
-            href="/"
-            className="font-serif text-xl text-foreground transition-opacity hover:opacity-70"
-          >
-            The Wellness Korea
-          </Link>
-          <div className="flex items-center gap-4 text-sm">
-            <Link
-              href="/#schedule"
-              className="text-muted-foreground transition-colors hover:text-foreground"
-            >
-              Schedule
-            </Link>
-            <form action={signOutMember}>
-              <button
-                type="submit"
-                className="text-muted-foreground transition-colors hover:text-foreground"
-              >
-                Sign out
-              </button>
-            </form>
-          </div>
-        </div>
-      </header>
+    <PublicShell banner={<ViewAsBanner />}>
       <main className="mx-auto max-w-3xl px-6 py-14 lg:py-20">
         {linkedBookingCount > 0 ? (
           <p className="mb-8 rounded-2xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-foreground">
@@ -53,6 +33,6 @@ export default async function AccountLayout({
         ) : null}
         {children}
       </main>
-    </div>
+    </PublicShell>
   )
 }

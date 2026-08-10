@@ -1,20 +1,17 @@
 import type { ReactNode } from "react"
-import { Navbar } from "@/components/navbar"
-import { Footer } from "@/components/footer"
+import { PublicShell } from "@/components/redesign/public-shell"
 
 /**
- * Shared chrome for public content pages (journal, partners, legal). The
- * Navbar is fixed, so pages that need their content below it add their own
- * offset; full-bleed pages (journal cover) let it overlay. Home stays out of
- * this group (its own hero/snap layout); /book keeps its wrapper (shared
- * server actions live under app/book).
+ * Shared chrome for public content pages (journal, partners, legal).
+ *
+ * These used to carry the pre-redesign Navbar and Footer, whose links pointed
+ * at homepage sections the redesign no longer has (#schedule, #guides, #arts,
+ * #paths, #why-korea). Every one of them was a dead anchor from here.
+ *
+ * Home stays out of this group — it renders the shell itself, flush under the
+ * hero. /book keeps its own wrapper, because shared server actions live under
+ * app/book.
  */
 export default function SiteLayout({ children }: { children: ReactNode }) {
-  return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      {children}
-      <Footer />
-    </div>
-  )
+  return <PublicShell>{children}</PublicShell>
 }

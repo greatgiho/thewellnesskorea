@@ -3,20 +3,42 @@
 import { useEffect, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
+import { usePathname } from "next/navigation"
 import { Menu, X } from "lucide-react"
+import { createClient } from "@/lib/supabase/client"
 import { useLang, type Lang } from "@/components/redesign/language-provider"
+import { PAGE_LINKS, SECTION_LINKS, sectionHref } from "@/components/redesign/nav-links"
 
-// #reserve belongs to components/redesign/reservation.tsx, which the homepage
-// does not render — the section that actually lists bookable classes is
-// UpcomingEvents, id="upcoming". Pointing at #reserve made every Reserve
-// control on the page do nothing.
-const LINKS: { href: string; label: { en: string; ko: string } }[] = [
-  { href: "#philosophy", label: { en: "Philosophy", ko: "철학" } },
-  { href: "#day", label: { en: "Day", ko: "낮" } },
-  { href: "#night", label: { en: "Night", ko: "밤" } },
-  { href: "#exhibition", label: { en: "Exhibition", ko: "전시" } },
-  { href: "#upcoming", label: { en: "Reserve", ko: "예약" } },
-]
+/**
+ * The site header, on every page a visitor can reach.
+ *
+ * Two things it has to do that the design original did not, because the
+ * original only ever sat on the homepage:
+ *
+ *  - Resolve its anchors against the current route (see sectionHref).
+ *  - Go solid immediately when there is no hero behind it. On the homepage it
+ *    starts transparent over the hero canvas and gains a background on scroll;
+ *    anywhere else, transparent means unreadable text over the page content.
+ *
+ * It also carries the signed-in state the old Navbar had. Without it a signed-in
+ * member is shown "Sign in" on every page, with no way to reach their bookings
+ * or sign out.
+ */
+
+type SessionUser = { name: string }
+
+function displayName(user: {
+  email?: string | null
+  app_metadata?: Record<string, unknown>
+  user_metadata?: Record<string, unknown>
+}): string {
+  const fromApp = user.app_metadata?.name
+  if (typeof fromApp === "string" && fromApp.trim()) return fromApp.trim()
+  const fromUser = user.user_metadata?.name
+  if (typeof fromUser === "string" && fromUser.trim()) return fromUser.trim()
+  const local = user.email?.split("@")[0]
+  return local || "Member"
+}
 
 function LangToggle({ className = "" }: { className?: string }) {
   const { lang, setLang } = useLang()
@@ -48,24 +70,70 @@ function LangToggle({ className = "" }: { className?: string }) {
 
 export function SiteNav() {
   const { lang } = useLang()
+  const pathname = usePathname()
+  const onHome = pathname === "/"
   const [scrolled, setScrolled] = useState(false)
   const [open, setOpen] = useState(false)
+  const [user, setUser] = useState<SessionUser | null>(null)
 
   useEffect(() => {
+    if (!onHome) return
     const onScroll = () => setScrolled(window.scrollY > 40)
     onScroll()
     window.addEventListener("scroll", onScroll, { passive: true })
     return () => window.removeEventListener("scroll", onScroll)
+  }, [onHome])
+
+  useEffect(() => {
+    const supabase = createClient()
+    let active = true
+
+    supabase.auth.getUser().then(({ data }) => {
+      if (active && data.user) setUser({ name: displayName(data.user) })
+    })
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!active) return
+      setUser(session?.user ? { name: displayName(session.user) } : null)
+    })
+
+    return () => {
+      active = false
+      subscription.unsubscribe()
+    }
   }, [])
+
+  const signOut = async () => {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    // Hard navigation so server components re-render without the session cookie.
+    window.location.assign("/")
+  }
+
+  const solid = scrolled || !onHome
 
   return (
     <header
-      className={`fixed inset-x-0 top-0 z-50 transition-colors duration-300 ${
-        scrolled ? "border-b border-border bg-background/85 backdrop-blur-md" : "bg-transparent"
-      }`}
+      className={
+        // On the homepage the nav floats over the hero canvas, so it has to be
+        // fixed and start transparent. Everywhere else it is sticky instead of
+        // fixed: it then occupies space, so content pages need no spacer under
+        // it, and anything sticky above it (the view-as banner) still stacks.
+        onHome
+          ? `fixed inset-x-0 top-0 z-50 transition-colors duration-300 ${
+              solid ? "border-b border-border bg-background/85 backdrop-blur-md" : "bg-transparent"
+            }`
+          : "sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur-md"
+      }
     >
       <nav className="relative mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-        <a href="#top" className="flex items-center gap-2" aria-label="The Wellness Korea, back to top">
+        <Link
+          href={onHome ? "#top" : "/"}
+          className="flex items-center gap-2"
+          aria-label="The Wellness Korea, back to top"
+        >
           <Image
             src="/images/wellness-korea-logo.png"
             alt="The Wellness Korea"
@@ -76,38 +144,64 @@ export function SiteNav() {
           <span className="hidden font-serif text-lg tracking-wide text-foreground sm:inline">
             {lang === "ko" ? "더 웰니스 코리아" : "The Wellness Korea"}
           </span>
-        </a>
+        </Link>
 
-        <ul className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-8 md:flex">
-          {LINKS.map((link) => (
-            <li key={link.href}>
+        <ul className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-8 lg:flex">
+          {SECTION_LINKS.map((link) => (
+            <li key={link.id}>
               <a
-                href={link.href}
+                href={sectionHref(pathname, link.id)}
                 className="text-sm text-muted-foreground transition-colors hover:text-foreground"
               >
                 {link.label[lang]}
               </a>
             </li>
           ))}
+          <li>
+            <Link
+              href="/journal"
+              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+            >
+              {lang === "ko" ? "저널" : "Journal"}
+            </Link>
+          </li>
         </ul>
 
-        <div className="hidden items-center gap-4 md:flex">
+        <div className="hidden items-center gap-4 lg:flex">
           <LangToggle />
-          <Link
-            href="/u/signin"
-            className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-          >
-            {lang === "ko" ? "로그인" : "Sign in"}
-          </Link>
+          {user ? (
+            <>
+              <Link
+                href="/u/bookings"
+                className="max-w-[10rem] truncate text-sm text-muted-foreground transition-colors hover:text-foreground"
+              >
+                {lang === "ko" ? `${user.name} 님` : `Welcome, ${user.name}`}
+              </Link>
+              <button
+                type="button"
+                onClick={signOut}
+                className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+              >
+                {lang === "ko" ? "로그아웃" : "Sign out"}
+              </button>
+            </>
+          ) : (
+            <Link
+              href="/u/signin"
+              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+            >
+              {lang === "ko" ? "로그인" : "Sign in"}
+            </Link>
+          )}
           <a
-            href="#upcoming"
+            href={sectionHref(pathname, "upcoming")}
             className="rounded-full bg-primary px-5 py-2 text-sm text-primary-foreground transition-opacity hover:opacity-90"
           >
             {lang === "ko" ? "방문 예약" : "Book a visit"}
           </a>
         </div>
 
-        <div className="flex items-center gap-2 md:hidden">
+        <div className="flex items-center gap-2 lg:hidden">
           <LangToggle />
           <button
             className="inline-flex items-center justify-center rounded-md p-2 text-foreground"
@@ -121,12 +215,12 @@ export function SiteNav() {
       </nav>
 
       {open && (
-        <div className="border-t border-border bg-background/95 backdrop-blur-md md:hidden">
+        <div className="border-t border-border bg-background/95 backdrop-blur-md lg:hidden">
           <ul className="mx-auto flex max-w-6xl flex-col px-6 py-3">
-            {LINKS.map((link) => (
-              <li key={link.href}>
+            {SECTION_LINKS.map((link) => (
+              <li key={link.id}>
                 <a
-                  href={link.href}
+                  href={sectionHref(pathname, link.id)}
                   onClick={() => setOpen(false)}
                   className="block py-3 text-base text-foreground"
                 >
@@ -134,16 +228,52 @@ export function SiteNav() {
                 </a>
               </li>
             ))}
-            <li>
-              <Link href="/u/signin" onClick={() => setOpen(false)} className="block py-3 text-base text-foreground">
-                {lang === "ko" ? "로그인" : "Sign in"}
-              </Link>
-            </li>
-            <li>
-              <Link href="/u" onClick={() => setOpen(false)} className="block py-3 text-base text-foreground">
-                {lang === "ko" ? "내 예약" : "My bookings"}
-              </Link>
-            </li>
+            {PAGE_LINKS.map((link) => (
+              <li key={link.href}>
+                <Link
+                  href={link.href}
+                  onClick={() => setOpen(false)}
+                  className="block py-3 text-base text-foreground"
+                >
+                  {link.label[lang]}
+                </Link>
+              </li>
+            ))}
+            {user ? (
+              <>
+                <li>
+                  <Link
+                    href="/u/bookings"
+                    onClick={() => setOpen(false)}
+                    className="block py-3 text-base text-foreground"
+                  >
+                    {lang === "ko" ? "내 예약" : "My bookings"}
+                  </Link>
+                </li>
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOpen(false)
+                      void signOut()
+                    }}
+                    className="block w-full py-3 text-left text-base text-foreground"
+                  >
+                    {lang === "ko" ? "로그아웃" : "Sign out"}
+                  </button>
+                </li>
+              </>
+            ) : (
+              <li>
+                <Link
+                  href="/u/signin"
+                  onClick={() => setOpen(false)}
+                  className="block py-3 text-base text-foreground"
+                >
+                  {lang === "ko" ? "로그인" : "Sign in"}
+                </Link>
+              </li>
+            )}
           </ul>
         </div>
       )}

@@ -1,5 +1,5 @@
 import { getSessionPhotoUrl } from "./images"
-import { formatTimeInKst, sessionDurationMinutes } from "./utils"
+import { formatTimeInKst } from "./utils"
 import { KST_TIMEZONE } from "./constants"
 import type { ContentCategory, RedesignSessionRow } from "./redesign-content"
 
@@ -12,15 +12,6 @@ export type BrickwellItem = {
   place: BilingualText
   blurb: BilingualText
   body: BilingualText
-  image: string
-}
-
-export type ProgramItem = {
-  id: string
-  title: string
-  duration: string
-  group: string
-  body: string
   image: string
 }
 
@@ -41,7 +32,6 @@ export type ReservationItem = {
   place: BilingualText
   body: BilingualText
   spots: number
-  image: string
   /** The upcoming query keeps everything from 00:00 KST today, but
    *  getBookableSession only accepts starts_at in the future, so a class that
    *  ran this morning would link to a 404. Decided here rather than in the
@@ -49,11 +39,6 @@ export type ReservationItem = {
    *  disagree with the page it links to. */
   hasStarted: boolean
 }
-
-// UpcomingEvents/PastEvents show this instead of the real session photo
-// until real poster images are set — swap back to
-// getSessionPhotoUrl(session.image_paths[0]) once they are.
-const TEMP_PLACEHOLDER_IMAGE = "/placeholder.svg"
 
 const CONTENT_CATEGORY_LABEL: Record<ContentCategory, BilingualText> = {
   day: { en: "Day", ko: "낮" },
@@ -113,32 +98,6 @@ export function groupByContentCategory(
   return grouped
 }
 
-// "Programs" = distinct bookable program types, not individual dated
-// sessions — dedupe by title, keeping the soonest upcoming occurrence.
-export function toPrograms(
-  sessions: RedesignSessionRow[],
-  limit = 6,
-): ProgramItem[] {
-  const seenTitles = new Set<string>()
-  const programs: ProgramItem[] = []
-
-  for (const session of sessions) {
-    if (seenTitles.has(session.title)) continue
-    seenTitles.add(session.title)
-    programs.push({
-      id: session.id,
-      title: session.title,
-      duration: `${sessionDurationMinutes(session)} min`,
-      group: `Up to ${session.capacity}`,
-      body: session.blurb_en || session.description_blocks.intro,
-      image: getSessionPhotoUrl(session.image_paths[0]),
-    })
-    if (programs.length >= limit) break
-  }
-
-  return programs
-}
-
 function formatDateBadge(session: RedesignSessionRow): ReservationItem["dateBadge"] {
   const date = new Date(session.starts_at)
   const enMonth = new Intl.DateTimeFormat("en-US", {
@@ -175,10 +134,10 @@ function formatReservationTime(session: RedesignSessionRow): BilingualText {
   return { en: `${enWeekday} · ${time}`, ko: `${koWeekday} · ${time}` }
 }
 
-// Absorbs the date-badge / body / place / category-tag treatment from the
-// retired UpcomingEvents mock, on top of Reservation's real session data and
-// spots/booking-link logic — see conversation decision to fold the two
-// near-duplicate "list of upcoming classes" sections into one.
+// One row of the Upcoming list: the original's date badge / body / place /
+// category tag, over a real session's seats and booking link. The original
+// carried a photo per row too; its list layout has no room for one, so no
+// image is mapped here.
 export function toReservationItem(session: RedesignSessionRow): ReservationItem {
   const body = session.blurb_en || session.description_blocks.intro
   const bodyKo = session.blurb_ko || session.description_blocks.intro
@@ -196,7 +155,6 @@ export function toReservationItem(session: RedesignSessionRow): ReservationItem 
     },
     body: { en: body, ko: bodyKo },
     spots: Math.max(0, session.capacity - session.booked_count),
-    image: TEMP_PLACEHOLDER_IMAGE,
     hasStarted: new Date(session.starts_at).getTime() <= Date.now(),
   }
 }
@@ -214,7 +172,10 @@ export function toPastEvents(sessions: RedesignSessionRow[]): PastEventItem[] {
       month: "short",
       year: "numeric",
     }).format(new Date(session.starts_at)),
-    image: TEMP_PLACEHOLDER_IMAGE,
+    // The archive is a wall of photographs, so it reads the session's own
+    // photo; getSessionPhotoUrl falls back to the placeholder when a session
+    // has none.
+    image: getSessionPhotoUrl(session.image_paths[0]),
     note: session.blurb_en || session.description_blocks.intro,
   }))
 }
