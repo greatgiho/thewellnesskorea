@@ -29,10 +29,14 @@ import type { ReservationItem } from "@/lib/schedule/map-redesign-content"
  * rather than ported — in the original it jumped to that separate panel, and
  * here it would only scroll to the section the reader is already in.
  *
- * Capped at MAX_ITEMS. There is no real-world data yet to say how many upcoming
- * sessions is typical; add paging once a long list is an actual problem.
+ * Capped at MAX_ITEMS. The cap used to be 6, which was inherited from the
+ * accordion this replaced — a strip of many thin panels stops looking good. A
+ * divided list does not have that problem, and the cap is doing real damage
+ * here: the pre-redesign homepage listed every bookable class, and this is now
+ * the only place on the site where a class can be booked, so anything past the
+ * cap cannot be reached at all.
  */
-const MAX_ITEMS = 6
+const MAX_ITEMS = 12
 
 const T = {
   en: {

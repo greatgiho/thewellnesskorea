@@ -4,6 +4,8 @@ import Image from "next/image"
 import Link from "next/link"
 import { useLang } from "@/components/redesign/language-provider"
 import { Section, SectionHeader } from "@/components/redesign/primitives"
+import { InstagramIcon } from "@/components/icons/social-icons"
+import { instagramHandle } from "@/lib/partners/utils"
 import type { PartnerCardData } from "@/lib/partners/types"
 
 /**
@@ -58,9 +60,15 @@ function PersonGrid({
       </h3>
 
       <ul className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        {people.slice(0, MAX_PER_GROUP).map((person) => (
-            <li key={person.id}>
-              <Link href={`/partners/${person.slug}`} className="group block">
+        {people.slice(0, MAX_PER_GROUP).map((person) => {
+          const handle = instagramHandle(person.instagramUrl)
+          return (
+            <li key={person.id} className="group">
+              {/* Instagram sits beside the profile link, not inside it. The
+                  old card nested them, and worked around it by making the
+                  card a div with role="link" — so the profile was never a
+                  real link: invisible to crawlers, unopenable in a new tab. */}
+              <Link href={`/partners/${person.slug}`} className="block">
                 <div className="relative aspect-[4/5] overflow-hidden rounded-lg">
                   <Image
                     src={person.image || "/placeholder.svg"}
@@ -76,9 +84,21 @@ function PersonGrid({
                 <p className="mt-0.5 text-sm text-muted-foreground text-pretty">
                   {person.role}
                 </p>
-            </Link>
-          </li>
-        ))}
+              </Link>
+              {person.instagramUrl && (
+                <a
+                  href={person.instagramUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-2 inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  <InstagramIcon className="size-3.5" />
+                  {handle ?? "Instagram"}
+                </a>
+              )}
+            </li>
+          )
+        })}
       </ul>
     </div>
   )

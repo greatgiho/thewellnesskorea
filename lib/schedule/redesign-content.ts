@@ -83,7 +83,19 @@ export async function getUpcomingCategorizedSessions(
   return data.map((row) => normalize(row as Parameters<typeof normalize>[0]))
 }
 
-/** Bookable (is_bookable = true) upcoming sessions, for the Programs grid. */
+/**
+ * Bookable upcoming sessions, for the Upcoming list.
+ *
+ * From now, not from 00:00 KST today. The categorized and past queries use the
+ * day boundary because they describe a day; this one is a list of things you
+ * can still book, and /book refuses a session that has already started. Taking
+ * the whole of today meant classes that ran this morning sat at the top of the
+ * list as "Booking closed", filling slots the list is capped at — on the dev
+ * data that hid six bookable classes behind two that were over.
+ *
+ * ReservationItem still computes hasStarted: a class can begin between the
+ * render and the click, and the card must not offer a link to a 404.
+ */
 export async function getUpcomingBookableSessions(
   experienceId: string,
 ): Promise<RedesignSessionRow[]> {
@@ -95,7 +107,6 @@ export async function getUpcomingBookableSessions(
   }
 
   const supabase = await createClient()
-  const { start } = kstDayRange(todayDateKeyInKst())
 
   const { data, error } = await supabase
     .from("sessions")
@@ -104,7 +115,7 @@ export async function getUpcomingBookableSessions(
     .eq("status", "confirmed")
     .eq("is_published", true)
     .eq("is_bookable", true)
-    .gte("starts_at", start)
+    .gte("starts_at", new Date().toISOString())
     .order("starts_at", { ascending: true })
 
   if (error || !data) return []
