@@ -5,6 +5,8 @@ import type { SessionDetails } from "../email-templates"
 export type BookingConfirmationEmailProps = {
   guestName: string
   details: SessionDetails
+  /** Null only if the ticket could not be read; the email still sends. */
+  ticketUrl: string | null
   cancelUrl: string
   scheduleUrl: string
 }
@@ -12,6 +14,7 @@ export type BookingConfirmationEmailProps = {
 export function BookingConfirmationEmail({
   guestName,
   details,
+  ticketUrl,
   cancelUrl,
   scheduleUrl,
 }: BookingConfirmationEmailProps) {
@@ -53,11 +56,29 @@ export function BookingConfirmationEmail({
         </table>
       </Section>
 
+      {/* The ticket is the primary action now — it is what gets you through
+          the door — so it takes the button and the schedule drops to a text
+          link below. */}
       <Section style={{ margin: "24px 0" }}>
-        <Link href={scheduleUrl} style={styles.button}>
-          View Schedule
-        </Link>
+        {ticketUrl ? (
+          <Link href={ticketUrl} style={styles.button}>
+            Show My Ticket
+          </Link>
+        ) : (
+          <Link href={scheduleUrl} style={styles.button}>
+            Browse Upcoming Classes
+          </Link>
+        )}
       </Section>
+
+      {ticketUrl ? (
+        <Section>
+          <Text style={styles.pMuted}>
+            Open this on your phone when you arrive — our staff will scan the
+            code to check you in.
+          </Text>
+        </Section>
+      ) : null}
 
       <Section>
         <Text style={{ ...styles.pMuted, marginTop: "16px" }}>
@@ -66,6 +87,14 @@ export function BookingConfirmationEmail({
             Cancel this reservation
           </Link>
         </Text>
+        {ticketUrl ? (
+          <Text style={styles.pMuted}>
+            Looking for other classes?{" "}
+            <Link href={scheduleUrl} style={styles.link}>
+              Browse upcoming classes
+            </Link>
+          </Text>
+        ) : null}
         <Text style={styles.pMuted}>
           We look forward to welcoming you at Brickwell, Seochon.
         </Text>
