@@ -16,7 +16,13 @@ import {
   getBookingSummaryByCancelToken,
 } from "@/lib/bookings/queries"
 import { validateGuestBookingInput } from "@/lib/bookings/validate"
-import { formatMoney, money, type AttendeeType } from "@/lib/payments/money"
+import {
+  formatMoney,
+  money,
+  partyListTotal,
+  MAX_PARTY_SIZE,
+  type Party,
+} from "@/lib/payments/money"
 import {
   sendBookingConfirmationEmail,
   sendBookingCancelledEmail,
@@ -24,6 +30,22 @@ import {
 import { notifyWaitlist } from "@/lib/waitlist/notify"
 import { formatBookingDateTime } from "@/lib/bookings/format"
 import { couponMessage, quoteBooking } from "@/lib/bookings/quote"
+
+/**
+ * The party as the form submitted it, clamped to something sane.
+ *
+ * A number input can be emptied, edited by hand, or replayed, so nothing here
+ * trusts the shape of what arrives — and the counts are only ever a request:
+ * the booking transaction re-checks them and prices from the session row.
+ */
+function readParty(formData: FormData): Party {
+  const count = (field: string) => {
+    const raw = Number(formData.get(field) ?? 0)
+    if (!Number.isFinite(raw)) return 0
+    return Math.max(0, Math.floor(raw))
+  }
+  return { adults: count("adultCount"), children: count("childCount") }
+}
 
 export type GuestBookingState = {
   error?: string
@@ -43,10 +65,7 @@ export async function submitGuestBooking(
     const guestEmail = String(formData.get("guestEmail") ?? "")
     const guestPhone = String(formData.get("guestPhone") ?? "")
     const couponCode = String(formData.get("couponCode") ?? "").trim() || null
-    // An unchecked checkbox sends nothing, so anything that is not the child
-    // box ticked is an adult booking.
-    const attendeeType: AttendeeType =
-      formData.get("attendeeType") === "child" ? "child" : "adult"
+    const party = readParty(formData)
 
     validateGuestBookingInput({ guestName, guestEmail, guestPhone })
 
@@ -64,8 +83,22 @@ export async function submitGuestBooking(
       return { error: "This class is full." }
     }
 
-    if (attendeeType === "child" && session.child_price_amount === null) {
+    if (party.children > 0 && session.child_price_amount === null) {
       return { error: "This class does not offer a child rate." }
+    }
+
+    const size = party.adults + party.children
+    if (size < 1) {
+      return { error: "Choose at least one person." }
+    }
+    if (size > MAX_PARTY_SIZE) {
+      return {
+        error: `Up to ${MAX_PARTY_SIZE} people per booking. Please contact us for a larger group.`,
+      }
+    }
+    if (session.booked_count + size > session.capacity) {
+      const left = Math.max(0, session.capacity - session.booked_count)
+      return { error: `Only ${left} spots left in this class.` }
     }
 
     // Only online (PayPal/USD) classes go through the payment step. Free and
@@ -75,7 +108,7 @@ export async function submitGuestBooking(
     // 100% session discount makes this free, and the hold RPC refuses a
     // zero-amount booking. Ask the database so this agrees with what the
     // booking transaction will compute.
-    const quote = await quoteBooking(sessionId, couponCode, guestEmail, attendeeType)
+    const quote = await quoteBooking(sessionId, couponCode, guestEmail, party)
     if (quote.mode === "online") {
       const hold = await createBookingHoldRpc({
         sessionId,
@@ -85,7 +118,7 @@ export async function submitGuestBooking(
         userId,
         pgProvider: "paypal",
         couponCode,
-        attendeeType,
+        party,
       })
 
       revalidatePath("/")
@@ -99,7 +132,7 @@ export async function submitGuestBooking(
       guestPhone: guestPhone || null,
       userId,
       couponCode,
-      attendeeType,
+      party,
     })
 
     const summary = await getBookingSummaryById(result.bookingId)
@@ -234,21 +267,18 @@ export async function previewCoupon(
   sessionId: string,
   code: string,
   email: string,
-  attendeeType: AttendeeType = "adult",
+  party: Party = { adults: 1, children: 0 },
 ): Promise<CouponPreview> {
   try {
-    const quote = await quoteBooking(sessionId, code, email, attendeeType)
+    const quote = await quoteBooking(sessionId, code, email, party)
     if (!quote.coupon?.applied) {
       const reason = quote.coupon && !quote.coupon.applied ? quote.coupon.reason : "not_found"
       return { ok: false, message: couponMessage(reason) }
     }
+    const listTotal = partyListTotal(quote.priced)
     const percentOff =
-      quote.priced.original.amount > 0
-        ? Math.round(
-            ((quote.priced.original.amount - quote.total.amount) /
-              quote.priced.original.amount) *
-              100,
-          )
+      listTotal.amount > 0
+        ? Math.round(((listTotal.amount - quote.total.amount) / listTotal.amount) * 100)
         : 0
     return {
       ok: true,

@@ -21,6 +21,9 @@ export type MemberBookingItem = {
   id: string
   status: BookingStatus
   guestName: string
+  adultCount: number
+  childCount: number
+  partySize: number
   sessionTitle: string
   sessionStartsAt: string
   sessionEndsAt: string
@@ -47,6 +50,8 @@ export async function getMemberBookingsForUser(
       id,
       status,
       guest_name,
+      adult_count,
+      child_count,
       checkin_token,
       session:sessions (${SESSION_SUMMARY_SELECT}),
       payments (
@@ -88,6 +93,9 @@ export async function getMemberBookingsForUser(
         id: row.id as string,
         status: row.status as BookingStatus,
         guestName: row.guest_name as string,
+        adultCount: row.adult_count as number,
+        childCount: row.child_count as number,
+        partySize: (row.adult_count as number) + (row.child_count as number),
         sessionTitle: summary.title,
         sessionStartsAt: summary.startsAt,
         sessionEndsAt: summary.endsAt,

@@ -6,14 +6,16 @@ import { submitGuestBooking, type GuestBookingState } from "@/app/book/actions"
 import type { SessionWithRelations } from "@/lib/schedule/types"
 import { FIELD_PUBLIC } from "@/lib/ui/field"
 import {
-  applyDiscount,
-  basePriceFor,
   discountFrom,
   formatMoney,
   paymentMode,
-  type AttendeeType,
+  quoteParty,
+  MAX_PARTY_SIZE,
+  type Party,
 } from "@/lib/payments/money"
+import { formatParty } from "@/lib/bookings/format"
 import { PriceTag } from "@/components/booking/price-tag"
+import { PartyPicker } from "@/components/booking/party-picker"
 import { CouponField } from "@/components/booking/coupon-field"
 import { BookingSessionSummary } from "./booking-session-summary"
 
@@ -35,41 +37,32 @@ export function GuestBookingForm({
   memberPrefill,
 }: GuestBookingFormProps) {
   const [email, setEmail] = useState(memberPrefill?.email ?? "")
-  const [attendeeType, setAttendeeType] = useState<AttendeeType>("adult")
+  const [party, setParty] = useState<Party>({ adults: 1, children: 0 })
   const [state, formAction, pending] = useActionState(
     submitGuestBooking,
     initialState,
   )
 
   const isMember = Boolean(memberPrefill)
-  // Null child price = this class has no child rate, so no option is offered
-  // and the adult price is the only one.
-  const hasChildRate = session.child_price_amount !== null
-  const discount = discountFrom(session.discount_type, session.discount_value)
-  const priced = applyDiscount(
-    basePriceFor(
-      session.price_currency,
-      session.price_amount,
-      session.child_price_amount,
-      attendeeType,
-    ),
-    discount,
+  // Null child price = this class has no child rate, so no child row appears.
+  const quote = quoteParty(
+    session.price_currency,
+    session.price_amount,
+    session.child_price_amount,
+    discountFrom(session.discount_type, session.discount_value),
+    party,
   )
-  const childPriced = hasChildRate
-    ? applyDiscount(
-        basePriceFor(
-          session.price_currency,
-          session.price_amount,
-          session.child_price_amount,
-          "child",
-        ),
-        discount,
-      )
-    : null
-  // The discounted price is what gets charged, so it drives the flow too — a
-  // 100% discount makes this a free class with no payment step.
-  const price = priced.final
-  const mode = paymentMode(price)
+  // The discounted total is what gets charged, so it drives the flow too — a
+  // 100% discount makes this a free booking with no payment step.
+  const mode = paymentMode(quote.total)
+  // Never offer more seats than exist. The booking transaction checks this
+  // again under a lock, so a class that fills up meanwhile is caught there.
+  const spotsLeft = Math.max(0, session.capacity - session.booked_count)
+  const maxSize = Math.min(MAX_PARTY_SIZE, spotsLeft)
+  const isParty = quote.size > 1
+  // A lone child booking should show the child's price, not the adult's.
+  const soloPriced =
+    party.adults === 0 && quote.child ? quote.child : quote.adult
 
   return (
     <div className="space-y-8">
@@ -133,53 +126,47 @@ export function GuestBookingForm({
             </label>
           </div>
 
-          {childPriced ? (
-            <label className="mt-4 flex items-center gap-3 rounded-xl border border-border px-4 py-3 text-sm">
-              {/* Unchecked sends nothing, which the action reads as an adult
-                  booking — the value only travels when the box is ticked. */}
-              <input
-                type="checkbox"
-                name="attendeeType"
-                value="child"
-                checked={attendeeType === "child"}
-                onChange={(e) =>
-                  setAttendeeType(e.target.checked ? "child" : "adult")
-                }
-                disabled={pending}
-                className="size-4 accent-primary"
-              />
-              <span className="text-foreground">
-                Child ticket
-                <span className="ml-2 text-muted-foreground">
-                  {formatMoney(childPriced.final)}
-                </span>
-              </span>
-            </label>
-          ) : null}
+          <PartyPicker
+            quote={quote}
+            party={party}
+            onChange={setParty}
+            maxSize={maxSize}
+            disabled={pending}
+          />
 
-          {mode === "online" ? (
-            <p className="mt-4 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-foreground">
-              Class fee:{" "}
-              <PriceTag priced={priced} className="font-medium" />
-              {" "}— you&apos;ll complete online payment on the next step.
-            </p>
-          ) : mode === "onsite" ? (
-            <p className="mt-4 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-foreground">
-              Class fee:{" "}
-              <PriceTag priced={priced} className="font-medium" />
-              {" "}— pay on-site at the studio when you arrive.
-            </p>
-          ) : (
-            <p className="mt-4 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-foreground">
-              <span className="font-medium">Free class</span> — no payment
-              required. Reserve your spot below.
-            </p>
-          )}
+          <p className="mt-4 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-foreground">
+            {mode === "free" ? (
+              <>
+                <span className="font-medium">Free class</span> — no payment
+                required.{" "}
+                {isParty ? `Reserving ${quote.size} spots.` : "Reserve your spot below."}
+              </>
+            ) : (
+              <>
+                {/* A party is quoted as one total; a single booking keeps the
+                    struck-through list price, which a sum of one would hide. */}
+                {isParty ? (
+                  <>
+                    {formatParty(party.adults, party.children)} — total{" "}
+                    <span className="font-medium">{formatMoney(quote.total)}</span>
+                  </>
+                ) : (
+                  <>
+                    Class fee:{" "}
+                    <PriceTag priced={soloPriced} className="font-medium" />
+                  </>
+                )}
+                {mode === "online"
+                  ? " — you'll complete online payment on the next step."
+                  : " — pay on-site at the studio when you arrive."}
+              </>
+            )}
+          </p>
 
           <CouponField
             sessionId={session.id}
             email={email}
-            attendeeType={attendeeType}
+            party={party}
             disabled={pending}
           />
 

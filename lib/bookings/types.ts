@@ -1,8 +1,4 @@
-import type { AttendeeType } from "@/lib/payments/money"
-
-// Which rate a booking was sold at lives with money because that is what
-// decides the price, but it reads as a booking fact everywhere it is used.
-export type { AttendeeType }
+import type { Party } from "@/lib/payments/money"
 
 export type BookingStatus = "confirmed" | "cancelled" | "no_show" | "pending_payment"
 
@@ -15,7 +11,8 @@ export type BookingRow = {
   guest_name: string
   guest_email: string
   guest_phone: string | null
-  attendee_type: AttendeeType
+  adult_count: number
+  child_count: number
   status: BookingStatus
   cancelled_at: string | null
   cancel_token: string
@@ -42,10 +39,10 @@ export type CreateBookingInput = {
   /** Raw code from the form; validated server-side inside the booking txn. */
   couponCode?: string | null
   /**
-   * Which rate to book at. Only the rate is sent — the price it implies is
+   * Who the booking is for. Only the headcount is sent — what it costs is
    * computed inside the booking transaction, never taken from the client.
    */
-  attendeeType?: AttendeeType
+  party?: Party
 }
 
 export type CreateBookingResult = {

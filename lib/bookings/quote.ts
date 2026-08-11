@@ -1,14 +1,13 @@
 import { createServiceClient } from "@/lib/supabase/service"
 import {
-  applyDiscount,
-  basePriceFor,
   discountFrom,
   money,
   paymentMode,
-  type AttendeeType,
+  quoteParty,
   type Money,
   type PaymentMode,
-  type PricedMoney,
+  type Party,
+  type PartyQuote,
 } from "@/lib/payments/money"
 
 /**
@@ -36,9 +35,9 @@ export type CouponReason =
   | "session_not_found"
 
 export type BookingQuote = {
-  /** List price and the price after the session's own discount. */
-  priced: PricedMoney
-  /** Final charge including any accepted coupon. */
+  /** Per-person prices and the party total, before any coupon. */
+  priced: PartyQuote
+  /** Final charge for the whole booking, including any accepted coupon. */
   total: Money
   mode: PaymentMode
   coupon:
@@ -68,7 +67,7 @@ export async function quoteBooking(
   sessionId: string,
   couponCode?: string | null,
   email?: string | null,
-  attendeeType: AttendeeType = "adult",
+  party: Party = { adults: 1, children: 0 },
 ): Promise<BookingQuote> {
   const supabase = createServiceClient()
 
@@ -83,19 +82,17 @@ export async function quoteBooking(
   if (error) throw new Error(error.message)
   if (!session) throw new Error("Session not found.")
 
-  const priced = applyDiscount(
-    basePriceFor(
-      session.price_currency,
-      session.price_amount,
-      session.child_price_amount,
-      attendeeType,
-    ),
+  const priced = quoteParty(
+    session.price_currency,
+    session.price_amount,
+    session.child_price_amount,
     discountFrom(session.discount_type, session.discount_value),
+    party,
   )
 
   const code = couponCode?.trim()
   if (!code) {
-    return { priced, total: priced.final, mode: paymentMode(priced.final), coupon: null }
+    return { priced, total: priced.total, mode: paymentMode(priced.total), coupon: null }
   }
 
   // No lock here: this is a preview. The booking transaction re-checks under
@@ -105,7 +102,8 @@ export async function quoteBooking(
     p_session_id: sessionId,
     p_email: email ?? null,
     p_lock: false,
-    p_attendee_type: attendeeType,
+    p_adult_count: party.adults,
+    p_child_count: party.children,
   })
   if (couponError) throw new Error(couponError.message)
 
@@ -113,13 +111,13 @@ export async function quoteBooking(
   if (!row?.ok) {
     return {
       priced,
-      total: priced.final,
-      mode: paymentMode(priced.final),
+      total: priced.total,
+      mode: paymentMode(priced.total),
       coupon: { applied: false, reason: (row?.reason ?? "not_found") as CouponReason },
     }
   }
 
-  const total = money(priced.final.currency, row.final_amount)
+  const total = money(priced.total.currency, row.final_amount)
   return {
     priced,
     total,

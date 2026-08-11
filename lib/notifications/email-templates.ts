@@ -18,6 +18,8 @@ export type SessionDetails = {
 export type BookingConfirmationData = {
   guestName: string
   details: SessionDetails
+  /** "2 adults · 1 child". Empty when the booking is for one adult. */
+  party: string
   ticketUrl: string | null
   cancelUrl: string
   scheduleUrl: string

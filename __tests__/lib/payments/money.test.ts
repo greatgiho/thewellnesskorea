@@ -10,6 +10,9 @@ import {
   basePriceFor,
   discountFrom,
   isDiscounted,
+  partyListTotal,
+  partySize,
+  quoteParty,
 } from "@/lib/payments/money"
 
 describe("decimalPlaces", () => {
@@ -162,5 +165,69 @@ describe("basePriceFor", () => {
       applyDiscount(basePriceFor("KRW", 30000, 15000, "child"), discount).final
         .amount,
     ).toBe(7500)
+  })
+})
+
+describe("quoteParty", () => {
+  const KRW = (adults: number, children: number) =>
+    quoteParty("KRW", 30000, 15000, null, { adults, children })
+
+  it("charges each person at their own rate", () => {
+    expect(KRW(2, 1).total.amount).toBe(75000)
+    expect(KRW(2, 1).size).toBe(3)
+  })
+
+  it("is unchanged for the ordinary single booking", () => {
+    expect(KRW(1, 0).total.amount).toBe(30000)
+  })
+
+  it("offers no child line when the class has no child rate", () => {
+    const quote = quoteParty("KRW", 30000, null, null, { adults: 2, children: 0 })
+    expect(quote.child).toBeNull()
+  })
+
+  it("discounts each rate before multiplying, not after", () => {
+    // 50% off ₩30,000 and ₩15,000 is ₩15,000 and ₩7,500 per person. Two adults
+    // and a child come to ₩37,500 — and each line item on screen must be the
+    // per-person price, so the rounding has to happen per person.
+    const quote = quoteParty("KRW", 30000, 15000, { type: "percent", value: 50 }, {
+      adults: 2,
+      children: 1,
+    })
+    expect(quote.adult.final.amount).toBe(15000)
+    expect(quote.child?.final.amount).toBe(7500)
+    expect(quote.total.amount).toBe(37500)
+  })
+
+  it("keeps the line items adding up when a rate rounds", () => {
+    // 33% off $30.00 is $20.10 a head. Three of them is $60.30 — rounding the
+    // total instead would let the receipt disagree with its own lines.
+    const quote = quoteParty("USD", 30, null, { type: "percent", value: 33 }, {
+      adults: 3,
+      children: 0,
+    })
+    expect(quote.adult.final.amount).toBe(20.1)
+    expect(quote.total.amount).toBe(60.3)
+  })
+
+  it("prices a party of children with no adult", () => {
+    expect(KRW(0, 2).total.amount).toBe(30000)
+  })
+})
+
+describe("partyListTotal", () => {
+  it("ignores the session discount, which is what a coupon comes off", () => {
+    const quote = quoteParty("KRW", 30000, 15000, { type: "percent", value: 50 }, {
+      adults: 2,
+      children: 1,
+    })
+    expect(quote.total.amount).toBe(37500)
+    expect(partyListTotal(quote).amount).toBe(75000)
+  })
+})
+
+describe("partySize", () => {
+  it("counts everyone on the booking", () => {
+    expect(partySize({ adults: 2, children: 3 })).toBe(5)
   })
 })

@@ -1,7 +1,7 @@
 import QRCode from "qrcode"
 import { createServiceClient } from "@/lib/supabase/service"
 import { deploymentOrigin } from "@/lib/site-origin"
-import type { AttendeeType, BookingStatus } from "./types"
+import type { BookingStatus } from "./types"
 
 /**
  * A ticket, as the holder and the door both see it.
@@ -12,7 +12,10 @@ import type { AttendeeType, BookingStatus } from "./types"
  */
 export type TicketSummary = {
   guestName: string
-  attendeeType: AttendeeType
+  adultCount: number
+  childCount: number
+  /** People this one QR admits. The number the door actually acts on. */
+  partySize: number
   status: BookingStatus
   sessionTitle: string
   sessionStartsAt: string
@@ -24,7 +27,8 @@ export type TicketSummary = {
 
 const TICKET_SELECT = `
   guest_name,
-  attendee_type,
+  adult_count,
+  child_count,
   status,
   checked_in_at,
   session:sessions (
@@ -38,7 +42,8 @@ const TICKET_SELECT = `
 
 type TicketRow = {
   guest_name: string
-  attendee_type: AttendeeType
+  adult_count: number
+  child_count: number
   status: BookingStatus
   checked_in_at: string | null
   session:
@@ -64,7 +69,9 @@ function toTicket(row: TicketRow): TicketSummary | null {
   const instructor = one(session.instructor)
   return {
     guestName: row.guest_name,
-    attendeeType: row.attendee_type,
+    adultCount: row.adult_count,
+    childCount: row.child_count,
+    partySize: row.adult_count + row.child_count,
     status: row.status,
     sessionTitle: session.title,
     sessionStartsAt: session.starts_at,

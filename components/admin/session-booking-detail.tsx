@@ -113,7 +113,14 @@ export function SessionBookingDetail({
                   >
                     <td className="px-4 py-3 font-medium text-foreground">
                       {b.guestName}
-                      {b.attendeeType === "child" ? (
+                      {/* Seats, not bookings: a roster that lists one name for
+                          a family of four does not add up to the class count. */}
+                      {b.partySize > 1 ? (
+                        <span className="ml-2 rounded-full border border-border px-2 py-0.5 text-xs font-normal text-muted-foreground">
+                          {b.partySize}명
+                          {b.childCount > 0 ? ` (아동 ${b.childCount})` : ""}
+                        </span>
+                      ) : b.childCount > 0 ? (
                         <span className="ml-2 rounded-full border border-border px-2 py-0.5 text-xs font-normal text-muted-foreground">
                           아동
                         </span>

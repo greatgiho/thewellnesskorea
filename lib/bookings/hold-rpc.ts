@@ -19,7 +19,8 @@ export async function createBookingHoldRpc(
     p_pg_provider: input.pgProvider ?? "portone",
     p_hold_minutes: input.holdMinutes ?? 10,
     p_coupon_code: input.couponCode?.trim() || null,
-    p_attendee_type: input.attendeeType ?? "adult",
+    p_adult_count: input.party?.adults ?? 1,
+    p_child_count: input.party?.children ?? 0,
   })
 
   if (error) {

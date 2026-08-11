@@ -4,6 +4,7 @@ import { notFound } from "next/navigation"
 import { BookingPageLayout } from "@/components/booking/booking-page-layout"
 import { BookingSessionSummary } from "@/components/booking/booking-session-summary"
 import { TicketQr } from "@/components/booking/ticket-qr"
+import { PartyAdmits } from "@/components/booking/party-admits"
 import { getBookingSummaryById } from "@/lib/bookings/queries"
 import { getCheckinTokenForBookingId } from "@/lib/bookings/checkin"
 import { getOptionalMemberSession } from "@/lib/auth/require-session"
@@ -61,6 +62,17 @@ export default async function BookConfirmPage({
         {checkinToken ? (
           <div className="rounded-3xl border border-border bg-card p-6 sm:p-8">
             <TicketQr token={checkinToken} />
+            {/* One code for the whole booking, so it has to say what it lets
+                in — the person who booked is the one bringing the others. */}
+            {summary.partySize > 1 ? (
+              <p className="mt-5 flex items-center justify-center gap-3 text-center">
+                <span className="text-sm text-muted-foreground">Admits</span>
+                <PartyAdmits
+                  adults={summary.adultCount}
+                  children={summary.childCount}
+                />
+              </p>
+            ) : null}
             <Link
               href={`/t/${checkinToken}`}
               className="mx-auto mt-6 flex w-fit rounded-full border border-border px-5 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
