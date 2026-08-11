@@ -9,7 +9,14 @@ import {
 import type { PricedMoney } from "@/lib/payments/money"
 import { SESSION_WITH_RELATIONS } from "@/lib/schedule/constants"
 import { toSessionWithRelations } from "@/lib/schedule/queries"
-import type { FloorRow, SessionRow, SessionWithRelations } from "@/lib/schedule/types"
+import type { SessionRelationRow, SessionWithRelations } from "@/lib/schedule/types"
+import {
+  BOOKING_ITEMS_SELECT,
+  partyOf,
+  toBookingLines,
+  type BookingItemRow,
+  type BookingLine,
+} from "./lines"
 import type { BookingStatus } from "./types"
 
 export type BookingSummary = {
@@ -20,6 +27,7 @@ export type BookingSummary = {
   adultCount: number
   childCount: number
   partySize: number
+  lines: BookingLine[]
   status: BookingStatus
   sessionTitle: string
   sessionStartsAt: string
@@ -57,10 +65,7 @@ export async function getBookableSession(
   if (error || !data) return null
 
   return toSessionWithRelations(
-    data as SessionRow & {
-      floor?: FloorRow | FloorRow[] | null
-      instructor?: SessionWithRelations["instructor"] | SessionWithRelations["instructor"][] | null
-    },
+    data as unknown as SessionRelationRow,
   )
 }
 
@@ -70,8 +75,7 @@ function toBookingSummary(
     session_id: string
     guest_name: string
     guest_email: string
-    adult_count: number
-    child_count: number
+    items: BookingItemRow[] | null
     status: BookingStatus
     session: SessionSummaryRelation
   },
@@ -79,14 +83,18 @@ function toBookingSummary(
   const summary = mapSessionSummary(row.session)
   if (!summary) return null
 
+  const lines = toBookingLines(row.items)
+  const party = partyOf(lines)
+
   return {
     bookingId: row.id,
     sessionId: row.session_id,
     guestName: row.guest_name,
     guestEmail: row.guest_email,
-    adultCount: row.adult_count,
-    childCount: row.child_count,
-    partySize: row.adult_count + row.child_count,
+    adultCount: party.adults,
+    childCount: party.children,
+    partySize: party.size,
+    lines,
     status: row.status,
     sessionTitle: summary.title,
     sessionStartsAt: summary.startsAt,
@@ -110,8 +118,7 @@ export async function getBookingSummaryById(
       session_id,
       guest_name,
       guest_email,
-      adult_count,
-      child_count,
+      ${BOOKING_ITEMS_SELECT},
       status,
       session:sessions (${SESSION_SUMMARY_SELECT})
     `,
@@ -136,8 +143,7 @@ export async function getBookingSummaryByCancelToken(
       session_id,
       guest_name,
       guest_email,
-      adult_count,
-      child_count,
+      ${BOOKING_ITEMS_SELECT},
       status,
       session:sessions (${SESSION_SUMMARY_SELECT})
     `,

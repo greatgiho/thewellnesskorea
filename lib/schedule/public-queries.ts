@@ -6,7 +6,7 @@ import {
   PUBLIC_SCHEDULE_RANGE_DAYS,
 } from "./public-week"
 import type { ClassItem } from "@/components/schedule/types"
-import type { FloorRow, SessionRow, SessionWithRelations } from "./types"
+import type { SessionRelationRow, SessionWithRelations } from "./types"
 import { toSessionWithRelations } from "./queries"
 import { kstDayRange, todayDateKeyInKst } from "./utils"
 
@@ -43,10 +43,7 @@ export async function getPublishedSessionsForExperienceIds(
 
   return data.map((row) =>
     toSessionWithRelations(
-      row as SessionRow & {
-        floor?: FloorRow | FloorRow[] | null
-        instructor?: SessionWithRelations["instructor"] | SessionWithRelations["instructor"][] | null
-      },
+      row as unknown as SessionRelationRow,
     ),
   )
 }

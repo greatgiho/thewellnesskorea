@@ -3,12 +3,15 @@ import {
   discountFrom,
   money,
   paymentMode,
-  quoteParty,
+  quoteOrder,
   type Money,
+  type OrderLine,
+  type OrderQuote,
   type PaymentMode,
-  type Party,
-  type PartyQuote,
 } from "@/lib/payments/money"
+import { ratesForSession } from "@/lib/schedule/tiers"
+import { SESSION_TIER_SELECT } from "@/lib/schedule/constants"
+import type { SeatTier } from "@/lib/schedule/types"
 
 /**
  * What a booking will actually cost, coupon included.
@@ -35,8 +38,8 @@ export type CouponReason =
   | "session_not_found"
 
 export type BookingQuote = {
-  /** Per-person prices and the party total, before any coupon. */
-  priced: PartyQuote
+  /** Per-tier line items and the order total, before any coupon. */
+  priced: OrderQuote
   /** Final charge for the whole booking, including any accepted coupon. */
   total: Money
   mode: PaymentMode
@@ -63,18 +66,39 @@ export function couponMessage(reason: CouponReason): string {
   return COUPON_MESSAGES[reason] ?? "This code can't be used."
 }
 
+/**
+ * Order lines in the shape the RPCs read.
+ *
+ * snake_case and a bare array because the database parses this with
+ * jsonb_array_elements, not because anything here is trusted — every tier is
+ * re-checked against the session inside the booking transaction.
+ */
+export function toRpcItems(lines: OrderLine[]) {
+  return lines
+    .filter((l) => l.adults + l.children > 0)
+    .map((l) => ({
+      tier_id: l.tierId,
+      adults: l.adults,
+      children: l.children,
+    }))
+}
+
+const DEFAULT_LINE: OrderLine[] = [{ tierId: null, adults: 1, children: 0 }]
+
 export async function quoteBooking(
   sessionId: string,
   couponCode?: string | null,
   email?: string | null,
-  party: Party = { adults: 1, children: 0 },
+  lines: OrderLine[] = DEFAULT_LINE,
 ): Promise<BookingQuote> {
   const supabase = createServiceClient()
 
   const { data: session, error } = await supabase
     .from("sessions")
     .select(
-      "price_currency, price_amount, child_price_amount, discount_type, discount_value",
+      `price_currency, price_amount, child_price_amount, discount_type,
+       discount_value, capacity, booked_count,
+       tiers:session_tiers (${SESSION_TIER_SELECT})`,
     )
     .eq("id", sessionId)
     .maybeSingle()
@@ -82,12 +106,17 @@ export async function quoteBooking(
   if (error) throw new Error(error.message)
   if (!session) throw new Error("Session not found.")
 
-  const priced = quoteParty(
+  const priced = quoteOrder(
     session.price_currency,
-    session.price_amount,
-    session.child_price_amount,
     discountFrom(session.discount_type, session.discount_value),
-    party,
+    ratesForSession({
+      capacity: session.capacity,
+      booked_count: session.booked_count,
+      price_amount: session.price_amount,
+      child_price_amount: session.child_price_amount,
+      tiers: (session.tiers ?? []) as unknown as SeatTier[],
+    }),
+    lines,
   )
 
   const code = couponCode?.trim()
@@ -102,8 +131,7 @@ export async function quoteBooking(
     p_session_id: sessionId,
     p_email: email ?? null,
     p_lock: false,
-    p_adult_count: party.adults,
-    p_child_count: party.children,
+    p_items: toRpcItems(lines),
   })
   if (couponError) throw new Error(couponError.message)
 

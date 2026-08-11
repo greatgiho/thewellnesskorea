@@ -1,4 +1,4 @@
-import { formatBookingDateTime } from "@/lib/bookings/format"
+import { formatBookingDateTime, formatParty } from "@/lib/bookings/format"
 import { PartyAdmits } from "@/components/booking/party-admits"
 import type { TicketSummary } from "@/lib/bookings/checkin"
 
@@ -30,6 +30,20 @@ export function TicketDetails({ ticket }: { ticket: TicketSummary }) {
             adults={ticket.adultCount}
             children={ticket.childCount}
           />
+          {/* Which grade, when there is more than one to be in. The door is
+              checking a seat as well as a headcount. */}
+          {ticket.lines.some((l) => l.tierCode) ? (
+            <ul className="mt-2 space-y-0.5">
+              {ticket.lines.map((line) => (
+                <li key={line.tierCode} className="text-base text-foreground">
+                  <span className="font-medium">{line.tierCode}</span>{" "}
+                  <span className="text-muted-foreground">
+                    {formatParty(line.adults, line.children)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
         </dd>
       </div>
       <div>

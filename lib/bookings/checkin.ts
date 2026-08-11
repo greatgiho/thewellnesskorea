@@ -1,6 +1,13 @@
 import QRCode from "qrcode"
 import { createServiceClient } from "@/lib/supabase/service"
 import { deploymentOrigin } from "@/lib/site-origin"
+import {
+  BOOKING_ITEMS_SELECT,
+  partyOf,
+  toBookingLines,
+  type BookingItemRow,
+  type BookingLine,
+} from "./lines"
 import type { BookingStatus } from "./types"
 
 /**
@@ -16,6 +23,8 @@ export type TicketSummary = {
   childCount: number
   /** People this one QR admits. The number the door actually acts on. */
   partySize: number
+  /** Per-tier breakdown, so the door can see it is 2 R and 1 S. */
+  lines: BookingLine[]
   status: BookingStatus
   sessionTitle: string
   sessionStartsAt: string
@@ -27,8 +36,7 @@ export type TicketSummary = {
 
 const TICKET_SELECT = `
   guest_name,
-  adult_count,
-  child_count,
+  ${BOOKING_ITEMS_SELECT},
   status,
   checked_in_at,
   session:sessions (
@@ -42,8 +50,7 @@ const TICKET_SELECT = `
 
 type TicketRow = {
   guest_name: string
-  adult_count: number
-  child_count: number
+  items: BookingItemRow[] | null
   status: BookingStatus
   checked_in_at: string | null
   session:
@@ -67,11 +74,14 @@ function toTicket(row: TicketRow): TicketSummary | null {
   if (!session) return null
   const floor = one(session.floor)
   const instructor = one(session.instructor)
+  const lines = toBookingLines(row.items)
+  const party = partyOf(lines)
   return {
     guestName: row.guest_name,
-    adultCount: row.adult_count,
-    childCount: row.child_count,
-    partySize: row.adult_count + row.child_count,
+    adultCount: party.adults,
+    childCount: party.children,
+    partySize: party.size,
+    lines,
     status: row.status,
     sessionTitle: session.title,
     sessionStartsAt: session.starts_at,

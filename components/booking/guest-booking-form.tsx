@@ -8,14 +8,16 @@ import { FIELD_PUBLIC } from "@/lib/ui/field"
 import {
   discountFrom,
   formatMoney,
+  orderLines,
   paymentMode,
-  quoteParty,
+  quoteOrder,
   MAX_PARTY_SIZE,
-  type Party,
+  type OrderLine,
 } from "@/lib/payments/money"
+import { ratesForSession } from "@/lib/schedule/tiers"
 import { formatParty } from "@/lib/bookings/format"
 import { PriceTag } from "@/components/booking/price-tag"
-import { PartyPicker } from "@/components/booking/party-picker"
+import { OrderPicker } from "@/components/booking/order-picker"
 import { CouponField } from "@/components/booking/coupon-field"
 import { BookingSessionSummary } from "./booking-session-summary"
 
@@ -37,20 +39,26 @@ export function GuestBookingForm({
   memberPrefill,
 }: GuestBookingFormProps) {
   const [email, setEmail] = useState(memberPrefill?.email ?? "")
-  const [party, setParty] = useState<Party>({ adults: 1, children: 0 })
+  const rates = ratesForSession(session)
+  // Opens on one adult in the first tier that still has seats, which is the
+  // booking almost everyone is making.
+  const [order, setOrder] = useState<OrderLine[]>(() => {
+    const first = rates.find((r) => r.capacity - r.bookedCount > 0) ?? rates[0]
+    return [{ tierId: first?.id ?? null, adults: 1, children: 0 }]
+  })
   const [state, formAction, pending] = useActionState(
     submitGuestBooking,
     initialState,
   )
 
   const isMember = Boolean(memberPrefill)
-  // Null child price = this class has no child rate, so no child row appears.
-  const quote = quoteParty(
+  // One rate card per tier — or exactly one, unlabelled, when the class has
+  // none. Null child price on a card means it has no child rate.
+  const quote = quoteOrder(
     session.price_currency,
-    session.price_amount,
-    session.child_price_amount,
     discountFrom(session.discount_type, session.discount_value),
-    party,
+    rates,
+    order,
   )
   // The discounted total is what gets charged, so it drives the flow too — a
   // 100% discount makes this a free booking with no payment step.
@@ -60,9 +68,25 @@ export function GuestBookingForm({
   const spotsLeft = Math.max(0, session.capacity - session.booked_count)
   const maxSize = Math.min(MAX_PARTY_SIZE, spotsLeft)
   const isParty = quote.size > 1
-  // A lone child booking should show the child's price, not the adult's.
+  const isEmpty = quote.size === 0
+  // With one rate card and one person, the struck-through list price still
+  // reads better than a total — a sum of one hides the discount.
+  const soloLine = quote.lines.find((l) => l.quote.size === 1)
   const soloPriced =
-    party.adults === 0 && quote.child ? quote.child : quote.adult
+    soloLine && soloLine.quote.party.children === 1 && soloLine.quote.child
+      ? soloLine.quote.child
+      : soloLine?.quote.adult
+
+  const setLine = (
+    tierId: string | null,
+    next: { adults: number; children: number },
+  ) => {
+    setOrder((prev) => {
+      const rest = prev.filter((l) => l.tierId !== tierId)
+      if (next.adults + next.children === 0) return rest
+      return [...rest, { tierId, ...next }]
+    })
+  }
 
   return (
     <div className="space-y-8">
@@ -126,16 +150,17 @@ export function GuestBookingForm({
             </label>
           </div>
 
-          <PartyPicker
+          <OrderPicker
             quote={quote}
-            party={party}
-            onChange={setParty}
+            onChange={setLine}
             maxSize={maxSize}
             disabled={pending}
           />
 
           <p className="mt-4 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-foreground">
-            {mode === "free" ? (
+            {isEmpty ? (
+              "Choose how many people are coming."
+            ) : mode === "free" ? (
               <>
                 <span className="font-medium">Free class</span> — no payment
                 required.{" "}
@@ -145,9 +170,9 @@ export function GuestBookingForm({
               <>
                 {/* A party is quoted as one total; a single booking keeps the
                     struck-through list price, which a sum of one would hide. */}
-                {isParty ? (
+                {isParty || !soloPriced ? (
                   <>
-                    {formatParty(party.adults, party.children)} — total{" "}
+                    {quote.size} {quote.size === 1 ? "person" : "people"} — total{" "}
                     <span className="font-medium">{formatMoney(quote.total)}</span>
                   </>
                 ) : (
@@ -166,7 +191,7 @@ export function GuestBookingForm({
           <CouponField
             sessionId={session.id}
             email={email}
-            party={party}
+            lines={orderLines(quote)}
             disabled={pending}
           />
 
@@ -176,7 +201,7 @@ export function GuestBookingForm({
 
           <button
             type="submit"
-            disabled={pending}
+            disabled={pending || isEmpty}
             className="mt-6 inline-flex w-full items-center justify-center rounded-full bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-all hover:bg-primary/90 disabled:opacity-60 sm:w-auto"
           >
             {pending

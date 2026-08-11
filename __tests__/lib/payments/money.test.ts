@@ -10,9 +10,14 @@ import {
   basePriceFor,
   discountFrom,
   isDiscounted,
+  orderListTotal,
+  orderLines,
   partyListTotal,
   partySize,
+  quoteOrder,
   quoteParty,
+  tierSeatsLeft,
+  type TierRate,
 } from "@/lib/payments/money"
 
 describe("decimalPlaces", () => {
@@ -229,5 +234,78 @@ describe("partyListTotal", () => {
 describe("partySize", () => {
   it("counts everyone on the booking", () => {
     expect(partySize({ adults: 2, children: 3 })).toBe(5)
+  })
+})
+
+describe("quoteOrder", () => {
+  const R: TierRate = {
+    id: "r", code: "R", name: null,
+    priceAmount: 50000, childPriceAmount: 25000, capacity: 4, bookedCount: 1,
+  }
+  const S: TierRate = {
+    id: "s", code: "S", name: null,
+    priceAmount: 30000, childPriceAmount: 15000, capacity: 6, bookedCount: 0,
+  }
+  const A: TierRate = {
+    id: "a", code: "A", name: null,
+    priceAmount: 20000, childPriceAmount: null, capacity: 10, bookedCount: 0,
+  }
+
+  it("sums the lines across tiers", () => {
+    // 2 R adults + 1 R child + 1 S adult
+    const quote = quoteOrder("KRW", null, [R, S, A], [
+      { tierId: "r", adults: 2, children: 1 },
+      { tierId: "s", adults: 1, children: 0 },
+    ])
+    expect(quote.total.amount).toBe(155000)
+    expect(quote.size).toBe(4)
+  })
+
+  it("keeps a line for every tier so the picker can show them all", () => {
+    const quote = quoteOrder("KRW", null, [R, S, A], [
+      { tierId: "r", adults: 1, children: 0 },
+    ])
+    expect(quote.lines).toHaveLength(3)
+    expect(quote.lines.filter((l) => l.quote.size > 0)).toHaveLength(1)
+  })
+
+  it("sends only the tiers actually being bought", () => {
+    const quote = quoteOrder("KRW", null, [R, S, A], [
+      { tierId: "s", adults: 2, children: 0 },
+    ])
+    expect(orderLines(quote)).toEqual([
+      { tierId: "s", adults: 2, children: 0 },
+    ])
+  })
+
+  it("offers no child count on a tier with no child rate", () => {
+    const quote = quoteOrder("KRW", null, [A], [{ tierId: "a", adults: 1, children: 0 }])
+    expect(quote.lines[0].quote.child).toBeNull()
+  })
+
+  it("applies the session discount to every tier", () => {
+    const quote = quoteOrder("KRW", { type: "percent", value: 50 }, [R, S], [
+      { tierId: "r", adults: 1, children: 0 },
+      { tierId: "s", adults: 1, children: 0 },
+    ])
+    expect(quote.total.amount).toBe(40000)
+    // The coupon competes with that, so it needs the undiscounted figure.
+    expect(orderListTotal(quote).amount).toBe(80000)
+  })
+
+  it("counts seats per tier, since selling out R does not free up S", () => {
+    expect(tierSeatsLeft(R)).toBe(3)
+    expect(tierSeatsLeft(S)).toBe(6)
+  })
+
+  it("prices a class with no tiers through the same path", () => {
+    const single: TierRate = {
+      id: null, code: "", name: null,
+      priceAmount: 30000, childPriceAmount: null, capacity: 12, bookedCount: 0,
+    }
+    const quote = quoteOrder("KRW", null, [single], [
+      { tierId: null, adults: 2, children: 0 },
+    ])
+    expect(quote.total.amount).toBe(60000)
   })
 })

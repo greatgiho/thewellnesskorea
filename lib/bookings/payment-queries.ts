@@ -1,5 +1,11 @@
 import { createServiceClient } from "@/lib/supabase/service"
 import {
+  BOOKING_ITEMS_SELECT,
+  partyOf,
+  toBookingLines,
+  type BookingItemRow,
+} from "./lines"
+import {
   SESSION_SUMMARY_SELECT,
   mapSessionSummary,
   type SessionSummaryRelation,
@@ -34,8 +40,7 @@ export async function getPendingBookingPayment(
       session_id,
       guest_name,
       guest_email,
-      adult_count,
-      child_count,
+      ${BOOKING_ITEMS_SELECT},
       status,
       expires_at,
       cancel_token,
@@ -55,6 +60,9 @@ export async function getPendingBookingPayment(
 
   const summary = mapSessionSummary(data.session as SessionSummaryRelation)
   if (!summary) return null
+
+  const lines = toBookingLines(data.items as BookingItemRow[] | null)
+  const party = partyOf(lines)
 
   const payments = (data.payments ?? []) as {
     merchant_uid: string
@@ -85,9 +93,10 @@ export async function getPendingBookingPayment(
       sessionId: data.session_id as string,
       guestName: data.guest_name as string,
       guestEmail: data.guest_email as string,
-      adultCount: data.adult_count as number,
-      childCount: data.child_count as number,
-      partySize: (data.adult_count as number) + (data.child_count as number),
+      adultCount: party.adults,
+      childCount: party.children,
+      partySize: party.size,
+      lines,
       status: data.status as BookingStatus,
       sessionTitle: summary.title,
       sessionStartsAt: summary.startsAt,

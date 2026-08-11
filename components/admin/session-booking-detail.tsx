@@ -7,6 +7,7 @@ import { cancelBookingAsAdmin, deleteWaitlistEntryAsAdmin } from "@/app/a/bookin
 import { formatBookingDateTime } from "@/lib/bookings/format"
 import { formatMoney, money } from "@/lib/payments/money"
 import { OnsitePaymentButton } from "@/components/admin/onsite-payment-button"
+import { formatOrder } from "@/lib/bookings/lines"
 import type { AdminBookingItem } from "@/lib/bookings/admin-queries"
 import type { WaitlistEntry } from "@/lib/waitlist/admin-queries"
 
@@ -115,14 +116,9 @@ export function SessionBookingDetail({
                       {b.guestName}
                       {/* Seats, not bookings: a roster that lists one name for
                           a family of four does not add up to the class count. */}
-                      {b.partySize > 1 ? (
+                      {b.partySize > 1 || b.childCount > 0 || b.lines.some((l) => l.tierCode) ? (
                         <span className="ml-2 rounded-full border border-border px-2 py-0.5 text-xs font-normal text-muted-foreground">
-                          {b.partySize}명
-                          {b.childCount > 0 ? ` (아동 ${b.childCount})` : ""}
-                        </span>
-                      ) : b.childCount > 0 ? (
-                        <span className="ml-2 rounded-full border border-border px-2 py-0.5 text-xs font-normal text-muted-foreground">
-                          아동
+                          {formatOrder(b.lines)}
                         </span>
                       ) : null}
                     </td>

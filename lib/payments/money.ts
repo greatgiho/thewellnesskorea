@@ -243,3 +243,110 @@ export function partyListTotal(quote: PartyQuote): Money {
       quote.party.children * childOriginal,
   })
 }
+
+// ---------------------------------------------------------------------------
+// Orders across seat tiers
+// ---------------------------------------------------------------------------
+
+/**
+ * One rate card: a seat tier, or the class itself when it has no tiers.
+ *
+ * `id` null is the tier-less class. The booking RPCs use the same convention,
+ * and it is what lets a class that never had tiers keep behaving as it did.
+ */
+export type TierRate = {
+  id: string | null
+  code: string
+  name: string | null
+  priceAmount: number
+  childPriceAmount: number | null
+  capacity: number
+  bookedCount: number
+}
+
+/** How many of one tier an order is asking for. */
+export type OrderLine = { tierId: string | null; adults: number; children: number }
+
+export type OrderLineQuote = {
+  rate: TierRate
+  quote: PartyQuote
+}
+
+export type OrderQuote = {
+  lines: OrderLineQuote[]
+  size: number
+  total: Money
+}
+
+/** Seats still on sale in a tier. */
+export function tierSeatsLeft(rate: TierRate): number {
+  return Math.max(0, rate.capacity - rate.bookedCount)
+}
+
+/**
+ * What a whole order costs.
+ *
+ * Mirrors order_total() in the database, which is what actually gets charged.
+ * Each line is priced by the same per-person rounding quoteParty() does, then
+ * the lines are summed — so the total on screen is the sum of the line totals
+ * on screen, and it matches the amount a capture is checked against.
+ *
+ * Lines asking for nobody are dropped rather than shown as a zero: an order is
+ * the tiers someone is actually buying.
+ */
+export function quoteOrder(
+  currency: string | null | undefined,
+  discount: Discount | null,
+  rates: TierRate[],
+  order: OrderLine[],
+): OrderQuote {
+  const lines: OrderLineQuote[] = []
+
+  for (const rate of rates) {
+    const line = order.find((l) => l.tierId === rate.id)
+    const party = { adults: line?.adults ?? 0, children: line?.children ?? 0 }
+    lines.push({
+      rate,
+      quote: quoteParty(
+        currency,
+        rate.priceAmount,
+        rate.childPriceAmount,
+        discount,
+        party,
+      ),
+    })
+  }
+
+  const total = roundMoney({
+    currency: (currency as Currency) || "USD",
+    amount: lines.reduce((sum, l) => sum + l.quote.total.amount, 0),
+  })
+
+  return {
+    lines,
+    size: lines.reduce((sum, l) => sum + l.quote.size, 0),
+    total,
+  }
+}
+
+/** The order with no discount at all — what a coupon comes off. */
+export function orderListTotal(order: OrderQuote): Money {
+  return roundMoney({
+    currency: order.total.currency,
+    amount: order.lines.reduce(
+      (sum, l) => sum + partyListTotal(l.quote).amount,
+      0,
+    ),
+  })
+}
+
+/** The lines worth sending: tiers nobody is buying are not part of the order. */
+export function orderLines(order: OrderQuote): OrderLine[] {
+  return order.lines
+    .filter((l) => l.quote.size > 0)
+    .map((l) => ({
+      tierId: l.rate.id,
+      adults: l.quote.party.adults,
+      children: l.quote.party.children,
+    }))
+}

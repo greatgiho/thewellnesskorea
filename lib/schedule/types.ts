@@ -57,7 +57,26 @@ export type SessionRow = {
   updated_at: string
 }
 
+/**
+ * A priced section of a class: R석, S석.
+ *
+ * Capacity lives here rather than only on the session because selling out R
+ * does not free up S. A class with no tiers has none of these rows and is
+ * priced from the session itself.
+ */
+export type SeatTier = {
+  id: string
+  code: string
+  name: string | null
+  capacity: number
+  booked_count: number
+  price_amount: number
+  child_price_amount: number | null
+  sort_order: number
+}
+
 export type SessionWithRelations = SessionRow & {
+  tiers?: SeatTier[]
   floor?: FloorRow
   instructor?: {
     id: string
@@ -66,6 +85,32 @@ export type SessionWithRelations = SessionRow & {
     role_ko: string
     role_en: string
   }
+}
+
+/**
+ * A session row as PostgREST hands it back, relations and all.
+ *
+ * Every caller of toSessionWithRelations() was spelling this out inline, so
+ * adding one embedded relation broke five casts at once. Named here so the
+ * next one does not.
+ */
+/** A tier as the admin form holds it; `id` is absent until it is saved. */
+export type SeatTierInput = {
+  id?: string
+  code: string
+  name: string
+  capacity: number
+  price_amount: number
+  child_price_amount: number | null
+}
+
+export type SessionRelationRow = SessionRow & {
+  floor?: FloorRow | FloorRow[] | null
+  instructor?:
+    | SessionWithRelations["instructor"]
+    | SessionWithRelations["instructor"][]
+    | null
+  tiers?: SeatTier[] | null
 }
 
 export type SessionFormInput = {
@@ -82,6 +127,8 @@ export type SessionFormInput = {
   price_currency: Currency
   price_amount: number
   child_price_amount: number | null
+  /** Empty = one price for the class. Otherwise capacity is their sum. */
+  tiers: SeatTierInput[]
   discount_type: "fixed" | "percent" | null
   discount_value: number | null
   is_published: boolean

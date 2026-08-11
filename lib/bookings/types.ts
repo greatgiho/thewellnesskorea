@@ -1,4 +1,4 @@
-import type { Party } from "@/lib/payments/money"
+import type { OrderLine } from "@/lib/payments/money"
 
 export type BookingStatus = "confirmed" | "cancelled" | "no_show" | "pending_payment"
 
@@ -39,10 +39,11 @@ export type CreateBookingInput = {
   /** Raw code from the form; validated server-side inside the booking txn. */
   couponCode?: string | null
   /**
-   * Who the booking is for. Only the headcount is sent — what it costs is
-   * computed inside the booking transaction, never taken from the client.
+   * What is being bought: how many of which seat tier. Only the headcount is
+   * sent — what it costs is computed inside the booking transaction, never
+   * taken from the client.
    */
-  party?: Party
+  lines?: OrderLine[]
 }
 
 export type CreateBookingResult = {

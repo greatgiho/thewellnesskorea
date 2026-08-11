@@ -2,6 +2,13 @@ import { createClient } from "@/lib/supabase/server"
 import { createServiceClient } from "@/lib/supabase/service"
 import { releaseExpiredHoldsBestEffort } from "./hold-rpc"
 import {
+  BOOKING_ITEMS_SELECT,
+  partyOf,
+  toBookingLines,
+  type BookingItemRow,
+  type BookingLine,
+} from "./lines"
+import {
   SESSION_SUMMARY_SELECT,
   mapSessionSummary,
   type SessionSummaryRelation,
@@ -24,6 +31,7 @@ export type MemberBookingItem = {
   adultCount: number
   childCount: number
   partySize: number
+  lines: BookingLine[]
   sessionTitle: string
   sessionStartsAt: string
   sessionEndsAt: string
@@ -50,8 +58,7 @@ export async function getMemberBookingsForUser(
       id,
       status,
       guest_name,
-      adult_count,
-      child_count,
+      ${BOOKING_ITEMS_SELECT},
       checkin_token,
       session:sessions (${SESSION_SUMMARY_SELECT}),
       payments (
@@ -78,6 +85,9 @@ export async function getMemberBookingsForUser(
       const summary = mapSessionSummary(row.session as SessionSummaryRelation)
       if (!summary) return null
 
+      const lines = toBookingLines(row.items as BookingItemRow[] | null)
+      const party = partyOf(lines)
+
       const paymentsArr = (row.payments ?? []) as Array<{
         status: string
         amount: number | string
@@ -93,9 +103,10 @@ export async function getMemberBookingsForUser(
         id: row.id as string,
         status: row.status as BookingStatus,
         guestName: row.guest_name as string,
-        adultCount: row.adult_count as number,
-        childCount: row.child_count as number,
-        partySize: (row.adult_count as number) + (row.child_count as number),
+        adultCount: party.adults,
+        childCount: party.children,
+        partySize: party.size,
+        lines,
         sessionTitle: summary.title,
         sessionStartsAt: summary.startsAt,
         sessionEndsAt: summary.endsAt,

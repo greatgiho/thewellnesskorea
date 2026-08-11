@@ -2,13 +2,20 @@ import { createClient } from "@/lib/supabase/server"
 import { normalizeRelation } from "@/lib/supabase/normalize-relation"
 import { normalizeDescriptionBlocks } from "./images"
 import { SESSION_WITH_RELATIONS } from "./constants"
-import type { FloorRow, SessionRow, SessionWithRelations } from "./types"
+import type {
+  FloorRow,
+  SeatTier,
+  SessionRelationRow,
+  SessionRow,
+  SessionWithRelations,
+} from "./types"
 import { kstDayRange, addDaysToDateKey } from "./utils"
 
 export function toSessionWithRelations(
   row: SessionRow & {
     floor?: FloorRow | FloorRow[] | null
     instructor?: SessionWithRelations["instructor"] | SessionWithRelations["instructor"][] | null
+    tiers?: SeatTier[] | null
   },
 ): SessionWithRelations {
   return {
@@ -17,6 +24,8 @@ export function toSessionWithRelations(
     description_blocks: normalizeDescriptionBlocks(row.description_blocks),
     floor: normalizeRelation(row.floor),
     instructor: normalizeRelation(row.instructor),
+    // Sorted here so every screen shows R before S without remembering to.
+    tiers: [...(row.tiers ?? [])].sort((a, b) => a.sort_order - b.sort_order),
   }
 }
 
@@ -43,10 +52,7 @@ export async function getSessionById(
 
   if (error || !data) return null
   return toSessionWithRelations(
-    data as SessionRow & {
-      floor?: FloorRow | FloorRow[] | null
-      instructor?: SessionWithRelations["instructor"] | SessionWithRelations["instructor"][] | null
-    },
+    data as unknown as SessionRelationRow,
   )
 }
 
@@ -74,10 +80,7 @@ export async function getSessionsForRange(
   if (error || !data) return []
   return data.map((row) =>
     toSessionWithRelations(
-      row as SessionRow & {
-        floor?: FloorRow | FloorRow[] | null
-        instructor?: SessionWithRelations["instructor"] | SessionWithRelations["instructor"][] | null
-      },
+      row as unknown as SessionRelationRow,
     ),
   )
 }
@@ -132,10 +135,7 @@ export async function getUpcomingSessions(
 
   return data.map((row) =>
     toSessionWithRelations(
-      row as SessionRow & {
-        floor?: FloorRow | FloorRow[] | null
-        instructor?: SessionWithRelations["instructor"] | SessionWithRelations["instructor"][] | null
-      },
+      row as unknown as SessionRelationRow,
     ),
   )
 }
