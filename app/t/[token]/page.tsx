@@ -2,7 +2,8 @@ import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { BookingPageLayout } from "@/components/booking/booking-page-layout"
 import { TicketDetails } from "@/components/booking/ticket-details"
-import { getTicketByToken, ticketQrSvg } from "@/lib/bookings/checkin"
+import { TicketQr } from "@/components/booking/ticket-qr"
+import { getTicketByToken } from "@/lib/bookings/checkin"
 import { formatBookingDateTime } from "@/lib/bookings/format"
 
 export const metadata: Metadata = {
@@ -27,7 +28,6 @@ export default async function TicketPage({ params }: TicketPageProps) {
   // Reachable by anyone holding the link, so a cancelled booking has to say so
   // rather than render as an admittable ticket.
   const cancelled = ticket.status !== "confirmed"
-  const qr = cancelled ? null : await ticketQrSvg(token)
   const checkedIn = ticket.checkedInAt
     ? formatBookingDateTime(ticket.checkedInAt, ticket.checkedInAt).timeRange
     : null
@@ -38,23 +38,16 @@ export default async function TicketPage({ params }: TicketPageProps) {
       title={cancelled ? "This ticket is no longer valid." : "Your ticket"}
     >
       <div className="space-y-8">
-        {qr ? (
+        {cancelled ? null : (
           <div className="rounded-3xl border border-border bg-card p-6 sm:p-8">
-            {/* Rendered as inline SVG on the server: no QR library ships to the
-                browser, and it stays sharp on whatever screen it is scanned
-                from. Wrapped in white regardless of theme, because a scanner
-                needs the quiet zone to be light. */}
-            <div
-              className="mx-auto w-full max-w-[280px] rounded-2xl bg-white p-4 [&>svg]:h-auto [&>svg]:w-full"
-              dangerouslySetInnerHTML={{ __html: qr }}
-            />
+            <TicketQr token={token} />
             {ticket.checkedInAt ? (
               <p className="mt-6 rounded-2xl bg-primary/10 px-4 py-3 text-center text-sm text-foreground">
                 Checked in at {checkedIn}
               </p>
             ) : null}
           </div>
-        ) : null}
+        )}
 
         <div className="rounded-3xl border border-border bg-card p-6 sm:p-8">
           <TicketDetails ticket={ticket} />

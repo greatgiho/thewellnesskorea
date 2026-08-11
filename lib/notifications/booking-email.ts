@@ -1,5 +1,5 @@
 import { siteOrigin } from "@/lib/site-origin"
-import { createServiceClient } from "@/lib/supabase/service"
+import { getCheckinTokenForBookingId } from "@/lib/bookings/checkin"
 import { formatBookingDateTime } from "@/lib/bookings/format"
 import type { BookingSummary } from "@/lib/bookings/queries"
 import { sendEmail } from "@/lib/notifications/email"
@@ -8,25 +8,6 @@ import {
   renderBookingCancelledEmail,
   type SessionDetails,
 } from "@/lib/notifications/email-templates"
-
-/**
- * The ticket token for a booking that has just been confirmed.
- *
- * Service client: this runs from a server action with no session to speak of
- * — a guest booking has no signed-in user at all — and it reads one column of
- * a row the caller has already proved it owns.
- */
-async function getCheckinTokenForBookingId(
-  bookingId: string,
-): Promise<string | null> {
-  const { data, error } = await createServiceClient()
-    .from("bookings")
-    .select("checkin_token")
-    .eq("id", bookingId)
-    .maybeSingle()
-  if (error || !data) return null
-  return (data as { checkin_token: string }).checkin_token
-}
 
 function toSessionDetails(summary: BookingSummary): SessionDetails {
   const { heading, timeRange } = formatBookingDateTime(

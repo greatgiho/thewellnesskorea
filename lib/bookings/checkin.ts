@@ -1,5 +1,4 @@
 import QRCode from "qrcode"
-import { createClient } from "@/lib/supabase/server"
 import { createServiceClient } from "@/lib/supabase/service"
 import { siteOrigin } from "@/lib/site-origin"
 import type { BookingStatus } from "./types"
@@ -122,16 +121,18 @@ export async function ticketQrSvg(token: string): Promise<string> {
 }
 
 /**
- * The token for a booking the caller can already see.
+ * The ticket token for a booking id.
  *
- * Used by the member area, which has the booking id from an authenticated
- * query; RLS on bookings decides whether this returns anything.
+ * Service client, for the same reason getTicketByToken uses one: the callers
+ * are the confirmation screen and the confirmation email, and a guest booking
+ * has no session for RLS to work from. The confirmation screen already renders
+ * the whole booking from a booking id in the URL through the service client
+ * (getBookingSummaryById), so this exposes nothing that page did not already.
  */
-export async function getCheckinTokenForBooking(
+export async function getCheckinTokenForBookingId(
   bookingId: string,
 ): Promise<string | null> {
-  const supabase = await createClient()
-  const { data, error } = await supabase
+  const { data, error } = await createServiceClient()
     .from("bookings")
     .select("checkin_token")
     .eq("id", bookingId)
