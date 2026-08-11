@@ -28,6 +28,9 @@ export const ADMIN_NAV: PortalNavGroup[] = [
       { label: "대기자", href: "/a/waitlist" },
     ],
   },
+  // Last, and untitled: it is about the person signed in, not about the
+  // business, so it does not belong under any of the groups above.
+  { items: [{ label: "설정", href: "/a/settings" }] },
 ]
 
 export const PARTNER_NAV: PortalNavGroup[] = [
