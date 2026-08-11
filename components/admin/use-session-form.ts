@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useEffect } from "react"
 import { useBodyScrollLock } from "@/lib/ui/use-body-scroll-lock"
+import { saveSessionTiers } from "@/app/a/schedule/tier-actions"
 import type { PathKey } from "@/lib/paths/paths-data"
 import type { PartnerWithPrograms } from "@/lib/partners/types"
 import { filterSessionInstructors } from "@/lib/partners/utils"
@@ -58,6 +59,7 @@ export const defaultInput = (
   price_currency: "USD",
   price_amount: 0,
   child_price_amount: null,
+  tiers: [],
   discount_type: null,
   discount_value: null,
   is_published: false,
@@ -133,6 +135,15 @@ export function useSessionForm({
           session.child_price_amount != null
             ? Number(session.child_price_amount)
             : null,
+        tiers: (session.tiers ?? []).map((t) => ({
+          id: t.id,
+          code: t.code,
+          name: t.name ?? "",
+          capacity: t.capacity,
+          price_amount: Number(t.price_amount ?? 0),
+          child_price_amount:
+            t.child_price_amount != null ? Number(t.child_price_amount) : null,
+        })),
         discount_type: session.discount_type ?? null,
         discount_value: session.discount_value != null ? Number(session.discount_value) : null,
         is_published: session.is_published,
@@ -178,6 +189,13 @@ export function useSessionForm({
     input.price_currency,
   ])
 
+  // A tiered class does not have a capacity of its own — it has the sum of
+  // its grades, the same rule the database enforces.
+  const effectiveCapacity =
+    input.tiers.length > 0
+      ? input.tiers.reduce((n, t) => n + t.capacity, 0)
+      : input.capacity
+
   const selectedInstructor = partners.find((p) => p.id === input.instructor_id)
   const programs = selectedInstructor?.programs ?? []
 
@@ -212,7 +230,10 @@ export function useSessionForm({
       priorPaths,
     )
     const result = await saveSession(
-      { ...input, image_paths: paths },
+      // Capacity is the tiers' capacity when there are any, so the number
+      // written to the session agrees with what set_session_tiers will derive
+      // a moment later rather than flickering through the old value.
+      { ...input, image_paths: paths, capacity: effectiveCapacity },
       session?.id,
       session?.id ? undefined : sessionId,
     )
@@ -223,6 +244,12 @@ export function useSessionForm({
       await discardUnreferencedUploads(uploaded, priorPaths)
       throw new Error(result.error)
     }
+    // Tiers hang off a session id, which a new class does not have until the
+    // line above. Failing here is worth surfacing: the class would otherwise
+    // save at a single price while the form still shows grades.
+    const tiersResult = await saveSessionTiers(result.sessionId, input.tiers)
+    if (!tiersResult.ok) throw new Error(tiersResult.error)
+
     return result.sessionId
   }
 
@@ -348,6 +375,7 @@ export function useSessionForm({
     endOptions,
     discountPreview,
     childPreview,
+    effectiveCapacity,
     readOnly,
     // handlers
     onProgramChange,

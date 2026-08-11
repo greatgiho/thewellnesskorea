@@ -6,6 +6,13 @@ import {
   type SessionSummaryRelation,
 } from "./session-summary"
 import { kstDayRange } from "@/lib/schedule/utils"
+import {
+  BOOKING_ITEMS_SELECT,
+  partyOf,
+  toBookingLines,
+  type BookingItemRow,
+  type BookingLine,
+} from "./lines"
 import type { BookingStatus } from "./types"
 
 // ---------------------------------------------------------------------------
@@ -52,6 +59,7 @@ export type AdminBookingItem = {
   adultCount: number
   childCount: number
   partySize: number
+  lines: BookingLine[]
   status: BookingStatus
   cancelledAt: string | null
   createdAt: string
@@ -72,8 +80,7 @@ type BookingQueryRow = {
   guest_name: string
   guest_email: string
   guest_phone: string | null
-  adult_count: number
-  child_count: number
+  items: BookingItemRow[] | null
   status: BookingStatus
   cancelled_at: string | null
   created_at: string
@@ -88,8 +95,7 @@ const BOOKING_WITH_SESSION = `
   guest_name,
   guest_email,
   guest_phone,
-  adult_count,
-  child_count,
+  ${BOOKING_ITEMS_SELECT},
   status,
   cancelled_at,
   created_at,
@@ -124,15 +130,19 @@ function mapAdminBookingRow(row: BookingQueryRow): AdminBookingItem | null {
   })
   if (!summary) return null
 
+  const lines = toBookingLines(row.items)
+  const party = partyOf(lines)
+
   return {
     id: row.id,
     sessionId: row.session_id,
     guestName: row.guest_name,
     guestEmail: row.guest_email,
     guestPhone: row.guest_phone,
-    adultCount: row.adult_count,
-    childCount: row.child_count,
-    partySize: row.adult_count + row.child_count,
+    adultCount: party.adults,
+    childCount: party.children,
+    partySize: party.size,
+    lines,
     status: row.status,
     cancelledAt: row.cancelled_at,
     createdAt: row.created_at,
@@ -229,7 +239,7 @@ export async function getAdminSessionList(
   // party, and "8 / 12 booked" has to mean people or it is not a capacity.
   const { data: bookingCounts, error: bcErr } = await supabase
     .from("bookings")
-    .select("session_id, adult_count, child_count")
+    .select("session_id, items:booking_items (adult_count, child_count)")
     .in("session_id", sessionIds)
     .eq("status", "confirmed")
 
@@ -238,7 +248,8 @@ export async function getAdminSessionList(
   const confirmedBySession = new Map<string, number>()
   for (const b of bookingCounts ?? []) {
     const sid = b.session_id as string
-    const seats = (b.adult_count as number) + (b.child_count as number)
+    const seats = ((b.items ?? []) as { adult_count: number; child_count: number }[])
+      .reduce((n, i) => n + i.adult_count + i.child_count, 0)
     confirmedBySession.set(sid, (confirmedBySession.get(sid) ?? 0) + seats)
   }
 

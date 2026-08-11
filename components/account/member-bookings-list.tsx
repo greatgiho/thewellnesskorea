@@ -4,7 +4,8 @@ import { useActionState } from "react"
 import Link from "next/link"
 import { QrCode } from "lucide-react"
 import { cancelMemberBooking, type MemberCancelState } from "@/app/u/actions"
-import { formatBookingDateTime, formatParty } from "@/lib/bookings/format"
+import { formatBookingDateTime } from "@/lib/bookings/format"
+import { formatOrder } from "@/lib/bookings/lines"
 import { money, formatMoney } from "@/lib/payments/money"
 import type { MemberBookingItem } from "@/lib/bookings/member-queries"
 
@@ -74,9 +75,11 @@ function MemberBookingCard({ booking }: { booking: MemberBookingItem }) {
           </p>
           {/* Only when it is not just the account holder — otherwise every
               reservation says "1 adult", which tells nobody anything. */}
-          {booking.partySize > 1 || booking.childCount > 0 ? (
+          {booking.partySize > 1 ||
+          booking.childCount > 0 ||
+          booking.lines.some((l) => l.tierCode) ? (
             <p className="text-sm text-muted-foreground">
-              {formatParty(booking.adultCount, booking.childCount)}
+              {formatOrder(booking.lines)}
             </p>
           ) : null}
         </div>

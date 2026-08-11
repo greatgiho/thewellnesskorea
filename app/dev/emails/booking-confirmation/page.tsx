@@ -3,7 +3,8 @@ import { requireAdminSession } from "@/lib/auth/require-session"
 import { getBookingSummaryById } from "@/lib/bookings/queries"
 import { renderBookingConfirmationEmail } from "@/lib/notifications/email-templates"
 import { getCheckinTokenForBookingId } from "@/lib/bookings/checkin"
-import { formatBookingDateTime, formatParty } from "@/lib/bookings/format"
+import { formatBookingDateTime } from "@/lib/bookings/format"
+import { formatOrder } from "@/lib/bookings/lines"
 import Link from "next/link"
 import { createServiceClient } from "@/lib/supabase/service"
 import { deploymentOrigin } from "@/lib/site-origin"
@@ -107,8 +108,10 @@ export default async function BookingConfirmationEmailPreview({
       instructorName: summary.instructorName,
     },
     party:
-      summary.partySize > 1 || summary.childCount > 0
-        ? formatParty(summary.adultCount, summary.childCount)
+      summary.partySize > 1 ||
+      summary.childCount > 0 ||
+      summary.lines.some((l) => l.tierCode)
+        ? formatOrder(summary.lines)
         : "",
     ticketUrl: checkinToken ? `${deploymentOrigin()}/t/${checkinToken}` : null,
     cancelUrl: `${deploymentOrigin()}/book/cancel/CANCEL_TOKEN`,

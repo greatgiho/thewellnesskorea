@@ -1,6 +1,7 @@
 import { deploymentOrigin } from "@/lib/site-origin"
 import { getCheckinTokenForBookingId } from "@/lib/bookings/checkin"
-import { formatBookingDateTime, formatParty } from "@/lib/bookings/format"
+import { formatBookingDateTime } from "@/lib/bookings/format"
+import { formatOrder } from "@/lib/bookings/lines"
 import type { BookingSummary } from "@/lib/bookings/queries"
 import { sendEmail } from "@/lib/notifications/email"
 import {
@@ -41,8 +42,10 @@ export async function sendBookingConfirmationEmail(
     guestName: summary.guestName,
     details: toSessionDetails(summary),
     party:
-      summary.partySize > 1 || summary.childCount > 0
-        ? formatParty(summary.adultCount, summary.childCount)
+      summary.partySize > 1 ||
+      summary.childCount > 0 ||
+      summary.lines.some((l) => l.tierCode)
+        ? formatOrder(summary.lines)
         : "",
     ticketUrl,
     cancelUrl,

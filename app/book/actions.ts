@@ -19,9 +19,9 @@ import { validateGuestBookingInput } from "@/lib/bookings/validate"
 import {
   formatMoney,
   money,
-  partyListTotal,
+  orderListTotal,
   MAX_PARTY_SIZE,
-  type Party,
+  type OrderLine,
 } from "@/lib/payments/money"
 import {
   sendBookingConfirmationEmail,
@@ -32,19 +32,38 @@ import { formatBookingDateTime } from "@/lib/bookings/format"
 import { couponMessage, quoteBooking } from "@/lib/bookings/quote"
 
 /**
- * The party as the form submitted it, clamped to something sane.
+ * The order as the form submitted it, clamped to something sane.
  *
- * A number input can be emptied, edited by hand, or replayed, so nothing here
- * trusts the shape of what arrives — and the counts are only ever a request:
- * the booking transaction re-checks them and prices from the session row.
+ * Arrives as one JSON field rather than a fan of numbered inputs, because the
+ * number of lines is the number of tiers and neither side should be counting
+ * form fields to find out. Nothing here trusts the shape of what comes back —
+ * the counts are only ever a request, and the booking transaction re-checks
+ * every tier and prices from the session row.
  */
-function readParty(formData: FormData): Party {
-  const count = (field: string) => {
-    const raw = Number(formData.get(field) ?? 0)
-    if (!Number.isFinite(raw)) return 0
-    return Math.max(0, Math.floor(raw))
+function readOrder(formData: FormData): OrderLine[] {
+  const raw = String(formData.get("orderLines") ?? "")
+  if (!raw) return [{ tierId: null, adults: 1, children: 0 }]
+
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(raw)
+  } catch {
+    return []
   }
-  return { adults: count("adultCount"), children: count("childCount") }
+  if (!Array.isArray(parsed)) return []
+
+  const count = (value: unknown) => {
+    const n = Number(value ?? 0)
+    return Number.isFinite(n) ? Math.max(0, Math.floor(n)) : 0
+  }
+
+  return parsed
+    .map((line) => {
+      const l = line as Record<string, unknown>
+      const tierId = typeof l.tierId === "string" && l.tierId ? l.tierId : null
+      return { tierId, adults: count(l.adults), children: count(l.children) }
+    })
+    .filter((l) => l.adults + l.children > 0)
 }
 
 export type GuestBookingState = {
@@ -65,7 +84,7 @@ export async function submitGuestBooking(
     const guestEmail = String(formData.get("guestEmail") ?? "")
     const guestPhone = String(formData.get("guestPhone") ?? "")
     const couponCode = String(formData.get("couponCode") ?? "").trim() || null
-    const party = readParty(formData)
+    const lines = readOrder(formData)
 
     validateGuestBookingInput({ guestName, guestEmail, guestPhone })
 
@@ -83,11 +102,7 @@ export async function submitGuestBooking(
       return { error: "This class is full." }
     }
 
-    if (party.children > 0 && session.child_price_amount === null) {
-      return { error: "This class does not offer a child rate." }
-    }
-
-    const size = party.adults + party.children
+    const size = lines.reduce((n, l) => n + l.adults + l.children, 0)
     if (size < 1) {
       return { error: "Choose at least one person." }
     }
@@ -108,7 +123,7 @@ export async function submitGuestBooking(
     // 100% session discount makes this free, and the hold RPC refuses a
     // zero-amount booking. Ask the database so this agrees with what the
     // booking transaction will compute.
-    const quote = await quoteBooking(sessionId, couponCode, guestEmail, party)
+    const quote = await quoteBooking(sessionId, couponCode, guestEmail, lines)
     if (quote.mode === "online") {
       const hold = await createBookingHoldRpc({
         sessionId,
@@ -118,7 +133,7 @@ export async function submitGuestBooking(
         userId,
         pgProvider: "paypal",
         couponCode,
-        party,
+        lines,
       })
 
       revalidatePath("/")
@@ -132,7 +147,7 @@ export async function submitGuestBooking(
       guestPhone: guestPhone || null,
       userId,
       couponCode,
-      party,
+      lines,
     })
 
     const summary = await getBookingSummaryById(result.bookingId)
@@ -267,15 +282,15 @@ export async function previewCoupon(
   sessionId: string,
   code: string,
   email: string,
-  party: Party = { adults: 1, children: 0 },
+  lines: OrderLine[] = [{ tierId: null, adults: 1, children: 0 }],
 ): Promise<CouponPreview> {
   try {
-    const quote = await quoteBooking(sessionId, code, email, party)
+    const quote = await quoteBooking(sessionId, code, email, lines)
     if (!quote.coupon?.applied) {
       const reason = quote.coupon && !quote.coupon.applied ? quote.coupon.reason : "not_found"
       return { ok: false, message: couponMessage(reason) }
     }
-    const listTotal = partyListTotal(quote.priced)
+    const listTotal = orderListTotal(quote.priced)
     const percentOff =
       listTotal.amount > 0
         ? Math.round(((listTotal.amount - quote.total.amount) / listTotal.amount) * 100)

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react"
 import { previewCoupon, type CouponPreview } from "@/app/book/actions"
-import type { Party } from "@/lib/payments/money"
+import type { OrderLine } from "@/lib/payments/money"
 import { FIELD_PUBLIC } from "@/lib/ui/field"
 import { cn } from "@/lib/utils"
 
@@ -17,22 +17,23 @@ import { cn } from "@/lib/utils"
 export function CouponField({
   sessionId,
   email,
-  party,
+  lines,
   disabled,
 }: {
   sessionId: string
   email: string
-  party: Party
+  lines: OrderLine[]
   disabled?: boolean
 }) {
   const [code, setCode] = useState("")
   const [result, setResult] = useState<CouponPreview | null>(null)
   const [pending, startTransition] = useTransition()
 
-  // A verdict is priced against one party. Adding or removing a person makes
-  // the amount on screen wrong, so it is dropped rather than left to be read
-  // as the new total.
-  useEffect(() => setResult(null), [party.adults, party.children])
+  // A verdict is priced against one order. Adding or removing anyone makes the
+  // amount on screen wrong, so it is dropped rather than left to be read as
+  // the new total.
+  const signature = JSON.stringify(lines)
+  useEffect(() => setResult(null), [signature])
 
   const check = () => {
     const trimmed = code.trim()
@@ -41,7 +42,7 @@ export function CouponField({
       return
     }
     startTransition(async () => {
-      setResult(await previewCoupon(sessionId, trimmed, email, party))
+      setResult(await previewCoupon(sessionId, trimmed, email, lines))
     })
   }
 

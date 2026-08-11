@@ -15,6 +15,7 @@ import { defaultEndTime, formatTimeInKst } from "@/lib/schedule/utils"
 import { FIELD } from "@/lib/ui/field"
 import { useSessionForm } from "@/components/admin/use-session-form"
 import { PriceTag } from "@/components/booking/price-tag"
+import { SessionTiersField } from "@/components/admin/session-tiers-field"
 
 type SessionFormDialogProps = {
   open: boolean
@@ -56,6 +57,7 @@ export function SessionFormDialog({
     endOptions,
     discountPreview,
     childPreview,
+    effectiveCapacity,
     readOnly,
     onProgramChange,
     onSubmit,
@@ -302,11 +304,17 @@ export function SessionFormDialog({
                 type="number"
                 min={1}
                 className={fieldClass}
-                value={input.capacity}
+                // Derived once the class has grades: entering it twice is one
+                // more thing that can disagree with itself.
+                readOnly={input.tiers.length > 0}
+                value={effectiveCapacity}
                 onChange={(e) =>
                   setInput((v) => ({ ...v, capacity: Number(e.target.value) }))
                 }
               />
+              {input.tiers.length > 0 ? (
+                <p className="text-xs text-muted-foreground">등급 정원의 합</p>
+              ) : null}
               {session ? (
                 <p className="text-xs text-muted-foreground">
                   {session.booked_count} / {session.capacity} spots currently
@@ -434,6 +442,15 @@ export function SessionFormDialog({
                 </p>
               ) : null}
             </label>
+
+            <SessionTiersField
+              tiers={input.tiers}
+              currency={input.price_currency}
+              discountType={input.discount_type}
+              discountValue={input.discount_value}
+              fieldClass={fieldClass}
+              onChange={(tiers) => setInput((v) => ({ ...v, tiers }))}
+            />
 
             {session ? (
               <SessionBookingsPanel
