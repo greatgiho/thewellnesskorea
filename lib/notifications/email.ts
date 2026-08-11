@@ -19,15 +19,26 @@ function parseSender(raw: string): { email: string; name?: string } {
  * such an environment keeps mail flowing to the people testing and drops the
  * rest loudly.
  *
- * Unset means no restriction, so production is unaffected. If mail ever goes
- * missing, the skip is logged with the variable's name in it.
+ * Absent means no restriction, so production is unaffected. Present but empty
+ * means nobody — not everybody. The difference matters: this is configured by
+ * hand in a dashboard, and a value that fails to save, or saves blank, would
+ * otherwise turn the guard off silently on the one environment that needs it.
+ * Failing closed there costs a confused "why no mail", which the log answers.
+ *
+ * If mail ever goes missing, the skip is logged with the variable's name in it.
  */
 function allowedRecipients(
   emails: string[],
   context: string,
 ): string[] {
   const raw = process.env.EMAIL_ALLOWLIST
-  if (!raw?.trim()) return emails
+  if (raw === undefined) return emails
+  if (!raw.trim()) {
+    console.warn(
+      `[${context}] EMAIL_ALLOWLIST is set but empty — sending to nobody`,
+    )
+    return []
+  }
 
   const allowed = raw
     .split(",")
