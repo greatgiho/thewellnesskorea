@@ -36,11 +36,6 @@ export default async function TicketPage({ params }: TicketPageProps) {
     <BookingPageLayout
       eyebrow="Ticket"
       title={cancelled ? "This ticket is no longer valid." : "Your ticket"}
-      description={
-        cancelled
-          ? "This reservation is not confirmed, so it cannot be used to check in."
-          : "Show this at the door. Our staff will scan it to check you in."
-      }
     >
       <div className="space-y-8">
         {qr ? (
@@ -57,11 +52,7 @@ export default async function TicketPage({ params }: TicketPageProps) {
               <p className="mt-6 rounded-2xl bg-primary/10 px-4 py-3 text-center text-sm text-foreground">
                 Checked in at {checkedIn}
               </p>
-            ) : (
-              <p className="mt-6 text-center text-xs text-muted-foreground">
-                Screen brightness helps if the scan is slow.
-              </p>
-            )}
+            ) : null}
           </div>
         ) : null}
 

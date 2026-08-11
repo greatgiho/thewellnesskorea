@@ -54,10 +54,6 @@ export default async function CheckInPage({ params }: CheckInPageProps) {
         </div>
       ) : (
         <div className="mt-8 space-y-6">
-          <p className="text-sm leading-relaxed text-muted-foreground">
-            Only an admin or the partner teaching this class can check a guest
-            in. Sign in on this device, then scan the ticket again.
-          </p>
           {/* Details are shown before signing in on purpose: it tells whoever
               scanned an unfamiliar code what it was, and it is no more than the
               guest's own ticket already shows to anyone they hold it up to. */}

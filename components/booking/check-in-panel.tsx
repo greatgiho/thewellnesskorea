@@ -71,8 +71,7 @@ export function CheckInPanel({
       {notConfirmed ? (
         <p className="flex items-start gap-3 rounded-2xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-foreground">
           <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-          This booking is {ticket.status.replace("_", " ")}. It cannot be
-          checked in.
+          This booking is {ticket.status.replace("_", " ")}.
         </p>
       ) : checkedInAt ? (
         <div className="space-y-4">
@@ -93,7 +92,7 @@ export function CheckInPanel({
             )}
             <span>
               {duplicate
-                ? `Already checked in at ${timeOf(checkedInAt)}. This ticket has been used.`
+                ? `Already checked in at ${timeOf(checkedInAt)}.`
                 : `Checked in at ${timeOf(checkedInAt)}.`}
             </span>
           </p>

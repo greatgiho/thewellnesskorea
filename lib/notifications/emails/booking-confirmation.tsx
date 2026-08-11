@@ -71,15 +71,6 @@ export function BookingConfirmationEmail({
         )}
       </Section>
 
-      {ticketUrl ? (
-        <Section>
-          <Text style={styles.pMuted}>
-            Open this on your phone when you arrive — our staff will scan the
-            code to check you in.
-          </Text>
-        </Section>
-      ) : null}
-
       <Section>
         <Text style={{ ...styles.pMuted, marginTop: "16px" }}>
           Need to cancel?{" "}
@@ -89,7 +80,6 @@ export function BookingConfirmationEmail({
         </Text>
         {ticketUrl ? (
           <Text style={styles.pMuted}>
-            Looking for other classes?{" "}
             <Link href={scheduleUrl} style={styles.link}>
               Browse upcoming classes
             </Link>
