@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation"
+import { requireAdminSession } from "@/lib/auth/require-session"
 import { getBookingSummaryById } from "@/lib/bookings/queries"
 import { renderBookingConfirmationEmail } from "@/lib/notifications/email-templates"
 import { getCheckinTokenForBookingId } from "@/lib/bookings/checkin"
@@ -18,24 +19,20 @@ import { siteOrigin } from "@/lib/site-origin"
  * booking and no mail involved. The origin it prints is the one its links are
  * built from, which is the other thing that silently differs per environment.
  *
- * Same gate as /dev/redesign: always in local dev, in production only behind
- * ENABLE_DEV_REDESIGN. Real production leaves it unset and gets a 404.
+ * Admin-only, rather than behind ENABLE_DEV_REDESIGN like /dev/redesign. That
+ * flag is unset on the preview deployments, which is precisely where this needs
+ * to work — the first version of this page 404'd on the one environment it was
+ * built to answer questions about. A session is something every environment
+ * already has, and it makes the page safe on all of them.
  */
 export const dynamic = "force-dynamic"
-
-function enabled(): boolean {
-  return (
-    process.env.NODE_ENV !== "production" ||
-    process.env.ENABLE_DEV_REDESIGN === "true"
-  )
-}
 
 type Props = { searchParams: Promise<{ booking?: string }> }
 
 export default async function BookingConfirmationEmailPreview({
   searchParams,
 }: Props) {
-  if (!enabled()) notFound()
+  await requireAdminSession()
 
   const { booking: bookingId } = await searchParams
   if (!bookingId) {
