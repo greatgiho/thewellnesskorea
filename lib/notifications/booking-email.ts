@@ -1,8 +1,5 @@
 import { siteOrigin } from "@/lib/site-origin"
-import {
-  getCheckinTokenForBookingId,
-  ticketQrPngUrl,
-} from "@/lib/bookings/checkin"
+import { getCheckinTokenForBookingId } from "@/lib/bookings/checkin"
 import { formatBookingDateTime } from "@/lib/bookings/format"
 import type { BookingSummary } from "@/lib/bookings/queries"
 import { sendEmail } from "@/lib/notifications/email"
@@ -35,7 +32,6 @@ export async function sendBookingConfirmationEmail(
   // exists by now, so this is one read, not a new parameter on three paths.
   const checkinToken = await getCheckinTokenForBookingId(summary.bookingId)
   const ticketUrl = checkinToken ? `${siteOrigin()}/t/${checkinToken}` : null
-  const ticketQrUrl = checkinToken ? ticketQrPngUrl(checkinToken) : null
   const cancelUrl = `${siteOrigin()}/book/cancel/${cancelToken}`
   const scheduleUrl = `${siteOrigin()}/#schedule`
 
@@ -43,7 +39,6 @@ export async function sendBookingConfirmationEmail(
     guestName: summary.guestName,
     details: toSessionDetails(summary),
     ticketUrl,
-    ticketQrUrl,
     cancelUrl,
     scheduleUrl,
   })

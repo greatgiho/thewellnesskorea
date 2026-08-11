@@ -40,9 +40,6 @@ export function shouldBypassSiteAccess(
   // site-unlock cookie, so the whole-site gate must not intercept them.
   if (pathname.startsWith("/api/webhooks/")) return true
   if (pathname.startsWith("/api/cron/")) return true
-  // Ticket QR images, fetched by mail clients and their image proxies, which
-  // have no cookie to present. Behind a per-booking token; see the route.
-  if (pathname.startsWith("/api/tickets/")) return true
   return false
 }
 
