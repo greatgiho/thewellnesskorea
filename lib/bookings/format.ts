@@ -1,11 +1,15 @@
 import { formatScheduleDayHeading } from "@/lib/schedule/public-week"
-import { formatTimeInKst } from "@/lib/schedule/utils"
+import { formatDateKeyInKst, formatTimeInKst } from "@/lib/schedule/utils"
 
 export function formatBookingDateTime(
   startsAt: string,
   endsAt: string,
 ): { heading: string; timeRange: string } {
-  const dateKey = startsAt.slice(0, 10)
+  // The date has to be read in KST like the time is. Slicing the ISO string
+  // takes the UTC date, so an 08:00 KST class — stored as 23:00 the previous
+  // day in UTC — was labelled with yesterday's date next to today's time.
+  // Everything before 09:00 KST was wrong, on the ticket and in the email.
+  const dateKey = formatDateKeyInKst(new Date(startsAt))
   const start = formatTimeInKst(startsAt)
   const end = formatTimeInKst(endsAt)
   return {
