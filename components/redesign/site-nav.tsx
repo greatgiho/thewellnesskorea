@@ -128,7 +128,12 @@ export function SiteNav() {
           : "sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur-md"
       }
     >
-      <nav className="relative mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+      {/* Three columns, not a centred absolute block. The original centred the
+          links with position:absolute, which works only while the two ends stay
+          short: taken out of the layout, the middle cannot be pushed, so a
+          signed-in name simply lands on top of it. A grid keeps the links
+          centred and makes the columns share the width. */}
+      <nav className="mx-auto grid max-w-6xl grid-cols-[auto_1fr_auto] items-center gap-4 px-6 py-4">
         <Link
           href={onHome ? "#top" : "/"}
           className="flex items-center gap-2"
@@ -146,12 +151,14 @@ export function SiteNav() {
           </span>
         </Link>
 
-        <ul className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-8 lg:flex">
+        {/* Scrolls rather than overlaps if the ends ever outgrow the room —
+            the failure this replaces was silent, and a scrollbar is not. */}
+        <ul className="hide-scrollbar hidden min-w-0 items-center justify-center gap-8 overflow-x-auto lg:flex">
           {SECTION_LINKS.map((link) => (
             <li key={link.id}>
               <a
                 href={sectionHref(pathname, link.id)}
-                className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                className="whitespace-nowrap text-sm text-muted-foreground transition-colors hover:text-foreground"
               >
                 {link.label[lang]}
               </a>
@@ -160,22 +167,26 @@ export function SiteNav() {
           <li>
             <Link
               href="/journal"
-              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+              className="whitespace-nowrap text-sm text-muted-foreground transition-colors hover:text-foreground"
             >
               {lang === "ko" ? "저널" : "Journal"}
             </Link>
           </li>
         </ul>
 
-        <div className="hidden items-center gap-4 lg:flex">
+        <div className="hidden items-center justify-end gap-4 lg:flex">
           <LangToggle />
           {user ? (
             <>
+              {/* The name alone. "Welcome, " was roughly a nav link's worth of
+                  width spent saying nothing, and it is what tipped the bar over
+                  at common laptop widths. */}
               <Link
                 href="/u/bookings"
-                className="max-w-[10rem] truncate text-sm text-muted-foreground transition-colors hover:text-foreground"
+                className="max-w-[8rem] truncate text-sm text-muted-foreground transition-colors hover:text-foreground"
+                title={user.name}
               >
-                {lang === "ko" ? `${user.name} 님` : `Welcome, ${user.name}`}
+                {user.name}
               </Link>
               <button
                 type="button"
