@@ -6,7 +6,7 @@ import { getCheckinTokenForBookingId } from "@/lib/bookings/checkin"
 import { formatBookingDateTime } from "@/lib/bookings/format"
 import Link from "next/link"
 import { createServiceClient } from "@/lib/supabase/service"
-import { siteOrigin } from "@/lib/site-origin"
+import { deploymentOrigin } from "@/lib/site-origin"
 
 /**
  * The confirmation email, rendered in the browser instead of sent.
@@ -62,7 +62,7 @@ export default async function BookingConfirmationEmailPreview({
           Booking confirmation email
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Links built against <code className="text-foreground">{siteOrigin()}</code>
+          Links built against <code className="text-foreground">{deploymentOrigin()}</code>
         </p>
         <ul className="mt-8 divide-y divide-border border-y border-border">
           {rows.map((b) => {
@@ -106,9 +106,9 @@ export default async function BookingConfirmationEmailPreview({
       floorName: summary.floorName,
       instructorName: summary.instructorName,
     },
-    ticketUrl: checkinToken ? `${siteOrigin()}/t/${checkinToken}` : null,
-    cancelUrl: `${siteOrigin()}/book/cancel/CANCEL_TOKEN`,
-    scheduleUrl: `${siteOrigin()}/#upcoming`,
+    ticketUrl: checkinToken ? `${deploymentOrigin()}/t/${checkinToken}` : null,
+    cancelUrl: `${deploymentOrigin()}/book/cancel/CANCEL_TOKEN`,
+    scheduleUrl: `${deploymentOrigin()}/#upcoming`,
   })
 
   return (
@@ -118,7 +118,7 @@ export default async function BookingConfirmationEmailPreview({
       </h1>
       <dl className="mt-4 space-y-1 text-sm text-muted-foreground">
         <div>
-          origin <code className="text-foreground">{siteOrigin()}</code>
+          origin <code className="text-foreground">{deploymentOrigin()}</code>
         </div>
         <div>
           ticket{" "}

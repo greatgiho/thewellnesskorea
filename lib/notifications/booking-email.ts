@@ -1,4 +1,4 @@
-import { siteOrigin } from "@/lib/site-origin"
+import { deploymentOrigin } from "@/lib/site-origin"
 import { getCheckinTokenForBookingId } from "@/lib/bookings/checkin"
 import { formatBookingDateTime } from "@/lib/bookings/format"
 import type { BookingSummary } from "@/lib/bookings/queries"
@@ -31,9 +31,9 @@ export async function sendBookingConfirmationEmail(
   // which already carries a cancel token from a different place. The booking
   // exists by now, so this is one read, not a new parameter on three paths.
   const checkinToken = await getCheckinTokenForBookingId(summary.bookingId)
-  const ticketUrl = checkinToken ? `${siteOrigin()}/t/${checkinToken}` : null
-  const cancelUrl = `${siteOrigin()}/book/cancel/${cancelToken}`
-  const scheduleUrl = `${siteOrigin()}/#schedule`
+  const ticketUrl = checkinToken ? `${deploymentOrigin()}/t/${checkinToken}` : null
+  const cancelUrl = `${deploymentOrigin()}/book/cancel/${cancelToken}`
+  const scheduleUrl = `${deploymentOrigin()}/#schedule`
 
   const html = await renderBookingConfirmationEmail({
     guestName: summary.guestName,
@@ -54,7 +54,7 @@ export async function sendBookingConfirmationEmail(
 export async function sendBookingCancelledEmail(
   summary: BookingSummary,
 ): Promise<void> {
-  const scheduleUrl = `${siteOrigin()}/#schedule`
+  const scheduleUrl = `${deploymentOrigin()}/#schedule`
 
   const html = await renderBookingCancelledEmail({
     guestName: summary.guestName,

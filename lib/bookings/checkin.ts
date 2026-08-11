@@ -1,6 +1,6 @@
 import QRCode from "qrcode"
 import { createServiceClient } from "@/lib/supabase/service"
-import { siteOrigin } from "@/lib/site-origin"
+import { deploymentOrigin } from "@/lib/site-origin"
 import type { BookingStatus } from "./types"
 
 /**
@@ -96,12 +96,12 @@ export async function getTicketByToken(
 
 /** Where a scanned ticket sends whoever is holding the camera. */
 export function checkInUrl(token: string): string {
-  return `${siteOrigin()}/checkin/${token}`
+  return `${deploymentOrigin()}/checkin/${token}`
 }
 
 /** Where the holder reads their own ticket. */
 export function ticketUrl(token: string): string {
-  return `${siteOrigin()}/t/${token}`
+  return `${deploymentOrigin()}/t/${token}`
 }
 
 /**
