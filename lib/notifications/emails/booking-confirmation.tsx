@@ -5,6 +5,8 @@ import type { SessionDetails } from "../email-templates"
 export type BookingConfirmationEmailProps = {
   guestName: string
   details: SessionDetails
+  /** Null only if the ticket could not be read; the email still sends. */
+  ticketUrl: string | null
   cancelUrl: string
   scheduleUrl: string
 }
@@ -12,6 +14,7 @@ export type BookingConfirmationEmailProps = {
 export function BookingConfirmationEmail({
   guestName,
   details,
+  ticketUrl,
   cancelUrl,
   scheduleUrl,
 }: BookingConfirmationEmailProps) {
@@ -53,10 +56,21 @@ export function BookingConfirmationEmail({
         </table>
       </Section>
 
+      {/* The QR itself is not in here. Gmail strips inline SVG and blocks
+          data: URIs, so it would have to be a hosted image — which only shows
+          when the client agrees to load remote images, and is a broken icon
+          when it does not. A link that opens the code in a browser is the one
+          form that behaves the same everywhere. */}
       <Section style={{ margin: "24px 0" }}>
-        <Link href={scheduleUrl} style={styles.button}>
-          View Schedule
-        </Link>
+        {ticketUrl ? (
+          <Link href={ticketUrl} style={styles.button}>
+            Show My Ticket
+          </Link>
+        ) : (
+          <Link href={scheduleUrl} style={styles.button}>
+            Browse Upcoming Classes
+          </Link>
+        )}
       </Section>
 
       <Section>
@@ -66,6 +80,13 @@ export function BookingConfirmationEmail({
             Cancel this reservation
           </Link>
         </Text>
+        {ticketUrl ? (
+          <Text style={styles.pMuted}>
+            <Link href={scheduleUrl} style={styles.link}>
+              Browse upcoming classes
+            </Link>
+          </Text>
+        ) : null}
         <Text style={styles.pMuted}>
           We look forward to welcoming you at Brickwell, Seochon.
         </Text>

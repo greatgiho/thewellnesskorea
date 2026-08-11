@@ -27,6 +27,8 @@ export type MemberBookingItem = {
   floorName: string
   instructorName: string
   payment: MemberBookingPayment | null
+  /** Null once the booking is no longer a ticket (a hold that never paid). */
+  checkinToken: string | null
 }
 
 export async function getMemberBookingsForUser(
@@ -45,6 +47,7 @@ export async function getMemberBookingsForUser(
       id,
       status,
       guest_name,
+      checkin_token,
       session:sessions (${SESSION_SUMMARY_SELECT}),
       payments (
         status,
@@ -90,6 +93,8 @@ export async function getMemberBookingsForUser(
         sessionEndsAt: summary.endsAt,
         floorName: summary.floorName,
         instructorName: summary.instructorName,
+        checkinToken:
+          row.status === "confirmed" ? (row.checkin_token as string) : null,
         payment: pay
           ? {
               status: pay.status,

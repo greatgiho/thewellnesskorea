@@ -3,7 +3,9 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 import { BookingPageLayout } from "@/components/booking/booking-page-layout"
 import { BookingSessionSummary } from "@/components/booking/booking-session-summary"
+import { TicketQr } from "@/components/booking/ticket-qr"
 import { getBookingSummaryById } from "@/lib/bookings/queries"
+import { getCheckinTokenForBookingId } from "@/lib/bookings/checkin"
 import { getOptionalMemberSession } from "@/lib/auth/require-session"
 import { paymentMode } from "@/lib/payments/money"
 
@@ -30,6 +32,11 @@ export default async function BookConfirmPage({
   }
 
   const member = await getOptionalMemberSession()
+  // The ticket belongs here, not only in the email. A guest booking has no
+  // account to come back to, and the confirmation email is skipped outright
+  // when BREVO_API_KEY is unset — so without this there are environments where
+  // a guest can book and never reach their ticket at all.
+  const checkinToken = await getCheckinTokenForBookingId(bookingId)
 
   // Same three-way split as the booking form and /book/pay, so a free class
   // never reads as "pay on-site".
@@ -51,6 +58,18 @@ export default async function BookConfirmPage({
       description="We've sent a confirmation email with your class details and a link to cancel if needed."
     >
       <div className="space-y-8">
+        {checkinToken ? (
+          <div className="rounded-3xl border border-border bg-card p-6 sm:p-8">
+            <TicketQr token={checkinToken} />
+            <Link
+              href={`/t/${checkinToken}`}
+              className="mx-auto mt-6 flex w-fit rounded-full border border-border px-5 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
+            >
+              Open ticket
+            </Link>
+          </div>
+        ) : null}
+
         <BookingSessionSummary summary={summary} />
 
         <div className="rounded-3xl border border-border bg-secondary/20 px-6 py-8">
