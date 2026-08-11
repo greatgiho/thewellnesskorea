@@ -81,7 +81,7 @@ export function ChangePasswordForm({ email }: { email: string }) {
       ) : null}
       {state?.ok ? (
         <p className="rounded-xl border border-primary/30 bg-primary/10 px-4 py-3 text-sm text-foreground">
-          비밀번호를 바꿨습니다. 다음 로그인부터 새 비밀번호를 쓰세요.
+          비밀번호를 바꿨습니다.
         </p>
       ) : null}
 
