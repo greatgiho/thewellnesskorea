@@ -3,6 +3,7 @@
 import Image from "next/image"
 import Link from "next/link"
 import { useLang } from "@/components/redesign/language-provider"
+import { PeekRow } from "@/components/redesign/peek-row"
 import { Section, SectionHeader } from "@/components/redesign/primitives"
 import { InstagramIcon } from "@/components/icons/social-icons"
 import { instagramHandle } from "@/lib/partners/utils"
@@ -18,9 +19,14 @@ import type { PartnerCardData } from "@/lib/partners/types"
  *
  * Both groups live in one section, with #guides and #arts as anchor targets
  * inside it, so links written against the old homepage still land in the right
- * place. The old carousel is replaced by a plain grid: a horizontal scroller
- * hides most of the roster behind a gesture, and there are few enough people
- * that showing them all reads better.
+ * place.
+ *
+ * The layout went grid -> sideways-on-mobile -> here. The grid was chosen
+ * because the old carousel hid most of the roster behind a gesture with nothing
+ * on screen to suggest the gesture. That objection was right, and it is what
+ * PeekRow answers: the next card's edge stays visible, so the rest of the list
+ * announces itself. On a phone eleven guides stacked vertically is its own kind
+ * of hiding — nobody reaches the eleventh either.
  */
 const MAX_PER_GROUP = 8
 
@@ -59,7 +65,7 @@ function PersonGrid({
         {title}
       </h3>
 
-      <ul className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      <PeekRow cols="sm:grid-cols-2 lg:grid-cols-4" className="mt-6">
         {people.slice(0, MAX_PER_GROUP).map((person) => {
           const handle = instagramHandle(person.instagramUrl)
           return (
@@ -99,7 +105,7 @@ function PersonGrid({
             </li>
           )
         })}
-      </ul>
+      </PeekRow>
     </div>
   )
 }
