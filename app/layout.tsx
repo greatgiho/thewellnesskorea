@@ -9,6 +9,7 @@ import {
 } from 'next/font/google'
 import localFont from 'next/font/local'
 import './globals.css'
+import { metadataBase, socialMetadata } from '@/lib/seo/metadata'
 
 const cormorant = Cormorant_Garamond({
   variable: '--font-cormorant',
@@ -42,14 +43,24 @@ const gowunBatang = Gowun_Batang({
   preload: false,
 })
 
+const SITE_DESCRIPTION =
+  'A premium K-Wellness brand reinterpreting Korean meditation, tea, hospitality, and refined space into a contemporary way of living one\u2019s time well. The first stage: Brickwell, Seochon.'
+
 export const metadata: Metadata = {
-  title: 'The Wellness Korea — Live Your Time Fully',
-  description:
-    'A premium K-Wellness brand reinterpreting Korean meditation, tea, hospitality, and refined space into a contemporary way of living one\u2019s time well. The first stage: Brickwell, Seochon.',
+  // Every page's link preview resolves its image against this. Without it a
+  // root-relative og:image stays root-relative, which no scraper can fetch.
+  metadataBase: metadataBase(),
   applicationName: 'The Wellness Korea',
   appleWebApp: {
     title: 'Wellness Korea',
   },
+  // The default card. A page with its own picture overrides `images` in its
+  // generateMetadata; everything else inherits this one.
+  ...socialMetadata({
+    title: 'The Wellness Korea — Live Your Time Fully',
+    description: SITE_DESCRIPTION,
+    path: '/',
+  }),
 }
 
 export default function RootLayout({

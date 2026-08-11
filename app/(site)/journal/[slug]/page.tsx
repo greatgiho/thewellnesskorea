@@ -2,6 +2,8 @@ import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { JournalArticle } from "@/components/journal/journal-article"
 import { getPublishedJournalPostBySlug } from "@/lib/journal/queries"
+import { getJournalPhotoUrl } from "@/lib/journal/images"
+import { socialMetadata } from "@/lib/seo/metadata"
 import { getJournalPartnerTagsForPost } from "@/lib/journal/partners"
 
 type Props = {
@@ -16,10 +18,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     return { title: "Journal — The Wellness Korea" }
   }
 
-  return {
-    title: post.seo_title ?? `${post.title_en} — The Wellness Korea`,
+  return socialMetadata({
+    title: post.seo_title ?? post.title_en,
+    pageTitle: post.seo_title ?? `${post.title_en} — The Wellness Korea`,
     description: post.seo_description ?? post.excerpt_en,
-  }
+    image: getJournalPhotoUrl(post.hero_image_path),
+    path: `/journal/${slug}`,
+    type: "article",
+  })
 }
 
 export default async function JournalArticlePage({ params }: Props) {

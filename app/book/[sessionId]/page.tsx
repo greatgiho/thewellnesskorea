@@ -6,6 +6,9 @@ import { WaitlistForm } from "@/components/booking/waitlist-form"
 import { getOptionalMemberSession } from "@/lib/auth/require-session"
 import { isMemberAuthUser } from "@/lib/auth/member-email"
 import { getBookableSession } from "@/lib/bookings/queries"
+import { formatBookingDateTime } from "@/lib/bookings/format"
+import { getSessionPhotoUrl } from "@/lib/schedule/images"
+import { socialMetadata } from "@/lib/seo/metadata"
 import { getMemberProfileForUser } from "@/lib/bookings/member-queries"
 import { mapSessionToClassItem } from "@/lib/schedule/map-public-class"
 
@@ -21,10 +24,20 @@ export async function generateMetadata({
   if (!session) {
     return { title: "Book a class — The Wellness Korea" }
   }
-  return {
-    title: `Reserve ${session.title} — The Wellness Korea`,
-    description: "Reserve your place at Brickwell, Seochon.",
-  }
+  const { heading, timeRange } = formatBookingDateTime(
+    session.starts_at,
+    session.ends_at,
+  )
+
+  return socialMetadata({
+    title: session.title,
+    pageTitle: `Reserve ${session.title} — The Wellness Korea`,
+    // A shared class link is usually "let's go to this" — the date is the
+    // thing the other person needs before they can answer.
+    description: `${heading} · ${timeRange} · Brickwell, Seochon`,
+    image: getSessionPhotoUrl(session.image_paths?.[0]),
+    path: `/book/${sessionId}`,
+  })
 }
 
 export default async function BookSessionPage({ params }: BookSessionPageProps) {

@@ -2,6 +2,8 @@ import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { PartnerProfileView } from "@/components/partners/partner-profile-view"
 import { getPartnerBySlug } from "@/lib/partners/queries"
+import { getPartnerPhotoUrl } from "@/lib/partners/utils"
+import { socialMetadata } from "@/lib/seo/metadata"
 import { getRegionsForForms } from "@/lib/regions/queries"
 import { getUpcomingSessionsForInstructor } from "@/lib/schedule/queries"
 
@@ -17,10 +19,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     return { title: "Profile — The Wellness Korea" }
   }
 
-  return {
-    title: `${person.name_en} — The Wellness Korea`,
-    description: `${person.role_en}. ${person.role_ko}`,
-  }
+  // Name first in the card, because the card is what someone sees when the
+  // link is pasted into a chat — "RK_yoga — The Wellness Korea" reads as the
+  // site, not the person.
+  return socialMetadata({
+    title: person.name_en,
+    pageTitle: `${person.name_en} — The Wellness Korea`,
+    description: [person.role_en, person.role_ko].filter(Boolean).join(" · "),
+    image: getPartnerPhotoUrl(person.photo_path),
+    path: `/partners/${slug}`,
+    type: "profile",
+  })
 }
 
 export default async function PersonProfilePage({ params }: Props) {
