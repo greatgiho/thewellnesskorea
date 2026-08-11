@@ -19,6 +19,7 @@ export type BookingConfirmationData = {
   guestName: string
   details: SessionDetails
   ticketUrl: string | null
+  ticketQrUrl: string | null
   cancelUrl: string
   scheduleUrl: string
 }

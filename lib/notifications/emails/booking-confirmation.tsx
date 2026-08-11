@@ -1,4 +1,4 @@
-import { Link, Section, Text } from "@react-email/components"
+import { Img, Link, Section, Text } from "@react-email/components"
 import { BaseEmail, styles } from "./base"
 import type { SessionDetails } from "../email-templates"
 
@@ -7,6 +7,7 @@ export type BookingConfirmationEmailProps = {
   details: SessionDetails
   /** Null only if the ticket could not be read; the email still sends. */
   ticketUrl: string | null
+  ticketQrUrl: string | null
   cancelUrl: string
   scheduleUrl: string
 }
@@ -15,6 +16,7 @@ export function BookingConfirmationEmail({
   guestName,
   details,
   ticketUrl,
+  ticketQrUrl,
   cancelUrl,
   scheduleUrl,
 }: BookingConfirmationEmailProps) {
@@ -56,20 +58,41 @@ export function BookingConfirmationEmail({
         </table>
       </Section>
 
-      {/* The ticket is the primary action now — it is what gets you through
-          the door — so it takes the button and the schedule drops to a text
-          link below. */}
-      <Section style={{ margin: "24px 0" }}>
-        {ticketUrl ? (
-          <Link href={ticketUrl} style={styles.button}>
+      {/* The ticket is the email's reason to exist for a guest booking: there
+          is no account to come back to, so this is the copy they keep. The code
+          is here rather than only behind a link, because a link is not a ticket
+          when you are standing at a door with no signal. The button stays as
+          the fallback for clients that block remote images. */}
+      {ticketQrUrl && ticketUrl ? (
+        <Section style={{ margin: "24px 0", textAlign: "center" as const }}>
+          <Img
+            src={ticketQrUrl}
+            width="200"
+            height="200"
+            alt="Ticket QR code"
+            style={{
+              display: "block",
+              margin: "0 auto",
+              border: "1px solid #eee",
+              borderRadius: "8px",
+              backgroundColor: "#ffffff",
+              padding: "12px",
+            }}
+          />
+          <Link
+            href={ticketUrl}
+            style={{ ...styles.button, display: "inline-block", marginTop: "20px" }}
+          >
             Show My Ticket
           </Link>
-        ) : (
+        </Section>
+      ) : (
+        <Section style={{ margin: "24px 0" }}>
           <Link href={scheduleUrl} style={styles.button}>
             Browse Upcoming Classes
           </Link>
-        )}
-      </Section>
+        </Section>
+      )}
 
       <Section>
         <Text style={{ ...styles.pMuted, marginTop: "16px" }}>

@@ -99,6 +99,11 @@ export function checkInUrl(token: string): string {
   return `${siteOrigin()}/checkin/${token}`
 }
 
+/** The ticket QR as a PNG, for email. See the route for why email needs one. */
+export function ticketQrPngUrl(token: string): string {
+  return `${siteOrigin()}/api/tickets/${token}/qr.png`
+}
+
 /** Where the holder reads their own ticket. */
 export function ticketUrl(token: string): string {
   return `${siteOrigin()}/t/${token}`
