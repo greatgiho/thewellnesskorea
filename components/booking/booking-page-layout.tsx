@@ -1,6 +1,5 @@
 import type { ReactNode } from "react"
-import { Navbar } from "@/components/navbar"
-import { Footer } from "@/components/footer"
+import { PublicShell, PageHeader } from "@/components/redesign/public-shell"
 
 type BookingPageLayoutProps = {
   eyebrow: string
@@ -9,6 +8,14 @@ type BookingPageLayoutProps = {
   children: ReactNode
 }
 
+/**
+ * The frame around every step of the booking flow.
+ *
+ * The heading used to be a mono, wide-tracked eyebrow over a light serif title
+ * — its own idiom, predating the redesign. It now uses the same section header
+ * the homepage does, so arriving here from an Upcoming row does not cross a
+ * visual seam mid-booking.
+ */
 export function BookingPageLayout({
   eyebrow,
   title,
@@ -16,25 +23,11 @@ export function BookingPageLayout({
   children,
 }: BookingPageLayoutProps) {
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      {/* Spacer for the fixed 65px navbar. */}
-      <div aria-hidden className="h-[65px]" />
-      <main className="mx-auto max-w-3xl px-6 py-14 lg:py-20">
-        <p className="font-mono text-xs uppercase tracking-[0.35em] text-primary">
-          {eyebrow}
-        </p>
-        <h1 className="mt-4 font-serif text-4xl font-light text-foreground sm:text-5xl">
-          {title}
-        </h1>
-        {description ? (
-          <p className="mt-4 text-pretty leading-relaxed text-muted-foreground">
-            {description}
-          </p>
-        ) : null}
-        <div className="mt-10">{children}</div>
+    <PublicShell>
+      <PageHeader eyebrow={eyebrow} title={title} description={description} />
+      <main className="mx-auto max-w-3xl px-6 pb-20 pt-10 lg:pb-28">
+        {children}
       </main>
-      <Footer />
-    </div>
+    </PublicShell>
   )
 }

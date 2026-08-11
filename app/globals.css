@@ -2,6 +2,11 @@
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
 
+/* design-reference holds design originals that are read, never built. Tailwind
+   v4 detects content automatically, so without this it harvests class names
+   from a second, standalone project and ships them in our stylesheet. */
+@source not "../design-reference";
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -83,6 +88,9 @@
   --sidebar-accent-foreground: oklch(0.43 0.04 155);
   --sidebar-border: oklch(0.88 0.014 90);
   --sidebar-ring: oklch(0.43 0.04 155);
+  /* Alias for v0-sourced redesign components (components/redesign/*), which
+     reference var(--sage) directly instead of the --primary token. */
+  --sage: var(--primary);
 }
 
 .dark {

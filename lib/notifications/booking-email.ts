@@ -33,7 +33,9 @@ export async function sendBookingConfirmationEmail(
   const checkinToken = await getCheckinTokenForBookingId(summary.bookingId)
   const ticketUrl = checkinToken ? `${deploymentOrigin()}/t/${checkinToken}` : null
   const cancelUrl = `${deploymentOrigin()}/book/cancel/${cancelToken}`
-  const scheduleUrl = `${deploymentOrigin()}/#schedule`
+  // #upcoming, not #schedule: this branch replaces the homepage, and the
+  // schedule section is not on the new one.
+  const scheduleUrl = `${deploymentOrigin()}/#upcoming`
 
   const html = await renderBookingConfirmationEmail({
     guestName: summary.guestName,
@@ -54,7 +56,7 @@ export async function sendBookingConfirmationEmail(
 export async function sendBookingCancelledEmail(
   summary: BookingSummary,
 ): Promise<void> {
-  const scheduleUrl = `${deploymentOrigin()}/#schedule`
+  const scheduleUrl = `${deploymentOrigin()}/#upcoming`
 
   const html = await renderBookingCancelledEmail({
     guestName: summary.guestName,
