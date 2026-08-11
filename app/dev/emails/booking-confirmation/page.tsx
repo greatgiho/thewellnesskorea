@@ -4,6 +4,8 @@ import { getBookingSummaryById } from "@/lib/bookings/queries"
 import { renderBookingConfirmationEmail } from "@/lib/notifications/email-templates"
 import { getCheckinTokenForBookingId } from "@/lib/bookings/checkin"
 import { formatBookingDateTime } from "@/lib/bookings/format"
+import Link from "next/link"
+import { createServiceClient } from "@/lib/supabase/service"
 import { siteOrigin } from "@/lib/site-origin"
 
 /**
@@ -36,18 +38,52 @@ export default async function BookingConfirmationEmailPreview({
 
   const { booking: bookingId } = await searchParams
   if (!bookingId) {
+    // Listed rather than asking for an id. Nobody knows a booking id, and
+    // looking one up in the database to see an email is a worse errand than
+    // the one this page exists to remove.
+    const { data } = await createServiceClient()
+      .from("bookings")
+      .select("id, guest_name, guest_email, created_at, session:sessions (title)")
+      .eq("status", "confirmed")
+      .order("created_at", { ascending: false })
+      .limit(15)
+
+    const rows = (data ?? []) as unknown as {
+      id: string
+      guest_name: string
+      guest_email: string
+      created_at: string
+      session: { title: string } | { title: string }[] | null
+    }[]
+
     return (
-      <main className="mx-auto max-w-2xl px-6 py-12">
+      <main className="mx-auto max-w-3xl px-6 py-12">
         <h1 className="font-serif text-2xl text-foreground">
           Booking confirmation email
         </h1>
-        <p className="mt-3 text-sm text-muted-foreground">
-          Add <code>?booking=&lt;booking id&gt;</code> to see what this
-          deployment would send.
+        <p className="mt-2 text-sm text-muted-foreground">
+          Links built against <code className="text-foreground">{siteOrigin()}</code>
         </p>
-        <p className="mt-6 text-sm text-muted-foreground">
-          Origin used for links: <code>{siteOrigin()}</code>
-        </p>
+        <ul className="mt-8 divide-y divide-border border-y border-border">
+          {rows.map((b) => {
+            const session = Array.isArray(b.session) ? b.session[0] : b.session
+            return (
+              <li key={b.id}>
+                <Link
+                  href={`/dev/emails/booking-confirmation?booking=${b.id}`}
+                  className="block py-3 transition-colors hover:bg-secondary/40"
+                >
+                  <span className="text-sm text-foreground">
+                    {b.guest_name} · {session?.title ?? "—"}
+                  </span>
+                  <span className="ml-2 text-xs text-muted-foreground">
+                    {b.guest_email} · {b.created_at.slice(0, 16).replace("T", " ")}
+                  </span>
+                </Link>
+              </li>
+            )
+          })}
+        </ul>
       </main>
     )
   }
