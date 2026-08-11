@@ -11,6 +11,40 @@ function parseSender(raw: string): { email: string; name?: string } {
 }
 
 /**
+ * The mailbox an address actually reaches, for comparison only.
+ *
+ * Testing a booking flow means booking repeatedly, and the same address cannot
+ * be reused, so the addresses in play are ikim+hv@, ikim+jkv@, and however many
+ * more get invented next. They all land in one inbox. Matching them literally
+ * would mean adding each one to the allowlist before it can be used, which
+ * defeats the point of plus-addressing entirely.
+ *
+ * Stripping the +tag cannot widen who is reachable: mail to name+anything@ goes
+ * to whoever owns name@, so if that mailbox is listed, its tags are already the
+ * same person. Gmail also ignores dots in the local part, so those go too — but
+ * only for Gmail, where it is true.
+ *
+ * Used to compare, never to send. The recipient keeps the address as written.
+ *
+ * Exported for its tests. This is the piece where a mistake is silent — too
+ * loose and a real customer receives a test mail, too strict and nothing
+ * arrives and the guard looks broken.
+ */
+export function canonicalAddress(email: string): string {
+  const trimmed = email.trim().toLowerCase()
+  const at = trimmed.lastIndexOf("@")
+  if (at < 1) return trimmed
+
+  const local = trimmed.slice(0, at).split("+")[0]
+  const domain = trimmed.slice(at + 1)
+  const canonicalDomain = domain === "googlemail.com" ? "gmail.com" : domain
+  const canonicalLocal =
+    canonicalDomain === "gmail.com" ? local.replace(/\./g, "") : local
+
+  return `${canonicalLocal}@${canonicalDomain}`
+}
+
+/**
  * Recipients this environment is allowed to mail, if it is restricted.
  *
  * The dev clone is a copy of production, real addresses and all, and it is
@@ -27,7 +61,7 @@ function parseSender(raw: string): { email: string; name?: string } {
  *
  * If mail ever goes missing, the skip is logged with the variable's name in it.
  */
-function allowedRecipients(
+export function allowedRecipients(
   emails: string[],
   context: string,
 ): string[] {
@@ -40,11 +74,8 @@ function allowedRecipients(
     return []
   }
 
-  const allowed = raw
-    .split(",")
-    .map((e) => e.trim().toLowerCase())
-    .filter(Boolean)
-  const kept = emails.filter((e) => allowed.includes(e.trim().toLowerCase()))
+  const allowed = raw.split(",").map(canonicalAddress).filter(Boolean)
+  const kept = emails.filter((e) => allowed.includes(canonicalAddress(e)))
   const dropped = emails.filter((e) => !kept.includes(e))
 
   if (dropped.length > 0) {
