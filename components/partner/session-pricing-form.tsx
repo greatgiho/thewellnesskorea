@@ -35,6 +35,17 @@ export function SessionPricingForm({
     [input],
   )
 
+  const childPreview = useMemo(
+    () =>
+      input.childPriceAmount === null
+        ? null
+        : applyDiscount(
+            money(input.priceCurrency, input.childPriceAmount),
+            discountFrom(input.discountType, input.discountValue),
+          ),
+    [input],
+  )
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
@@ -75,6 +86,28 @@ export function SessionPricingForm({
           0원이면 무료 수업입니다. USD는 온라인 카드 결제, 그 외 통화는 현장
           결제로 진행됩니다.
         </span>
+      </label>
+
+      <label className="block space-y-1">
+        <span className="text-sm font-medium">아동 요금</span>
+        <input
+          type="number"
+          min={0}
+          step={input.priceCurrency === "KRW" ? 1000 : 1}
+          className={FIELD}
+          placeholder="비워두면 아동 요금 없음"
+          value={input.childPriceAmount ?? ""}
+          onChange={(e) =>
+            // Blank and 0 mean different things: blank hides the child option
+            // from the booking form, 0 lets children book free.
+            set(
+              "childPriceAmount",
+              e.target.value === ""
+                ? null
+                : Math.max(0, Number(e.target.value) || 0),
+            )
+          }
+        />
       </label>
 
       <label className="block space-y-1">
@@ -123,6 +156,11 @@ export function SessionPricingForm({
         <p className="mt-2 text-lg">
           <PriceTag priced={preview} />
         </p>
+        {childPreview ? (
+          <p className="mt-1 text-sm">
+            아동 <PriceTag priced={childPreview} />
+          </p>
+        ) : null}
         <p className="mt-2 text-xs text-muted-foreground">
           쿠폰이 이보다 유리하면 쿠폰이, 아니면 이 가격이 적용됩니다. 둘이
           겹쳐서 깎이지는 않습니다.

@@ -28,6 +28,16 @@ export function validateDiscount(input: SessionFormInput): void {
   if (discount_type === "fixed" && discount_value > input.price_amount) {
     throw new UserFacingError("A fixed discount cannot exceed the price.")
   }
+  // The child rate is a second price the same discount comes off, so it needs
+  // the same floor — otherwise a discount sized for the adult price wipes out
+  // the smaller one and children book free by accident.
+  if (
+    discount_type === "fixed" &&
+    input.child_price_amount !== null &&
+    discount_value > input.child_price_amount
+  ) {
+    throw new UserFacingError("A fixed discount cannot exceed the child price.")
+  }
 }
 
 export function validateSessionInput(input: SessionFormInput): {
@@ -37,6 +47,9 @@ export function validateSessionInput(input: SessionFormInput): {
   if (!input.title.trim()) throw new UserFacingError("Session title is required.")
   if (input.capacity <= 0) throw new UserFacingError("Capacity must be greater than 0.")
   if (input.price_amount < 0) throw new UserFacingError("Price cannot be negative.")
+  if (input.child_price_amount !== null && input.child_price_amount < 0) {
+    throw new UserFacingError("Child price cannot be negative.")
+  }
   validateDiscount(input)
   if (input.path_keys.length === 0) {
     throw new UserFacingError("Select at least one philosophy path.")

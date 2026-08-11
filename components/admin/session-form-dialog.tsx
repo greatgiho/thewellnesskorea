@@ -55,6 +55,7 @@ export function SessionFormDialog({
     startOptions,
     endOptions,
     discountPreview,
+    childPreview,
     readOnly,
     onProgramChange,
     onSubmit,
@@ -351,6 +352,30 @@ export function SessionFormDialog({
               </p>
             </label>
 
+            <label className="block space-y-1.5">
+              <span className="text-sm font-medium">Child price</span>
+              <input
+                type="number"
+                min={0}
+                step={input.price_currency === "KRW" ? 1000 : 1}
+                className={fieldClass}
+                placeholder="없음 — 아동 요금 미적용"
+                value={input.child_price_amount ?? ""}
+                onChange={(e) =>
+                  setInput((v) => ({
+                    ...v,
+                    // Empty is not zero: blank means the class has no child
+                    // rate and the booking form shows no child option, while 0
+                    // means children attend free.
+                    child_price_amount:
+                      e.target.value === ""
+                        ? null
+                        : Math.max(0, Number(e.target.value) || 0),
+                  }))
+                }
+              />
+            </label>
+
             <label className="block space-y-1">
               <span className="text-sm font-medium">Discount</span>
               <div className="flex gap-2">
@@ -403,6 +428,11 @@ export function SessionFormDialog({
                   정률은 1–100%, 정액은 정가 이하. 100% 할인은 무료 수업이 됩니다.
                 </p>
               )}
+              {childPreview ? (
+                <p className="text-xs text-muted-foreground">
+                  아동: <PriceTag priced={childPreview} />
+                </p>
+              ) : null}
             </label>
 
             {session ? (

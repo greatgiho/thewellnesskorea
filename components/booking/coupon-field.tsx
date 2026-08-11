@@ -1,7 +1,8 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useEffect, useState, useTransition } from "react"
 import { previewCoupon, type CouponPreview } from "@/app/book/actions"
+import type { AttendeeType } from "@/lib/payments/money"
 import { FIELD_PUBLIC } from "@/lib/ui/field"
 import { cn } from "@/lib/utils"
 
@@ -16,15 +17,22 @@ import { cn } from "@/lib/utils"
 export function CouponField({
   sessionId,
   email,
+  attendeeType,
   disabled,
 }: {
   sessionId: string
   email: string
+  attendeeType: AttendeeType
   disabled?: boolean
 }) {
   const [code, setCode] = useState("")
   const [result, setResult] = useState<CouponPreview | null>(null)
   const [pending, startTransition] = useTransition()
+
+  // A verdict is priced against one rate. Switching between the adult and the
+  // child ticket makes the amount on screen wrong, so it is dropped rather
+  // than left to be read as the new total.
+  useEffect(() => setResult(null), [attendeeType])
 
   const check = () => {
     const trimmed = code.trim()
@@ -33,7 +41,7 @@ export function CouponField({
       return
     }
     startTransition(async () => {
-      setResult(await previewCoupon(sessionId, trimmed, email))
+      setResult(await previewCoupon(sessionId, trimmed, email, attendeeType))
     })
   }
 

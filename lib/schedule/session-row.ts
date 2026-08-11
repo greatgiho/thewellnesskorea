@@ -35,6 +35,7 @@ export function sessionRowFromInput(
     capacity: input.capacity,
     price_currency: input.price_currency,
     price_amount: input.price_amount,
+    child_price_amount: input.child_price_amount,
     discount_type: input.discount_type,
     discount_value: input.discount_value,
     is_published: input.status === "confirmed" ? input.is_published : false,

@@ -7,6 +7,7 @@ import {
   roundMoney,
   toPaypalAmount,
   applyDiscount,
+  basePriceFor,
   discountFrom,
   isDiscounted,
 } from "@/lib/payments/money"
@@ -128,5 +129,38 @@ describe("discountFrom", () => {
 
   it("coerces PostgREST numeric strings", () => {
     expect(discountFrom("fixed", "12.50")).toEqual({ type: "fixed", value: 12.5 })
+  })
+})
+
+describe("basePriceFor", () => {
+  it("charges the child rate to a child", () => {
+    expect(basePriceFor("KRW", 30000, 15000, "child")).toEqual({
+      currency: "KRW",
+      amount: 15000,
+    })
+  })
+
+  it("leaves an adult on the adult rate even when a child rate exists", () => {
+    expect(basePriceFor("KRW", 30000, 15000, "adult").amount).toBe(30000)
+  })
+
+  it("treats a zero child rate as free rather than absent", () => {
+    // The distinction the null column exists for: 0 is a price, null is the
+    // absence of one.
+    expect(basePriceFor("KRW", 30000, 0, "child").amount).toBe(0)
+  })
+
+  it("falls back to the adult rate when the class has no child rate", () => {
+    // The booking RPCs refuse a child ticket on such a class outright; this
+    // only guards a screen asking what a child would pay.
+    expect(basePriceFor("KRW", 30000, null, "child").amount).toBe(30000)
+  })
+
+  it("applies the session discount to whichever rate was chosen", () => {
+    const discount = discountFrom("percent", 50)
+    expect(
+      applyDiscount(basePriceFor("KRW", 30000, 15000, "child"), discount).final
+        .amount,
+    ).toBe(7500)
   })
 })

@@ -49,6 +49,29 @@ export function roundMoney(m: Money): Money {
   return { currency: m.currency, amount: rounded / factor }
 }
 
+export type AttendeeType = "adult" | "child"
+
+/**
+ * The list price for one attendee type, before any discount.
+ *
+ * Mirrors session_base_price() in the database, which is what the booking
+ * transaction actually charges from. A class with no child rate has
+ * `childAmount` null, and a child ticket then costs what an adult one does —
+ * the booking RPCs refuse a child ticket on such a class outright, so this
+ * fallback is only ever reached by a screen asking a hypothetical question.
+ */
+export function basePriceFor(
+  currency: string | null | undefined,
+  amount: number | string | null | undefined,
+  childAmount: number | string | null | undefined,
+  attendeeType: AttendeeType,
+): Money {
+  if (attendeeType === "child" && childAmount != null) {
+    return money(currency, childAmount)
+  }
+  return money(currency, amount)
+}
+
 export type DiscountType = "fixed" | "percent"
 export type Discount = { type: DiscountType; value: number }
 

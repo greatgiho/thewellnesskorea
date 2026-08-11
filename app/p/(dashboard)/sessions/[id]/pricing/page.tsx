@@ -17,6 +17,7 @@ type Row = {
   booked_count: number
   price_currency: "KRW" | "USD"
   price_amount: number
+  child_price_amount: number | null
   discount_type: "fixed" | "percent" | null
   discount_value: number | null
 }
@@ -28,7 +29,7 @@ export default async function SessionPricingPage({ params }: Props) {
   const { data } = await supabase
     .from("sessions")
     .select(
-      "id, title, starts_at, ends_at, booked_count, price_currency, price_amount, discount_type, discount_value",
+      "id, title, starts_at, ends_at, booked_count, price_currency, price_amount, child_price_amount, discount_type, discount_value",
     )
     .eq("id", id)
     .eq("instructor_id", partner.id)
@@ -65,6 +66,10 @@ export default async function SessionPricingPage({ params }: Props) {
         initial={{
           priceCurrency: session.price_currency ?? "USD",
           priceAmount: Number(session.price_amount ?? 0),
+          childPriceAmount:
+            session.child_price_amount != null
+              ? Number(session.child_price_amount)
+              : null,
           discountType: session.discount_type,
           discountValue:
             session.discount_value != null ? Number(session.discount_value) : null,

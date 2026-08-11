@@ -37,6 +37,8 @@ export type SessionRow = {
   booked_count: number
   price_currency: Currency
   price_amount: number
+  /** Null = this class has no child rate. 0 = children attend free. */
+  child_price_amount: number | null
   discount_type: "fixed" | "percent" | null
   discount_value: number | null
   is_published: boolean
@@ -79,6 +81,7 @@ export type SessionFormInput = {
   capacity: number
   price_currency: Currency
   price_amount: number
+  child_price_amount: number | null
   discount_type: "fixed" | "percent" | null
   discount_value: number | null
   is_published: boolean

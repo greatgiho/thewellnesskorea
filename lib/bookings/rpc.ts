@@ -17,6 +17,7 @@ export async function createBookingRpc(
     p_guest_phone: input.guestPhone?.trim() || null,
     p_user_id: input.userId ?? null,
     p_coupon_code: input.couponCode?.trim() || null,
+    p_attendee_type: input.attendeeType ?? "adult",
   })
 
   if (error) {

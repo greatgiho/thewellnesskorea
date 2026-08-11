@@ -6,7 +6,7 @@ import {
   type SessionSummaryRelation,
 } from "./session-summary"
 import { kstDayRange } from "@/lib/schedule/utils"
-import type { BookingStatus } from "./types"
+import type { AttendeeType, BookingStatus } from "./types"
 
 // ---------------------------------------------------------------------------
 // Session-grouped types (for new Bookings admin UI)
@@ -47,6 +47,7 @@ export type AdminBookingItem = {
   guestName: string
   guestEmail: string
   guestPhone: string | null
+  attendeeType: AttendeeType
   status: BookingStatus
   cancelledAt: string | null
   createdAt: string
@@ -67,6 +68,7 @@ type BookingQueryRow = {
   guest_name: string
   guest_email: string
   guest_phone: string | null
+  attendee_type: AttendeeType
   status: BookingStatus
   cancelled_at: string | null
   created_at: string
@@ -81,6 +83,7 @@ const BOOKING_WITH_SESSION = `
   guest_name,
   guest_email,
   guest_phone,
+  attendee_type,
   status,
   cancelled_at,
   created_at,
@@ -121,6 +124,7 @@ function mapAdminBookingRow(row: BookingQueryRow): AdminBookingItem | null {
     guestName: row.guest_name,
     guestEmail: row.guest_email,
     guestPhone: row.guest_phone,
+    attendeeType: row.attendee_type,
     status: row.status,
     cancelledAt: row.cancelled_at,
     createdAt: row.created_at,

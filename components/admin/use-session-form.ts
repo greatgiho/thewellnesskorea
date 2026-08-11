@@ -57,6 +57,7 @@ export const defaultInput = (
   capacity: 12,
   price_currency: "USD",
   price_amount: 0,
+  child_price_amount: null,
   discount_type: null,
   discount_value: null,
   is_published: false,
@@ -128,6 +129,10 @@ export function useSessionForm({
         capacity: session.capacity,
         price_currency: session.price_currency ?? "USD",
         price_amount: Number(session.price_amount ?? 0),
+        child_price_amount:
+          session.child_price_amount != null
+            ? Number(session.child_price_amount)
+            : null,
         discount_type: session.discount_type ?? null,
         discount_value: session.discount_value != null ? Number(session.discount_value) : null,
         is_published: session.is_published,
@@ -157,6 +162,21 @@ export function useSessionForm({
     if (!discount) return null
     return applyDiscount(money(input.price_currency, input.price_amount), discount)
   }, [input.discount_type, input.discount_value, input.price_currency, input.price_amount])
+
+  // The same discount comes off the child rate, so it needs its own line: the
+  // adult preview says nothing about what a child ends up paying.
+  const childPreview = useMemo(() => {
+    if (input.child_price_amount === null) return null
+    return applyDiscount(
+      money(input.price_currency, input.child_price_amount),
+      discountFrom(input.discount_type, input.discount_value),
+    )
+  }, [
+    input.child_price_amount,
+    input.discount_type,
+    input.discount_value,
+    input.price_currency,
+  ])
 
   const selectedInstructor = partners.find((p) => p.id === input.instructor_id)
   const programs = selectedInstructor?.programs ?? []
@@ -327,6 +347,7 @@ export function useSessionForm({
     startOptions,
     endOptions,
     discountPreview,
+    childPreview,
     readOnly,
     // handlers
     onProgramChange,
