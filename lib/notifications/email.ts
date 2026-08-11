@@ -19,10 +19,17 @@ function parseSender(raw: string): { email: string; name?: string } {
  * would mean adding each one to the allowlist before it can be used, which
  * defeats the point of plus-addressing entirely.
  *
- * Stripping the +tag cannot widen who is reachable: mail to name+anything@ goes
- * to whoever owns name@, so if that mailbox is listed, its tags are already the
- * same person. Gmail also ignores dots in the local part, so those go too — but
- * only for Gmail, where it is true.
+ * Only the +tag. Mail to name+anything@ goes to whoever owns name@, so if that
+ * mailbox is listed, its tags are already the same person — stripping the tag
+ * cannot widen who is reachable.
+ *
+ * Dots are deliberately left alone. Gmail ignores them, and so does every
+ * Google Workspace domain — which is most of the addresses here, and is not
+ * something the domain name tells you. Guessing from the domain gets Workspace
+ * wrong, and guessing the other way would strip dots at providers where they
+ * separate two different people. An allowlist that is too strict fails to send;
+ * one that is too loose sends to a stranger. Nobody tests with dot variants
+ * anyway.
  *
  * Used to compare, never to send. The recipient keeps the address as written.
  *
@@ -37,11 +44,8 @@ export function canonicalAddress(email: string): string {
 
   const local = trimmed.slice(0, at).split("+")[0]
   const domain = trimmed.slice(at + 1)
-  const canonicalDomain = domain === "googlemail.com" ? "gmail.com" : domain
-  const canonicalLocal =
-    canonicalDomain === "gmail.com" ? local.replace(/\./g, "") : local
 
-  return `${canonicalLocal}@${canonicalDomain}`
+  return `${local}@${domain}`
 }
 
 /**

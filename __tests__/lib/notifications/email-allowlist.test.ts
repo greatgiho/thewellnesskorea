@@ -18,11 +18,19 @@ describe("canonicalAddress", () => {
     expect(canonicalAddress("  IKIM+X@Humantrust.One ")).toBe("ikim@humantrust.one")
   })
 
-  it("drops dots only for Gmail, where they are not significant", () => {
-    expect(canonicalAddress("great.kit@gmail.com")).toBe("greatkit@gmail.com")
-    expect(canonicalAddress("greatkit+t@googlemail.com")).toBe("greatkit@gmail.com")
-    // Everywhere else a dot is part of the name and two different people.
+  it("leaves dots alone, on every domain", () => {
+    // Gmail ignores dots, and so does every Google Workspace domain — which
+    // the domain name does not tell you. Guessing gets Workspace wrong one way
+    // and, at providers where a dot separates two people, sends to a stranger
+    // the other. Too strict only fails to send.
+    expect(canonicalAddress("great.kit@gmail.com")).toBe("great.kit@gmail.com")
     expect(canonicalAddress("great.kit@humantrust.one")).toBe("great.kit@humantrust.one")
+  })
+
+  it("strips the tag whatever the domain", () => {
+    expect(canonicalAddress("a+1@gmail.com")).toBe("a@gmail.com")
+    expect(canonicalAddress("a+1@humantrust.one")).toBe("a@humantrust.one")
+    expect(canonicalAddress("a+1@naver.com")).toBe("a@naver.com")
   })
 
   it("leaves something that is not an address alone", () => {
@@ -60,9 +68,19 @@ describe("allowedRecipients", () => {
 
   it("mails the address as written, not the canonical form", () => {
     process.env.EMAIL_ALLOWLIST = "greatkit@gmail.com"
-    expect(allowedRecipients(["great.kit+x@gmail.com"], "test")).toEqual([
-      "great.kit+x@gmail.com",
+    expect(allowedRecipients(["greatkit+x@gmail.com"], "test")).toEqual([
+      "greatkit+x@gmail.com",
     ])
+  })
+
+  it("covers the addresses actually used for testing", () => {
+    process.env.EMAIL_ALLOWLIST = "ikim@humantrust.one"
+    expect(
+      allowedRecipients(
+        ["ikim+74@humantrust.one", "ikim+hv@humantrust.one", "ikim@humantrust.one"],
+        "test",
+      ),
+    ).toHaveLength(3)
   })
 
   it("sends to nobody rather than everybody when nothing matches", () => {
