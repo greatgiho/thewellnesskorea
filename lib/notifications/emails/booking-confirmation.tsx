@@ -5,6 +5,7 @@ import type { SessionDetails } from "../email-templates"
 export type BookingConfirmationEmailProps = {
   guestName: string
   details: SessionDetails
+  party: string
   /** Null only if the ticket could not be read; the email still sends. */
   ticketUrl: string | null
   cancelUrl: string
@@ -14,6 +15,7 @@ export type BookingConfirmationEmailProps = {
 export function BookingConfirmationEmail({
   guestName,
   details,
+  party,
   ticketUrl,
   cancelUrl,
   scheduleUrl,
@@ -47,10 +49,18 @@ export function BookingConfirmationEmail({
               <td style={styles.value}>{details.floorName}</td>
             </tr>
             <tr>
-              <td style={{ ...styles.label, borderBottom: "none" }}>Guide</td>
-              <td style={{ ...styles.value, borderBottom: "none" }}>
-                {details.instructorName}
+              <td style={styles.label}>Guide</td>
+              <td style={styles.value}>{details.instructorName}</td>
+            </tr>
+            {/* One ticket can admit several people, so the email has to say
+                how many — it is the record the booker checks before arriving
+                with the rest of them. Omitted for a single adult, which is
+                what "no row" already means. */}
+            <tr>
+              <td style={{ ...styles.label, borderBottom: "none" }}>
+                {party ? "Party" : ""}
               </td>
+              <td style={{ ...styles.value, borderBottom: "none" }}>{party}</td>
             </tr>
           </tbody>
         </table>

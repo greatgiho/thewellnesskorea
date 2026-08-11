@@ -17,6 +17,9 @@ export type BookingSummary = {
   sessionId: string
   guestName: string
   guestEmail: string
+  adultCount: number
+  childCount: number
+  partySize: number
   status: BookingStatus
   sessionTitle: string
   sessionStartsAt: string
@@ -67,6 +70,8 @@ function toBookingSummary(
     session_id: string
     guest_name: string
     guest_email: string
+    adult_count: number
+    child_count: number
     status: BookingStatus
     session: SessionSummaryRelation
   },
@@ -79,6 +84,9 @@ function toBookingSummary(
     sessionId: row.session_id,
     guestName: row.guest_name,
     guestEmail: row.guest_email,
+    adultCount: row.adult_count,
+    childCount: row.child_count,
+    partySize: row.adult_count + row.child_count,
     status: row.status,
     sessionTitle: summary.title,
     sessionStartsAt: summary.startsAt,
@@ -102,6 +110,8 @@ export async function getBookingSummaryById(
       session_id,
       guest_name,
       guest_email,
+      adult_count,
+      child_count,
       status,
       session:sessions (${SESSION_SUMMARY_SELECT})
     `,
@@ -126,6 +136,8 @@ export async function getBookingSummaryByCancelToken(
       session_id,
       guest_name,
       guest_email,
+      adult_count,
+      child_count,
       status,
       session:sessions (${SESSION_SUMMARY_SELECT})
     `,

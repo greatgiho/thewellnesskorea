@@ -4,6 +4,7 @@ import { useState, useTransition } from "react"
 import { CheckCircle2, AlertTriangle, RotateCcw } from "lucide-react"
 import { checkInByToken, undoCheckIn } from "@/app/checkin/[token]/actions"
 import { TicketDetails } from "@/components/booking/ticket-details"
+import { PartyAdmits } from "@/components/booking/party-admits"
 import { formatBookingDateTime } from "@/lib/bookings/format"
 import type { TicketSummary } from "@/lib/bookings/checkin"
 
@@ -107,14 +108,32 @@ export function CheckInPanel({
           </button>
         </div>
       ) : (
-        <button
-          type="button"
-          onClick={runCheckIn}
-          disabled={pending}
-          className="w-full rounded-full bg-primary px-6 py-4 text-base font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-60"
-        >
-          {pending ? "Checking in…" : "Check in"}
-        </button>
+        <>
+          {/* Repeated here, next to the button, when it is more than one
+              person. The details above are read while comparing faces; this is
+              read in the instant before admitting them. */}
+          {ticket.partySize > 1 ? (
+            <p className="flex items-center justify-between gap-4 rounded-2xl border border-primary/30 bg-primary/10 px-5 py-4">
+              <span className="text-sm text-muted-foreground">Admitting</span>
+              <PartyAdmits
+                adults={ticket.adultCount}
+                children={ticket.childCount}
+              />
+            </p>
+          ) : null}
+          <button
+            type="button"
+            onClick={runCheckIn}
+            disabled={pending}
+            className="w-full rounded-full bg-primary px-6 py-4 text-base font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-60"
+          >
+            {pending
+              ? "Checking in…"
+              : ticket.partySize > 1
+                ? `Check in ${ticket.partySize} people`
+                : "Check in"}
+          </button>
+        </>
       )}
 
       {error ? (

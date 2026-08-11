@@ -167,3 +167,79 @@ export function formatMoney(m: Money): string {
     ...(isKrw ? { maximumFractionDigits: 0 } : {}),
   }).format(m.amount)
 }
+
+// ---------------------------------------------------------------------------
+// Parties
+// ---------------------------------------------------------------------------
+
+/** Who a single booking is for. One booking, one payment, one ticket. */
+export type Party = { adults: number; children: number }
+
+/**
+ * Ten people is where self-service stops and someone should talk to us.
+ * Enforced in the booking RPCs too — this is the number the form shows.
+ */
+export const MAX_PARTY_SIZE = 10
+
+export function partySize(party: Party): number {
+  return party.adults + party.children
+}
+
+export type PartyQuote = {
+  /** Per-person prices, discount resolved, for the line items. */
+  adult: PricedMoney
+  /** Null when the class has no child rate, which is also when none is offered. */
+  child: PricedMoney | null
+  party: Party
+  size: number
+  /** What the whole booking costs, before any coupon. */
+  total: Money
+}
+
+/**
+ * What a party costs.
+ *
+ * Mirrors party_total() in the database, which is what actually gets charged.
+ * Each rate is discounted and rounded on its own and only then multiplied:
+ * rounding the unit rather than the total is what makes the line items add up
+ * to the total on screen, and what keeps this in step with the amount the
+ * capture is checked against.
+ */
+export function quoteParty(
+  currency: string | null | undefined,
+  amount: number | string | null | undefined,
+  childAmount: number | string | null | undefined,
+  discount: Discount | null,
+  party: Party,
+): PartyQuote {
+  const adult = applyDiscount(money(currency, amount), discount)
+  const child =
+    childAmount != null
+      ? applyDiscount(money(currency, childAmount), discount)
+      : null
+
+  const total = roundMoney({
+    currency: adult.final.currency,
+    amount:
+      party.adults * adult.final.amount +
+      party.children * (child?.final.amount ?? adult.final.amount),
+  })
+
+  return { adult, child, party, size: partySize(party), total }
+}
+
+/**
+ * What the party would cost with no discount at all.
+ *
+ * Mirrors party_list_total(). This is the figure a coupon comes off in the
+ * database, so it is also the one a "% off" label has to be measured against.
+ */
+export function partyListTotal(quote: PartyQuote): Money {
+  const childOriginal = quote.child?.original.amount ?? quote.adult.original.amount
+  return roundMoney({
+    currency: quote.adult.original.currency,
+    amount:
+      quote.party.adults * quote.adult.original.amount +
+      quote.party.children * childOriginal,
+  })
+}

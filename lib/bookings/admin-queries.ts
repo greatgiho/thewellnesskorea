@@ -6,7 +6,7 @@ import {
   type SessionSummaryRelation,
 } from "./session-summary"
 import { kstDayRange } from "@/lib/schedule/utils"
-import type { AttendeeType, BookingStatus } from "./types"
+import type { BookingStatus } from "./types"
 
 // ---------------------------------------------------------------------------
 // Session-grouped types (for new Bookings admin UI)
@@ -22,7 +22,9 @@ export type AdminSessionSummary = {
   instructorName: string
   capacity: number
   bookedCount: number
-  confirmedCount: number   // actual confirmed bookings (excluding pending/cancelled)
+  /** Seats held by confirmed bookings — people, not bookings, since a
+   *  booking can be a party. */
+  confirmedCount: number
   waitlistCount: number
 }
 
@@ -47,7 +49,9 @@ export type AdminBookingItem = {
   guestName: string
   guestEmail: string
   guestPhone: string | null
-  attendeeType: AttendeeType
+  adultCount: number
+  childCount: number
+  partySize: number
   status: BookingStatus
   cancelledAt: string | null
   createdAt: string
@@ -68,7 +72,8 @@ type BookingQueryRow = {
   guest_name: string
   guest_email: string
   guest_phone: string | null
-  attendee_type: AttendeeType
+  adult_count: number
+  child_count: number
   status: BookingStatus
   cancelled_at: string | null
   created_at: string
@@ -83,7 +88,8 @@ const BOOKING_WITH_SESSION = `
   guest_name,
   guest_email,
   guest_phone,
-  attendee_type,
+  adult_count,
+  child_count,
   status,
   cancelled_at,
   created_at,
@@ -124,7 +130,9 @@ function mapAdminBookingRow(row: BookingQueryRow): AdminBookingItem | null {
     guestName: row.guest_name,
     guestEmail: row.guest_email,
     guestPhone: row.guest_phone,
-    attendeeType: row.attendee_type,
+    adultCount: row.adult_count,
+    childCount: row.child_count,
+    partySize: row.adult_count + row.child_count,
     status: row.status,
     cancelledAt: row.cancelled_at,
     createdAt: row.created_at,
@@ -217,10 +225,11 @@ export async function getAdminSessionList(
     if (sessionIds.length === 0) return []
   }
 
-  // 3. Get confirmed booking counts per session
+  // 3. Get confirmed seats per session. Seats, not rows: one booking can be a
+  // party, and "8 / 12 booked" has to mean people or it is not a capacity.
   const { data: bookingCounts, error: bcErr } = await supabase
     .from("bookings")
-    .select("session_id")
+    .select("session_id, adult_count, child_count")
     .in("session_id", sessionIds)
     .eq("status", "confirmed")
 
@@ -229,7 +238,8 @@ export async function getAdminSessionList(
   const confirmedBySession = new Map<string, number>()
   for (const b of bookingCounts ?? []) {
     const sid = b.session_id as string
-    confirmedBySession.set(sid, (confirmedBySession.get(sid) ?? 0) + 1)
+    const seats = (b.adult_count as number) + (b.child_count as number)
+    confirmedBySession.set(sid, (confirmedBySession.get(sid) ?? 0) + seats)
   }
 
   // 4. Get waitlist counts per session (un-notified only)
