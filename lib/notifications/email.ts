@@ -10,6 +10,86 @@ function parseSender(raw: string): { email: string; name?: string } {
   return { email: raw.trim() }
 }
 
+/**
+ * The mailbox an address actually reaches, for comparison only.
+ *
+ * Testing a booking flow means booking repeatedly, and the same address cannot
+ * be reused, so the addresses in play are ikim+hv@, ikim+jkv@, and however many
+ * more get invented next. They all land in one inbox. Matching them literally
+ * would mean adding each one to the allowlist before it can be used, which
+ * defeats the point of plus-addressing entirely.
+ *
+ * Only the +tag. Mail to name+anything@ goes to whoever owns name@, so if that
+ * mailbox is listed, its tags are already the same person — stripping the tag
+ * cannot widen who is reachable.
+ *
+ * Dots are deliberately left alone. Gmail ignores them, and so does every
+ * Google Workspace domain — which is most of the addresses here, and is not
+ * something the domain name tells you. Guessing from the domain gets Workspace
+ * wrong, and guessing the other way would strip dots at providers where they
+ * separate two different people. An allowlist that is too strict fails to send;
+ * one that is too loose sends to a stranger. Nobody tests with dot variants
+ * anyway.
+ *
+ * Used to compare, never to send. The recipient keeps the address as written.
+ *
+ * Exported for its tests. This is the piece where a mistake is silent — too
+ * loose and a real customer receives a test mail, too strict and nothing
+ * arrives and the guard looks broken.
+ */
+export function canonicalAddress(email: string): string {
+  const trimmed = email.trim().toLowerCase()
+  const at = trimmed.lastIndexOf("@")
+  if (at < 1) return trimmed
+
+  const local = trimmed.slice(0, at).split("+")[0]
+  const domain = trimmed.slice(at + 1)
+
+  return `${local}@${domain}`
+}
+
+/**
+ * Recipients this environment is allowed to mail, if it is restricted.
+ *
+ * The dev clone is a copy of production, real addresses and all, and it is
+ * pointed at the same Brevo account — so a test cancellation there would mail a
+ * real customer from noreply@thewellnesskorea.com. Setting EMAIL_ALLOWLIST on
+ * such an environment keeps mail flowing to the people testing and drops the
+ * rest loudly.
+ *
+ * Absent means no restriction, so production is unaffected. Present but empty
+ * means nobody — not everybody. The difference matters: this is configured by
+ * hand in a dashboard, and a value that fails to save, or saves blank, would
+ * otherwise turn the guard off silently on the one environment that needs it.
+ * Failing closed there costs a confused "why no mail", which the log answers.
+ *
+ * If mail ever goes missing, the skip is logged with the variable's name in it.
+ */
+export function allowedRecipients(
+  emails: string[],
+  context: string,
+): string[] {
+  const raw = process.env.EMAIL_ALLOWLIST
+  if (raw === undefined) return emails
+  if (!raw.trim()) {
+    console.warn(
+      `[${context}] EMAIL_ALLOWLIST is set but empty — sending to nobody`,
+    )
+    return []
+  }
+
+  const allowed = raw.split(",").map(canonicalAddress).filter(Boolean)
+  const kept = emails.filter((e) => allowed.includes(canonicalAddress(e)))
+  const dropped = emails.filter((e) => !kept.includes(e))
+
+  if (dropped.length > 0) {
+    console.warn(
+      `[${context}] EMAIL_ALLOWLIST is set — not sending to ${dropped.join(", ")}`,
+    )
+  }
+  return kept
+}
+
 export async function sendEmail(
   to: string | string[],
   subject: string,
@@ -26,7 +106,13 @@ export async function sendEmail(
     return
   }
 
-  const recipients = (Array.isArray(to) ? to : [to]).map((email) => ({ email }))
+  const addresses = allowedRecipients(
+    Array.isArray(to) ? to : [to],
+    context,
+  )
+  if (addresses.length === 0) return
+
+  const recipients = addresses.map((email) => ({ email }))
 
   const res = await fetch("https://api.brevo.com/v3/smtp/email", {
     method: "POST",

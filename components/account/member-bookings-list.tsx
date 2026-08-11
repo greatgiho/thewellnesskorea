@@ -1,6 +1,8 @@
 "use client"
 
 import { useActionState } from "react"
+import Link from "next/link"
+import { QrCode } from "lucide-react"
 import { cancelMemberBooking, type MemberCancelState } from "@/app/u/actions"
 import { formatBookingDateTime } from "@/lib/bookings/format"
 import { money, formatMoney } from "@/lib/payments/money"
@@ -97,19 +99,32 @@ function MemberBookingCard({ booking }: { booking: MemberBookingItem }) {
       ) : null}
 
       {isConfirmed ? (
-        <form action={formAction} className="mt-6">
-          <input type="hidden" name="bookingId" value={booking.id} />
-          {state.error ? (
-            <p className="mb-3 text-sm text-destructive">{state.error}</p>
+        <div className="mt-6 space-y-3">
+          {/* The ticket is the reason to open this page on the day, so it
+              leads. Cancelling is the destructive one and stays quiet. */}
+          {booking.checkinToken ? (
+            <Link
+              href={`/t/${booking.checkinToken}`}
+              className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
+            >
+              <QrCode className="size-4" aria-hidden="true" />
+              Show ticket
+            </Link>
           ) : null}
-          <button
-            type="submit"
-            disabled={pending}
-            className="inline-flex rounded-full border border-border px-5 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary disabled:opacity-60"
-          >
-            {pending ? "Cancelling…" : "Cancel reservation"}
-          </button>
-        </form>
+          <form action={formAction}>
+            <input type="hidden" name="bookingId" value={booking.id} />
+            {state.error ? (
+              <p className="mb-3 text-sm text-destructive">{state.error}</p>
+            ) : null}
+            <button
+              type="submit"
+              disabled={pending}
+              className="inline-flex rounded-full border border-border px-5 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary disabled:opacity-60"
+            >
+              {pending ? "Cancelling…" : "Cancel reservation"}
+            </button>
+          </form>
+        </div>
       ) : null}
     </article>
   )

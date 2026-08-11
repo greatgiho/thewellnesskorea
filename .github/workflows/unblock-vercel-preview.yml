@@ -1,0 +1,132 @@
+name: Unblock Vercel preview
+
+# Vercel refuses to build a commit whose git author is not on the project:
+#
+#   Git author LEESSONG02 must have access to the project on Vercel
+#   to create deployments.
+#
+# It is the *commit author* that is checked, not the pull request. So a pull
+# request from an outside collaborator gets no preview, and a reviewer has no
+# way to look at the change running. CI still passes, which makes it read like
+# a Vercel outage rather than a permissions rule.
+#
+# The advertised fix is to invite them to the Vercel team. On a free plan that
+# is a paid seat per collaborator, and a team member can read the project's
+# environment variables — which include production Supabase keys. So instead,
+# this pushes one empty commit authored by someone who does have access. The
+# deployment is then built from that commit, with the collaborator's work
+# underneath it, unchanged.
+#
+# See issue #153.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+
+# A second push while this is running would race for the same branch.
+concurrency:
+  group: unblock-preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+env:
+  # GitHub logins that Vercel will build for. Anyone not listed gets an empty
+  # commit added on top of their work.
+  AUTHORIZED_LOGINS: "great"
+  # The identity the empty commit is authored as. It has to be an account with
+  # Vercel access, or the commit is blocked for the same reason the original
+  # was. GitHub resolves the login from this email.
+  COMMIT_NAME: "Intae Kim"
+  COMMIT_EMAIL: "greatkit@gmail.com"
+  MARKER: "[preview-unblock]"
+
+jobs:
+  unblock:
+    # Only branches in this repository. A fork's branch cannot be pushed to
+    # with the workflow token, and this would fail on every outside fork PR.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Decide whether an empty commit is needed
+        id: decide
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+
+          # One call, read twice. Not `read login subject` from a joined
+          # string: an author whose email maps to no GitHub account gives an
+          # empty login, and word splitting would then shift the subject into
+          # it. Not `head -1` either — under `pipefail`, head closing the pipe
+          # early fails the step.
+          gh api "repos/${GITHUB_REPOSITORY}/commits/${HEAD_SHA}" > /tmp/head.json
+          login=$(jq -r '.author.login // ""' /tmp/head.json)
+          subject=$(jq -r '.commit.message | split("\n")[0]' /tmp/head.json)
+
+          echo "head author: ${login:-<unmapped>}"
+          echo "head subject: $subject"
+
+          # Already unblocked. Checked as well as relying on GITHUB_TOKEN not
+          # re-triggering workflows, because a PAT push does re-trigger and
+          # would otherwise append an empty commit forever.
+          if [[ "$subject" == *"$MARKER"* ]]; then
+            echo "needed=false" >> "$GITHUB_OUTPUT"
+            echo "Head commit is already an unblock commit — nothing to do."
+            exit 0
+          fi
+
+          for allowed in $AUTHORIZED_LOGINS; do
+            if [[ "$login" == "$allowed" ]]; then
+              echo "needed=false" >> "$GITHUB_OUTPUT"
+              echo "Author can deploy — nothing to do."
+              exit 0
+            fi
+          done
+
+          echo "needed=true" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v4
+        if: steps.decide.outputs.needed == 'true'
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          # Prefer a PAT when one is configured. A push made with GITHUB_TOKEN
+          # may not be enough on its own: GitHub deliberately does not let it
+          # trigger further workflow runs, and if Vercel's app turns out to be
+          # filtered the same way, no deployment is created and this job
+          # succeeds while quietly achieving nothing. Setting
+          # PREVIEW_UNBLOCK_TOKEN to a PAT with `repo` scope makes the push
+          # indistinguishable from a person's.
+          token: ${{ secrets.PREVIEW_UNBLOCK_TOKEN || secrets.GITHUB_TOKEN }}
+          fetch-depth: 1
+
+      - name: Push an empty commit
+        if: steps.decide.outputs.needed == 'true'
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          git config user.name  "$COMMIT_NAME"
+          git config user.email "$COMMIT_EMAIL"
+          {
+            printf 'chore: trigger a preview build %s\n\n' "$MARKER"
+            printf 'Added automatically so Vercel will build a preview for #%s.\n\n' "$PR_NUMBER"
+            printf 'Vercel only deploys commits whose git author is on the project,\n'
+            printf "and this branch's author is not. Nothing in the tree changes.\n\n"
+            printf 'See .github/workflows/unblock-vercel-preview.yml and issue #153.\n'
+          } > /tmp/unblock-msg.txt
+
+          git commit --allow-empty -q -F /tmp/unblock-msg.txt
+          git push origin "HEAD:${GITHUB_HEAD_REF}"
+
+      - name: Say what happened
+        run: |
+          if [[ "${{ steps.decide.outputs.needed }}" == "true" ]]; then
+            echo "Pushed an empty commit. If no Vercel deployment appears," \
+                 "the workflow token is being filtered — set the" \
+                 "PREVIEW_UNBLOCK_TOKEN secret to a PAT and re-run."
+          else
+            echo "No action needed."
+          fi
