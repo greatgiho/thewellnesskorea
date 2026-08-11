@@ -10,6 +10,7 @@ export type PartnerSession = {
   status: string
   price_currency: "KRW" | "USD"
   price_amount: number
+  child_price_amount: number | null
   discount_type: "fixed" | "percent" | null
   discount_value: number | null
   floor: { name_ko: string; level: number } | null
@@ -26,7 +27,7 @@ export type PartnerBooking = {
 
 const SESSION_SELECT = `
   id, title, starts_at, ends_at, capacity, booked_count, status,
-  price_currency, price_amount, discount_type, discount_value,
+  price_currency, price_amount, child_price_amount, discount_type, discount_value,
   floor:floors (name_ko, level)
 `
 

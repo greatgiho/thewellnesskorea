@@ -18,8 +18,15 @@ export function TicketDetails({ ticket }: { ticket: TicketSummary }) {
     <dl className="space-y-3 text-sm">
       <div>
         <dt className="text-muted-foreground">Guest</dt>
-        <dd className="mt-0.5 font-serif text-2xl text-foreground">
+        <dd className="mt-0.5 flex flex-wrap items-baseline gap-x-3 font-serif text-2xl text-foreground">
           {ticket.guestName}
+          {/* Only marked when it is a child ticket. An "Adult" badge on every
+              other ticket is noise the door has to read past. */}
+          {ticket.attendeeType === "child" ? (
+            <span className="rounded-full border border-border px-2.5 py-0.5 font-sans text-xs text-muted-foreground">
+              Child
+            </span>
+          ) : null}
         </dd>
       </div>
       <div>

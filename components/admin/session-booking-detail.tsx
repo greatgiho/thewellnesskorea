@@ -111,7 +111,14 @@ export function SessionBookingDetail({
                     key={b.id}
                     className={i < confirmedBookings.length - 1 ? "border-b border-border/60" : ""}
                   >
-                    <td className="px-4 py-3 font-medium text-foreground">{b.guestName}</td>
+                    <td className="px-4 py-3 font-medium text-foreground">
+                      {b.guestName}
+                      {b.attendeeType === "child" ? (
+                        <span className="ml-2 rounded-full border border-border px-2 py-0.5 text-xs font-normal text-muted-foreground">
+                          아동
+                        </span>
+                      ) : null}
+                    </td>
                     <td className="px-4 py-3 text-muted-foreground">
                       <p>{b.guestEmail}</p>
                       {b.guestPhone ? <p className="text-xs">{b.guestPhone}</p> : null}

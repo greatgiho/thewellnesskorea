@@ -7,6 +7,8 @@ import type { DiscountType } from "@/lib/payments/money"
 export type PricingInput = {
   priceCurrency: "KRW" | "USD"
   priceAmount: number
+  /** Null = no child rate on this class. 0 = children attend free. */
+  childPriceAmount: number | null
   discountType: DiscountType | null
   discountValue: number | null
 }
@@ -33,6 +35,7 @@ export async function saveSessionPricing(
     p_price_amount: input.priceAmount,
     p_discount_type: input.discountType,
     p_discount_value: input.discountType ? input.discountValue : null,
+    p_child_price_amount: input.childPriceAmount,
   })
 
   if (error) return { ok: false, error: error.message }

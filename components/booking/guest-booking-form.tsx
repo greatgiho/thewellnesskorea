@@ -5,7 +5,14 @@ import Link from "next/link"
 import { submitGuestBooking, type GuestBookingState } from "@/app/book/actions"
 import type { SessionWithRelations } from "@/lib/schedule/types"
 import { FIELD_PUBLIC } from "@/lib/ui/field"
-import { money, applyDiscount, discountFrom, paymentMode } from "@/lib/payments/money"
+import {
+  applyDiscount,
+  basePriceFor,
+  discountFrom,
+  formatMoney,
+  paymentMode,
+  type AttendeeType,
+} from "@/lib/payments/money"
 import { PriceTag } from "@/components/booking/price-tag"
 import { CouponField } from "@/components/booking/coupon-field"
 import { BookingSessionSummary } from "./booking-session-summary"
@@ -28,16 +35,37 @@ export function GuestBookingForm({
   memberPrefill,
 }: GuestBookingFormProps) {
   const [email, setEmail] = useState(memberPrefill?.email ?? "")
+  const [attendeeType, setAttendeeType] = useState<AttendeeType>("adult")
   const [state, formAction, pending] = useActionState(
     submitGuestBooking,
     initialState,
   )
 
   const isMember = Boolean(memberPrefill)
+  // Null child price = this class has no child rate, so no option is offered
+  // and the adult price is the only one.
+  const hasChildRate = session.child_price_amount !== null
+  const discount = discountFrom(session.discount_type, session.discount_value)
   const priced = applyDiscount(
-    money(session.price_currency, session.price_amount),
-    discountFrom(session.discount_type, session.discount_value),
+    basePriceFor(
+      session.price_currency,
+      session.price_amount,
+      session.child_price_amount,
+      attendeeType,
+    ),
+    discount,
   )
+  const childPriced = hasChildRate
+    ? applyDiscount(
+        basePriceFor(
+          session.price_currency,
+          session.price_amount,
+          session.child_price_amount,
+          "child",
+        ),
+        discount,
+      )
+    : null
   // The discounted price is what gets charged, so it drives the flow too — a
   // 100% discount makes this a free class with no payment step.
   const price = priced.final
@@ -105,6 +133,30 @@ export function GuestBookingForm({
             </label>
           </div>
 
+          {childPriced ? (
+            <label className="mt-4 flex items-center gap-3 rounded-xl border border-border px-4 py-3 text-sm">
+              {/* Unchecked sends nothing, which the action reads as an adult
+                  booking — the value only travels when the box is ticked. */}
+              <input
+                type="checkbox"
+                name="attendeeType"
+                value="child"
+                checked={attendeeType === "child"}
+                onChange={(e) =>
+                  setAttendeeType(e.target.checked ? "child" : "adult")
+                }
+                disabled={pending}
+                className="size-4 accent-primary"
+              />
+              <span className="text-foreground">
+                Child ticket
+                <span className="ml-2 text-muted-foreground">
+                  {formatMoney(childPriced.final)}
+                </span>
+              </span>
+            </label>
+          ) : null}
+
           {mode === "online" ? (
             <p className="mt-4 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-foreground">
               Class fee:{" "}
@@ -127,6 +179,7 @@ export function GuestBookingForm({
           <CouponField
             sessionId={session.id}
             email={email}
+            attendeeType={attendeeType}
             disabled={pending}
           />
 

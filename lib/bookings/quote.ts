@@ -1,9 +1,11 @@
 import { createServiceClient } from "@/lib/supabase/service"
 import {
   applyDiscount,
+  basePriceFor,
   discountFrom,
   money,
   paymentMode,
+  type AttendeeType,
   type Money,
   type PaymentMode,
   type PricedMoney,
@@ -66,12 +68,15 @@ export async function quoteBooking(
   sessionId: string,
   couponCode?: string | null,
   email?: string | null,
+  attendeeType: AttendeeType = "adult",
 ): Promise<BookingQuote> {
   const supabase = createServiceClient()
 
   const { data: session, error } = await supabase
     .from("sessions")
-    .select("price_currency, price_amount, discount_type, discount_value")
+    .select(
+      "price_currency, price_amount, child_price_amount, discount_type, discount_value",
+    )
     .eq("id", sessionId)
     .maybeSingle()
 
@@ -79,7 +84,12 @@ export async function quoteBooking(
   if (!session) throw new Error("Session not found.")
 
   const priced = applyDiscount(
-    money(session.price_currency, session.price_amount),
+    basePriceFor(
+      session.price_currency,
+      session.price_amount,
+      session.child_price_amount,
+      attendeeType,
+    ),
     discountFrom(session.discount_type, session.discount_value),
   )
 
@@ -95,6 +105,7 @@ export async function quoteBooking(
     p_session_id: sessionId,
     p_email: email ?? null,
     p_lock: false,
+    p_attendee_type: attendeeType,
   })
   if (couponError) throw new Error(couponError.message)
 
