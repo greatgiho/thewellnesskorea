@@ -10,6 +10,40 @@ function parseSender(raw: string): { email: string; name?: string } {
   return { email: raw.trim() }
 }
 
+/**
+ * Recipients this environment is allowed to mail, if it is restricted.
+ *
+ * The dev clone is a copy of production, real addresses and all, and it is
+ * pointed at the same Brevo account — so a test cancellation there would mail a
+ * real customer from noreply@thewellnesskorea.com. Setting EMAIL_ALLOWLIST on
+ * such an environment keeps mail flowing to the people testing and drops the
+ * rest loudly.
+ *
+ * Unset means no restriction, so production is unaffected. If mail ever goes
+ * missing, the skip is logged with the variable's name in it.
+ */
+function allowedRecipients(
+  emails: string[],
+  context: string,
+): string[] {
+  const raw = process.env.EMAIL_ALLOWLIST
+  if (!raw?.trim()) return emails
+
+  const allowed = raw
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean)
+  const kept = emails.filter((e) => allowed.includes(e.trim().toLowerCase()))
+  const dropped = emails.filter((e) => !kept.includes(e))
+
+  if (dropped.length > 0) {
+    console.warn(
+      `[${context}] EMAIL_ALLOWLIST is set — not sending to ${dropped.join(", ")}`,
+    )
+  }
+  return kept
+}
+
 export async function sendEmail(
   to: string | string[],
   subject: string,
@@ -26,7 +60,13 @@ export async function sendEmail(
     return
   }
 
-  const recipients = (Array.isArray(to) ? to : [to]).map((email) => ({ email }))
+  const addresses = allowedRecipients(
+    Array.isArray(to) ? to : [to],
+    context,
+  )
+  if (addresses.length === 0) return
+
+  const recipients = addresses.map((email) => ({ email }))
 
   const res = await fetch("https://api.brevo.com/v3/smtp/email", {
     method: "POST",
