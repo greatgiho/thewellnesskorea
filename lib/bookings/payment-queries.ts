@@ -104,6 +104,9 @@ export async function getPendingBookingPayment(
       floorName: summary.floorName,
       instructorName: summary.instructorName,
       price: summary.price,
+      // The payment screens show money and logistics, not the class write-up,
+      // so this select does not pay for it.
+      snapshot: null,
     },
   }
 }

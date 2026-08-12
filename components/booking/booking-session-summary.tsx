@@ -39,16 +39,19 @@ export function BookingSessionSummary({
 
   const { heading, timeRange } = formatBookingDateTime(startsAt, endsAt)
 
-  // Only the session carries these. The confirmation screen passes a
-  // BookingSummary instead, which has no snapshot on it — so this stays a
-  // reservation-page section rather than something that half-renders there.
-  const images = (session?.image_paths ?? []).slice(0, 3)
-  const blocks = session
-    ? DESCRIPTION_BLOCKS.map((b) => ({
-        ...b,
-        text: session.description_blocks?.[b.key]?.trim() ?? "",
-      })).filter((b) => b.text)
-    : []
+  // Either source will do: the reservation page has the whole session, the
+  // confirmation screen has a summary carrying the same snapshot. Reading both
+  // here is what stops "what to bring" from existing on one screen and not on
+  // the next one the same person sees.
+  const snapshot = session
+    ? { images: session.image_paths ?? [], blocks: session.description_blocks }
+    : summary?.snapshot
+
+  const images = (snapshot?.images ?? []).slice(0, 3)
+  const blocks = DESCRIPTION_BLOCKS.map((b) => ({
+    ...b,
+    text: snapshot?.blocks?.[b.key]?.trim() ?? "",
+  })).filter((b) => b.text)
   const spots =
     session != null
       ? mapSessionToClassItem(session).spots
@@ -56,22 +59,25 @@ export function BookingSessionSummary({
 
   return (
     <div className="rounded-3xl border border-border bg-card p-6 sm:p-8">
+      {/* One photo is a hero; two are a pair; three are a hero over a pair.
+          A leftover single in a two-column grid leaves half the row empty,
+          which reads as a missing image rather than a deliberate one. */}
       {images.length > 0 ? (
         <div className="mb-6 space-y-2">
-          <div className="relative aspect-[16/9] overflow-hidden rounded-2xl">
-            <Image
-              src={getSessionPhotoUrl(images[0])}
-              alt=""
-              fill
-              sizes="(min-width: 768px) 42rem, 100vw"
-              className="object-cover"
-            />
-          </div>
-          {/* All of them, not just the first. Three uploads and one shown is
-              the same complaint as a field that never appears. */}
+          {images.length !== 2 ? (
+            <div className="relative aspect-[16/9] overflow-hidden rounded-2xl">
+              <Image
+                src={getSessionPhotoUrl(images[0])}
+                alt=""
+                fill
+                sizes="(min-width: 768px) 42rem, 100vw"
+                className="object-cover"
+              />
+            </div>
+          ) : null}
           {images.length > 1 ? (
             <div className="grid grid-cols-2 gap-2">
-              {images.slice(1).map((path) => (
+              {(images.length === 2 ? images : images.slice(1)).map((path) => (
                 <div
                   key={path}
                   className="relative aspect-[4/3] overflow-hidden rounded-xl"
