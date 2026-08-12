@@ -11,9 +11,11 @@ resolve_db() {
 
   case "$target" in
     www)
-      local env_file=".env.www"
-      [ -f "$env_file" ] || { echo "missing $env_file" >&2; return 1; }
-      set -a; . "./$env_file"; set +a
+      # The env file locally, plain environment variables in CI. Sourcing only
+      # when the file exists is what lets the same script run in both.
+      if [ -f ".env.www" ]; then set -a; . "./.env.www"; set +a; fi
+      : "${NEXT_PUBLIC_SUPABASE_URL:?set it, or provide .env.www}"
+      : "${POSTGRES_PASSWORD:?set it, or provide .env.www}"
       DB_REF=$(printf '%s' "$NEXT_PUBLIC_SUPABASE_URL" | sed -E 's#https://([^.]+)\.supabase\.co#\1#')
       local enc
       enc=$(python3 -c "import urllib.parse,os;print(urllib.parse.quote(os.environ['POSTGRES_PASSWORD'],safe=''))")
@@ -21,9 +23,8 @@ resolve_db() {
       DB_LABEL="PRODUCTION"
       ;;
     dev)
-      local env_file=".env.dev"
-      [ -f "$env_file" ] || { echo "missing $env_file" >&2; return 1; }
-      set -a; . "./$env_file"; set +a
+      if [ -f ".env.dev" ]; then set -a; . "./.env.dev"; set +a; fi
+      : "${NEW_DB_POOLER_URL:?set it, or provide .env.dev}"
       # NEW_ prefix is a leftover from when this was the new project; only the
       # file was renamed, the keys were not.
       DB_URL="$NEW_DB_POOLER_URL"
