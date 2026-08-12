@@ -1,7 +1,22 @@
+import Image from "next/image"
 import { formatBookingDateTime } from "@/lib/bookings/format"
+import { getSessionPhotoUrl } from "@/lib/schedule/images"
 import type { BookingSummary } from "@/lib/bookings/queries"
 import type { SessionWithRelations } from "@/lib/schedule/types"
 import { mapSessionToClassItem } from "@/lib/schedule/map-public-class"
+
+/**
+ * The three snapshot blocks, in the order the admin form asks for them.
+ *
+ * Headings are English to match the labels beside them (Date, Time, Floor);
+ * the text itself is whatever was typed, in whichever language. There is no
+ * ko/en split on description_blocks yet.
+ */
+const DESCRIPTION_BLOCKS = [
+  { key: "intro", label: "About" },
+  { key: "progress", label: "Programme" },
+  { key: "preparation", label: "What to bring" },
+] as const
 
 type BookingSessionSummaryProps = {
   session?: SessionWithRelations | null
@@ -23,6 +38,20 @@ export function BookingSessionSummary({
   if (!startsAt || !endsAt) return null
 
   const { heading, timeRange } = formatBookingDateTime(startsAt, endsAt)
+
+  // Either source will do: the reservation page has the whole session, the
+  // confirmation screen has a summary carrying the same snapshot. Reading both
+  // here is what stops "what to bring" from existing on one screen and not on
+  // the next one the same person sees.
+  const snapshot = session
+    ? { images: session.image_paths ?? [], blocks: session.description_blocks }
+    : summary?.snapshot
+
+  const images = (snapshot?.images ?? []).slice(0, 3)
+  const blocks = DESCRIPTION_BLOCKS.map((b) => ({
+    ...b,
+    text: snapshot?.blocks?.[b.key]?.trim() ?? "",
+  })).filter((b) => b.text)
   const spots =
     session != null
       ? mapSessionToClassItem(session).spots
@@ -30,6 +59,43 @@ export function BookingSessionSummary({
 
   return (
     <div className="rounded-3xl border border-border bg-card p-6 sm:p-8">
+      {/* One photo is a hero; two are a pair; three are a hero over a pair.
+          A leftover single in a two-column grid leaves half the row empty,
+          which reads as a missing image rather than a deliberate one. */}
+      {images.length > 0 ? (
+        <div className="mb-6 space-y-2">
+          {images.length !== 2 ? (
+            <div className="relative aspect-[16/9] overflow-hidden rounded-2xl">
+              <Image
+                src={getSessionPhotoUrl(images[0])}
+                alt=""
+                fill
+                sizes="(min-width: 768px) 42rem, 100vw"
+                className="object-cover"
+              />
+            </div>
+          ) : null}
+          {images.length > 1 ? (
+            <div className="grid grid-cols-2 gap-2">
+              {(images.length === 2 ? images : images.slice(1)).map((path) => (
+                <div
+                  key={path}
+                  className="relative aspect-[4/3] overflow-hidden rounded-xl"
+                >
+                  <Image
+                    src={getSessionPhotoUrl(path)}
+                    alt=""
+                    fill
+                    sizes="(min-width: 768px) 21rem, 50vw"
+                    className="object-cover"
+                  />
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
       <p className="font-mono text-xs uppercase tracking-[0.25em] text-muted-foreground">
         Class details
       </p>
@@ -62,6 +128,26 @@ export function BookingSessionSummary({
           </div>
         ) : null}
       </dl>
+
+      {/* What the admin form has always said appears here. Blank blocks are
+          dropped entirely — an empty "What to bring" heading is not
+          information, it is a promise of some. */}
+      {blocks.length > 0 ? (
+        <div className="mt-8 space-y-6 border-t border-border pt-6">
+          {blocks.map((b) => (
+            <div key={b.key}>
+              <h3 className="font-mono text-xs uppercase tracking-[0.25em] text-muted-foreground">
+                {b.label}
+              </h3>
+              {/* pre-line, because 진행 is a timetable. Collapsed to one
+                  paragraph it stops being one. */}
+              <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-foreground">
+                {b.text}
+              </p>
+            </div>
+          ))}
+        </div>
+      ) : null}
     </div>
   )
 }

@@ -1,4 +1,6 @@
 import { normalizeRelation } from "@/lib/supabase/normalize-relation"
+import { normalizeDescriptionBlocks } from "@/lib/schedule/images"
+import type { SessionDescriptionBlocks } from "@/lib/schedule/types"
 import {
   applyDiscount,
   discountFrom,
@@ -23,6 +25,41 @@ export const SESSION_SUMMARY_SELECT = `
     floor:floors (name_en),
     instructor:partners (name_en)
 `
+
+/**
+ * The class snapshot, kept out of SESSION_SUMMARY_SELECT on purpose.
+ *
+ * description_blocks is jsonb and can run to a few kilobytes; the summary embed
+ * is used by the admin booking list and the member list, which pull many rows
+ * and show none of this. Only the two screens that render it ask for it.
+ */
+export const SESSION_SNAPSHOT_SELECT = `
+    image_paths,
+    description_blocks
+`
+
+export type SessionSnapshot = {
+  images: string[]
+  blocks: SessionDescriptionBlocks
+}
+
+export function mapSessionSnapshot(
+  relation: SessionSummaryRelation,
+): SessionSnapshot | null {
+  const session = normalizeRelation(relation) as
+    | { image_paths?: string[] | null; description_blocks?: unknown }
+    | null
+  if (!session) return null
+
+  const blocks = normalizeDescriptionBlocks(session.description_blocks)
+  const images = session.image_paths ?? []
+  // Nothing to show is not a snapshot. Saying so here keeps the branch out of
+  // the component.
+  if (images.length === 0 && !blocks.intro && !blocks.progress && !blocks.preparation) {
+    return null
+  }
+  return { images, blocks }
+}
 
 type Rel<T> = T | T[] | null
 

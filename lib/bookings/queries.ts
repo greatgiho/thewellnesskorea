@@ -2,8 +2,11 @@ import { createClient } from "@/lib/supabase/server"
 import { createServiceClient } from "@/lib/supabase/service"
 import { releaseExpiredHoldsBestEffort } from "./hold-rpc"
 import {
+  SESSION_SNAPSHOT_SELECT,
   SESSION_SUMMARY_SELECT,
+  mapSessionSnapshot,
   mapSessionSummary,
+  type SessionSnapshot,
   type SessionSummaryRelation,
 } from "./session-summary"
 import type { PricedMoney } from "@/lib/payments/money"
@@ -35,6 +38,8 @@ export type BookingSummary = {
   floorName: string
   instructorName: string
   price: PricedMoney
+  /** Photos and the three description blocks; null when none were filled in. */
+  snapshot: SessionSnapshot | null
 }
 
 export async function getBookableSession(
@@ -102,6 +107,7 @@ function toBookingSummary(
     floorName: summary.floorName,
     instructorName: summary.instructorName,
     price: summary.price,
+    snapshot: mapSessionSnapshot(row.session),
   }
 }
 
@@ -120,7 +126,7 @@ export async function getBookingSummaryById(
       guest_email,
       ${BOOKING_ITEMS_SELECT},
       status,
-      session:sessions (${SESSION_SUMMARY_SELECT})
+      session:sessions (${SESSION_SUMMARY_SELECT}, ${SESSION_SNAPSHOT_SELECT})
     `,
     )
     .eq("id", bookingId)
@@ -145,7 +151,7 @@ export async function getBookingSummaryByCancelToken(
       guest_email,
       ${BOOKING_ITEMS_SELECT},
       status,
-      session:sessions (${SESSION_SUMMARY_SELECT})
+      session:sessions (${SESSION_SUMMARY_SELECT}, ${SESSION_SNAPSHOT_SELECT})
     `,
     )
     .eq("cancel_token", cancelToken.trim())
