@@ -30,3 +30,28 @@ jobs:
           # env reads; set real values as repo secrets if a build ever needs them.
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key' }}
+
+  # Production's schema is applied by hand while merging deploys automatically,
+  # so the two drift apart on their own. On a pull request this says "apply
+  # these before you merge"; on main it is the last chance to notice that
+  # production is already serving code its database cannot answer.
+  schema:
+    runs-on: ubuntu-latest
+    # Forked pull requests get no secrets, and a check that cannot run should
+    # say so rather than fail a contributor's branch for something they did not
+    # do and cannot fix.
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check production is not behind the code
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.PROD_SUPABASE_URL }}
+          POSTGRES_PASSWORD: ${{ secrets.PROD_POSTGRES_PASSWORD }}
+        run: |
+          if [ -z "$POSTGRES_PASSWORD" ]; then
+            echo "::warning::PROD_POSTGRES_PASSWORD is not set — schema drift not checked"
+            exit 0
+          fi
+          command -v psql >/dev/null || sudo apt-get install -y --no-install-recommends postgresql-client
+          bash scripts/check-migration-drift.sh www
