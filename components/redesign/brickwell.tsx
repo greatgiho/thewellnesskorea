@@ -142,7 +142,7 @@ export function Brickwell({
 
   return (
     <>
-      <Section id="brickwell" tone="muted">
+      <Section id="brickwell">
         {/* Anchor targets so nav buttons can scroll here and open a panel */}
         <span id="day" className="block h-0 scroll-mt-24" aria-hidden="true" />
         <span id="night" className="block h-0 scroll-mt-24" aria-hidden="true" />
