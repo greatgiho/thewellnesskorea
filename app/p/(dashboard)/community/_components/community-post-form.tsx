@@ -4,12 +4,11 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { JournalEditor } from '@/components/admin/journal-editor';
-import { ArrowLeft, CheckCircle, Loader2 } from 'lucide-react';
+import { CommunityEditor } from '@/components/community/community-editor'; // JournalEditor 대신 CommunityEditor 임포트
+import { CheckCircle, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { CommunityPostType, CommunityPostFormInput } from '@/lib/actions/community-actions';
 
@@ -19,7 +18,7 @@ interface CommunityPostFormProps {
   postId?: string;
   defaultValues?: Partial<CommunityPostFormInput>;
   action: (formData: FormData) => Promise<{ success: boolean; message?: string; postId?: string }>;
-  isAdmin: boolean;
+  isAdmin?: boolean;
 }
 
 export function CommunityPostForm({
@@ -35,16 +34,35 @@ export function CommunityPostForm({
   const [postType, setPostType] = useState<CommunityPostType>(defaultValues.post_type || 'general');
   const [error, setError] = useState<string | null>(null);
 
+  // [핵심] 커뮤니티 전용 이미지 업로드 핸들러
+  const handleImageUpload = async (file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch('/api/community/upload-image', {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      const errorMessage = errorData.message || '이미지 업로드에 실패했습니다.';
+      toast.error('이미지 업로드에 실패했습니다.', { description: errorMessage });
+      throw new Error(errorMessage);
+    }
+
+    const data = await response.json();
+    return data.url;
+  };
+
   const handleSubmit = async (formData: FormData) => {
     setError(null);
 
-    // 제목 유효성 검사
     if (!title.trim()) {
       toast.error('제목을 입력해주세요.', { description: '게시글 저장을 위해 제목을 입력해야 합니다.' });
       return;
     }
 
-    // 본문 유효성 검사 추가
     if (!content.trim() || content.trim() === '<p></p>') {
       toast.error('본문 내용을 입력해주세요.', { description: '게시글 저장을 위해 본문 내용을 입력해야 합니다.' });
       return;
@@ -67,10 +85,11 @@ export function CommunityPostForm({
       }
     });
   };
+
   const fieldClass = FIELD;
+
   return (
     <form action={handleSubmit} className="mx-auto max-w-3xl space-y-10">
-
       <section className="space-y-6">
         <h2 className="font-serif text-xl text-foreground">Basics</h2>
         <label className="block space-y-2">
@@ -87,9 +106,8 @@ export function CommunityPostForm({
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="block space-y-2">
             <span className="text-sm font-medium">Category</span>
-            {/* Select reports null when a selection is cleared; keep the last one. */}
-            <Select value={postType} onValueChange={(value) => value && setPostType(value)} disabled={isPending}>
-              <SelectTrigger className={cn("w-full", fieldClass)}> {/* SelectTrigger의 children으로 선택된 텍스트 표시 */}
+            <Select value={postType} onValueChange={(value) => value && setPostType(value as CommunityPostType)} disabled={isPending}>
+              <SelectTrigger className={cn("w-full", fieldClass)}>
                 <span>
                   {postType === 'general' ? '일반' : postType === 'announcement' ? '공지사항' : '카테고리 선택'}
                 </span>
@@ -100,7 +118,7 @@ export function CommunityPostForm({
               </SelectContent>
             </Select>
           </label>
-          <div>{/* Dummy for second column if needed to match JournalForm's layout, otherwise omit */}</div>
+          <div></div>
         </div>
       </section>
 
@@ -109,11 +127,12 @@ export function CommunityPostForm({
         <p className="text-xs text-muted-foreground">
           Rich text editor — headings, quotes, lists, links, and inline images.
         </p>
-        <JournalEditor
+        <CommunityEditor // JournalEditor 대신 CommunityEditor 사용
           content={content}
           onChange={setContent}
           disabled={isPending}
           postId={postId ?? 'new-post'}
+          uploadImage={handleImageUpload}
         />
         <input type="hidden" name="content" value={content} />
       </section>
