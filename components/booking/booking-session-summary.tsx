@@ -1,7 +1,22 @@
+import Image from "next/image"
 import { formatBookingDateTime } from "@/lib/bookings/format"
+import { getSessionPhotoUrl } from "@/lib/schedule/images"
 import type { BookingSummary } from "@/lib/bookings/queries"
 import type { SessionWithRelations } from "@/lib/schedule/types"
 import { mapSessionToClassItem } from "@/lib/schedule/map-public-class"
+
+/**
+ * The three snapshot blocks, in the order the admin form asks for them.
+ *
+ * Headings are English to match the labels beside them (Date, Time, Floor);
+ * the text itself is whatever was typed, in whichever language. There is no
+ * ko/en split on description_blocks yet.
+ */
+const DESCRIPTION_BLOCKS = [
+  { key: "intro", label: "About" },
+  { key: "progress", label: "Programme" },
+  { key: "preparation", label: "What to bring" },
+] as const
 
 type BookingSessionSummaryProps = {
   session?: SessionWithRelations | null
@@ -23,6 +38,17 @@ export function BookingSessionSummary({
   if (!startsAt || !endsAt) return null
 
   const { heading, timeRange } = formatBookingDateTime(startsAt, endsAt)
+
+  // Only the session carries these. The confirmation screen passes a
+  // BookingSummary instead, which has no snapshot on it — so this stays a
+  // reservation-page section rather than something that half-renders there.
+  const images = (session?.image_paths ?? []).slice(0, 3)
+  const blocks = session
+    ? DESCRIPTION_BLOCKS.map((b) => ({
+        ...b,
+        text: session.description_blocks?.[b.key]?.trim() ?? "",
+      })).filter((b) => b.text)
+    : []
   const spots =
     session != null
       ? mapSessionToClassItem(session).spots
@@ -30,6 +56,40 @@ export function BookingSessionSummary({
 
   return (
     <div className="rounded-3xl border border-border bg-card p-6 sm:p-8">
+      {images.length > 0 ? (
+        <div className="mb-6 space-y-2">
+          <div className="relative aspect-[16/9] overflow-hidden rounded-2xl">
+            <Image
+              src={getSessionPhotoUrl(images[0])}
+              alt=""
+              fill
+              sizes="(min-width: 768px) 42rem, 100vw"
+              className="object-cover"
+            />
+          </div>
+          {/* All of them, not just the first. Three uploads and one shown is
+              the same complaint as a field that never appears. */}
+          {images.length > 1 ? (
+            <div className="grid grid-cols-2 gap-2">
+              {images.slice(1).map((path) => (
+                <div
+                  key={path}
+                  className="relative aspect-[4/3] overflow-hidden rounded-xl"
+                >
+                  <Image
+                    src={getSessionPhotoUrl(path)}
+                    alt=""
+                    fill
+                    sizes="(min-width: 768px) 21rem, 50vw"
+                    className="object-cover"
+                  />
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
       <p className="font-mono text-xs uppercase tracking-[0.25em] text-muted-foreground">
         Class details
       </p>
@@ -62,6 +122,26 @@ export function BookingSessionSummary({
           </div>
         ) : null}
       </dl>
+
+      {/* What the admin form has always said appears here. Blank blocks are
+          dropped entirely — an empty "What to bring" heading is not
+          information, it is a promise of some. */}
+      {blocks.length > 0 ? (
+        <div className="mt-8 space-y-6 border-t border-border pt-6">
+          {blocks.map((b) => (
+            <div key={b.key}>
+              <h3 className="font-mono text-xs uppercase tracking-[0.25em] text-muted-foreground">
+                {b.label}
+              </h3>
+              {/* pre-line, because 진행 is a timetable. Collapsed to one
+                  paragraph it stops being one. */}
+              <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-foreground">
+                {b.text}
+              </p>
+            </div>
+          ))}
+        </div>
+      ) : null}
     </div>
   )
 }
