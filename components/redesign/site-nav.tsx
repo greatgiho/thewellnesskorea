@@ -134,9 +134,15 @@ export function SiteNav() {
           signed-in name simply lands on top of it. A grid keeps the links
           centred and makes the columns share the width. */}
       <nav className="mx-auto grid max-w-6xl grid-cols-[auto_1fr_auto] items-center gap-4 px-6 py-4">
+        {/* shrink-0 and a width on the mark, or the logo is what gives way
+            when the bar gets tight. It is a replaced element with w-auto, so
+            its min-content width is zero: at 320px the auto track collapsed and
+            the logo rendered at zero width — present in the DOM, invisible on
+            screen. It survived until the call to action moved into this row and
+            took the slack with it. */}
         <Link
           href={onHome ? "#top" : "/"}
-          className="flex items-center gap-2"
+          className="flex shrink-0 items-center gap-2"
           aria-label="The Wellness Korea, back to top"
         >
           <Image
@@ -144,7 +150,7 @@ export function SiteNav() {
             alt="The Wellness Korea"
             width={40}
             height={40}
-            className="h-9 w-auto object-contain"
+            className="h-9 w-6 shrink-0 object-contain"
           />
           <span className="hidden font-serif text-lg tracking-wide text-foreground sm:inline">
             {lang === "ko" ? "더 웰니스 코리아" : "The Wellness Korea"}
@@ -174,48 +180,61 @@ export function SiteNav() {
           </li>
         </ul>
 
-        <div className="hidden items-center justify-end gap-4 lg:flex">
+        {/* One right-hand cluster for every width, rather than a desktop one
+            and a mobile one. Two clusters is how the call to action came to
+            exist only on desktop: it was added to the wide one, and the narrow
+            one — a language toggle and a hamburger — was never a place anyone
+            thought to look. It was not in the drawer either, so on a phone the
+            single most important control on the site was unreachable. */}
+        <div className="flex items-center justify-end gap-2 lg:gap-4">
           <LangToggle />
-          {user ? (
-            <>
-              {/* The name alone. "Welcome, " was roughly a nav link's worth of
-                  width spent saying nothing, and it is what tipped the bar over
-                  at common laptop widths. */}
+
+          {/* Account controls are the part that genuinely does not fit on a
+              phone; they live in the drawer there. */}
+          <div className="hidden items-center gap-4 lg:flex">
+            {user ? (
+              <>
+                {/* The name alone. "Welcome, " was roughly a nav link's worth
+                    of width spent saying nothing, and it is what tipped the bar
+                    over at common laptop widths. */}
+                <Link
+                  href="/u/bookings"
+                  className="max-w-[8rem] truncate text-sm text-muted-foreground transition-colors hover:text-foreground"
+                  title={user.name}
+                >
+                  {user.name}
+                </Link>
+                <button
+                  type="button"
+                  onClick={signOut}
+                  className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  {lang === "ko" ? "로그아웃" : "Sign out"}
+                </button>
+              </>
+            ) : (
               <Link
-                href="/u/bookings"
-                className="max-w-[8rem] truncate text-sm text-muted-foreground transition-colors hover:text-foreground"
-                title={user.name}
-              >
-                {user.name}
-              </Link>
-              <button
-                type="button"
-                onClick={signOut}
+                href="/u/signin"
                 className="text-sm text-muted-foreground transition-colors hover:text-foreground"
               >
-                {lang === "ko" ? "로그아웃" : "Sign out"}
-              </button>
-            </>
-          ) : (
-            <Link
-              href="/u/signin"
-              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-            >
-              {lang === "ko" ? "로그인" : "Sign in"}
-            </Link>
-          )}
+                {lang === "ko" ? "로그인" : "Sign in"}
+              </Link>
+            )}
+          </div>
+
           <a
             href={sectionHref(pathname, "upcoming")}
-            className="rounded-full bg-primary px-5 py-2 text-sm text-primary-foreground transition-opacity hover:opacity-90"
+            // The full label at every width. It was going to be shortened on
+            // phones until measuring showed it fits at 320px: the middle column
+            // is empty below lg, so there is more room there than on the laptop
+            // widths where this bar has actually run out of space.
+            className="whitespace-nowrap rounded-full bg-primary px-4 py-2 text-sm text-primary-foreground transition-opacity hover:opacity-90 lg:px-5"
           >
             {lang === "ko" ? "방문 예약" : "Book a visit"}
           </a>
-        </div>
 
-        <div className="flex items-center gap-2 lg:hidden">
-          <LangToggle />
           <button
-            className="inline-flex items-center justify-center rounded-md p-2 text-foreground"
+            className="inline-flex items-center justify-center rounded-md p-2 text-foreground lg:hidden"
             onClick={() => setOpen((v) => !v)}
             aria-label={open ? "Close menu" : "Open menu"}
             aria-expanded={open}
