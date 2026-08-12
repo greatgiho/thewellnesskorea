@@ -58,8 +58,8 @@ export async function RedesignHome() {
         <HeroCanvas />
         <Philosophy />
         <Paths />
-        <People guides={guides} artists={artists} />
         <Brickwell itemsByCategory={groupByContentCategory(categorizedSessions)} />
+        <People guides={guides} artists={artists} />
         <UpcomingEvents items={toReservationItems(bookableSessions)} />
         <PastEvents events={toPastEvents(pastSessions)} />
       </main>

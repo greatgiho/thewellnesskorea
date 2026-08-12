@@ -230,7 +230,7 @@ export function People({
   // plain/muted banding of the ones around them, which is how a page with no
   // content yet ends up looking broken rather than merely empty.
   return (
-    <Section id="people">
+    <Section id="people" tone="muted">
       <SectionHeader eyebrow={t.eyebrow} heading={t.heading} lead={t.lead} />
 
       {empty ? (
