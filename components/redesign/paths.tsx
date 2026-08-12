@@ -2,6 +2,7 @@
 
 import Image from "next/image"
 import { useLang } from "@/components/redesign/language-provider"
+import { PeekRow } from "@/components/redesign/peek-row"
 import { Section, SectionHeader } from "@/components/redesign/primitives"
 import { PATHS } from "@/lib/paths/paths-data"
 
@@ -37,7 +38,7 @@ export function Paths() {
     <Section id="paths" tone="muted">
       <SectionHeader eyebrow={t.eyebrow} heading={t.heading} lead={t.lead} />
 
-      <ul className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-5">
+      <PeekRow cols="sm:grid-cols-2 lg:grid-cols-5" className="mt-14">
         {PATHS.map((path) => (
           <li key={path.key}>
             <figure className="group">
@@ -63,7 +64,7 @@ export function Paths() {
             </figure>
           </li>
         ))}
-      </ul>
+      </PeekRow>
     </Section>
   )
 }
