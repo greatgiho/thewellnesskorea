@@ -53,7 +53,21 @@ async function sendAdminEmail(
     <p><a href="${editLink}">어드민에서 검토하기</a></p>
   `
 
-  await sendEmail(to, subject, html, "admin-alert")
+  // One request per admin, not one request with every admin in it. sendEmail
+  // puts the whole list in a single Brevo call and throws if the call fails,
+  // so a single unreachable address would have silenced the alert for everyone
+  // else — and admin addresses are exactly where a dead one can sit unnoticed,
+  // since admins sign in with a password and never need to receive mail.
+  const results = await Promise.allSettled(
+    to.map((address) => sendEmail(address, subject, html, "admin-alert")),
+  )
+
+  const failed = results.filter((r) => r.status === "rejected").length
+  if (failed > 0) {
+    console.error(
+      `[admin-alert] ${failed}/${to.length} recipients failed; the rest were sent`,
+    )
+  }
 }
 
 async function sendSlackMessage(

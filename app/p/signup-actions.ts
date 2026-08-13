@@ -4,6 +4,7 @@ import { createServiceClient } from "@/lib/supabase/service"
 import { assertPartnerSignupEmailAvailable } from "@/lib/auth/partner-email"
 import { isUserFacingError } from "@/lib/errors"
 import type { PartnerKind } from "@/lib/partners/types"
+import { notifyAdminProfileSubmitted } from "@/lib/notifications/admin-alerts"
 
 export type PartnerSignupInput = {
   email: string
@@ -26,6 +27,53 @@ export type PartnerSignupResult =
  * - Otherwise create a new partners row with registration_status = "submitted"
  *   (pending admin approval; blocked from the portal by the approval gate).
  */
+/**
+ * Tell the admins someone is waiting.
+ *
+ * Nothing in here may fail the sign-up. The partner has an account and a row by
+ * this point; a mail problem is ours, not theirs, and rolling back their
+ * registration over it would be absurd.
+ *
+ * Awaited rather than left dangling: a promise still in flight when the action
+ * returns can be cut off by the serverless runtime, and an alert nobody
+ * receives is the bug this is fixing.
+ */
+async function notifyAdminOfSubmission(input: {
+  userId: string
+  email: string
+  nameKo: string
+  nameEn: string
+  kind: PartnerKind
+}): Promise<void> {
+  try {
+    const service = createServiceClient()
+    // signup_partner returns the status, not the row, and the alert links
+    // straight to the review screen — which needs the id.
+    const { data } = await service
+      .from("partners")
+      .select("id")
+      .eq("user_id", input.userId)
+      .maybeSingle()
+
+    if (!data?.id) return
+
+    await notifyAdminProfileSubmitted({
+      personId: data.id as string,
+      nameKo: input.nameKo,
+      nameEn: input.nameEn,
+      email: input.email,
+      kind: input.kind,
+      // Always a first submission today. There is no way for a partner to
+      // resubmit after a rejection — the app only ever sets
+      // registration_status from the admin side — so the payload's
+      // resubmission branch has no path to it yet.
+      previousStatus: "draft",
+    })
+  } catch (error) {
+    console.error("[partner-signup] admin alert failed:", error)
+  }
+}
+
 export async function signUpPartner(
   input: PartnerSignupInput,
 ): Promise<PartnerSignupResult> {
@@ -75,6 +123,21 @@ export async function signUpPartner(
     }
 
     const pending = status !== "admin" && status !== "approved"
+
+    // Only when someone is actually waiting. signup_partner also links a new
+    // account to a row an admin created earlier, which comes back already
+    // approved — nothing to review, and an alert for it is noise that teaches
+    // people to ignore the next one.
+    if (pending) {
+      await notifyAdminOfSubmission({
+        userId,
+        email,
+        nameKo: input.nameKo.trim(),
+        nameEn: input.nameEn.trim(),
+        kind: input.kind,
+      })
+    }
+
     return { ok: true, pending }
   } catch (error) {
     return {
