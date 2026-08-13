@@ -61,40 +61,34 @@ export function BookingSessionSummary({
 
   return (
     <div className="rounded-3xl border border-border bg-card p-6 sm:p-8">
-      {/* One photo is a hero; two are a pair; three are a hero over a pair.
-          A leftover single in a two-column grid leaves half the row empty,
-          which reads as a missing image rather than a deliberate one. */}
+      {/* Never cropped.
+          What gets uploaded here is not photography — it is posters. The ones
+          in production are 1080×1350 with the headline, the logo, the dates and
+          in one case the entire timetable set as pixels. A fixed frame with
+          object-cover cut the title off the top and the dates off the bottom of
+          the first, and reduced the timetable to four unreadable lines.
+          object-contain gives that up: an image that does not match the frame
+          gets bars instead of losing half its content.
+          4:5 because that is the format the studio actually produces, so the
+          common case fills the frame exactly and no bars appear at all.
+          Stacked rather than one large and two small, since a poster shrunk to
+          a thumbnail is a poster nobody can read. */}
       {images.length > 0 ? (
-        <div className="mb-6 space-y-2">
-          {images.length !== 2 ? (
-            <div className="relative aspect-[16/9] overflow-hidden rounded-2xl">
+        <div className="mb-6 space-y-3">
+          {images.map((path) => (
+            <div
+              key={path}
+              className="relative mx-auto aspect-[4/5] w-full max-w-md overflow-hidden rounded-2xl bg-secondary/30"
+            >
               <Image
-                src={getSessionPhotoUrl(images[0])}
+                src={getSessionPhotoUrl(path)}
                 alt=""
                 fill
-                sizes="(min-width: 768px) 42rem, 100vw"
-                className="object-cover"
+                sizes="(min-width: 640px) 28rem, 100vw"
+                className="object-contain"
               />
             </div>
-          ) : null}
-          {images.length > 1 ? (
-            <div className="grid grid-cols-2 gap-2">
-              {(images.length === 2 ? images : images.slice(1)).map((path) => (
-                <div
-                  key={path}
-                  className="relative aspect-[4/3] overflow-hidden rounded-xl"
-                >
-                  <Image
-                    src={getSessionPhotoUrl(path)}
-                    alt=""
-                    fill
-                    sizes="(min-width: 768px) 21rem, 50vw"
-                    className="object-cover"
-                  />
-                </div>
-              ))}
-            </div>
-          ) : null}
+          ))}
         </div>
       ) : null}
 
