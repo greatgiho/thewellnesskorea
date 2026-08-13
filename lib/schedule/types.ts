@@ -30,6 +30,9 @@ export type SessionRow = {
   instructor_id: string
   partner_program_id: string | null
   title: string
+  /** One or two lines for list cards. Empty = the card shows no summary. */
+  blurb_en: string | null
+  blurb_ko: string | null
   path_keys: PathKey[]
   starts_at: string
   ends_at: string
@@ -119,6 +122,8 @@ export type SessionFormInput = {
   instructor_id: string
   partner_program_id: string | null
   title: string
+  blurb_en: string
+  blurb_ko: string
   path_keys: PathKey[]
   date: string
   start_time: string

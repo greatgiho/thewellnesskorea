@@ -11,6 +11,7 @@ import {
   SectionHeader,
   Tag,
 } from "@/components/redesign/primitives"
+import Image from "next/image"
 import type { ReservationItem } from "@/lib/schedule/map-redesign-content"
 
 /**
@@ -43,7 +44,7 @@ const T = {
     eyebrow: "다가오는 · Upcoming",
     heading: "What's coming to Brickwell",
     lead: "Pick an upcoming class below — you'll complete your reservation (and payment, where required) on the next page.",
-    spotsLeft: (n: number) => `${n} spot${n === 1 ? "" : "s"} left`,
+    seats: (left: number, total: number) => `${left} / ${total} seats left`,
     reserve: "Reserve",
     full: "Full — join waitlist",
     started: "Booking closed",
@@ -53,7 +54,7 @@ const T = {
     eyebrow: "다가오는 · Upcoming",
     heading: "브릭웰에서 열리는 다음 클래스",
     lead: "아래에서 원하는 클래스를 선택하면, 다음 페이지에서 예약(및 필요한 경우 결제)을 완료하실 수 있습니다.",
-    spotsLeft: (n: number) => `${n}자리 남음`,
+    seats: (left: number, total: number) => `잔여 ${left} / 정원 ${total}`,
     reserve: "예약하기",
     full: "마감 — 대기 신청",
     started: "예약 마감",
@@ -81,9 +82,23 @@ export function UpcomingEvents({ items }: { items: ReservationItem[] }) {
             return (
               <article
                 key={item.id}
-                className="grid grid-cols-[auto_1fr] gap-6 py-8 sm:grid-cols-[auto_1fr_auto] sm:items-center"
+                className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-4 py-8 sm:grid-cols-[auto_auto_1fr_auto] sm:items-center"
               >
                 <DateBadge month={badge.month} day={badge.day} />
+
+                {/* The photo the design original always had on this row. It
+                    was dropped when the list became text-only; the row is a
+                    grid now, so it has a column of its own rather than
+                    competing with the copy for width. */}
+                <div className="relative hidden size-24 shrink-0 overflow-hidden rounded-xl sm:block">
+                  <Image
+                    src={item.image}
+                    alt=""
+                    fill
+                    sizes="6rem"
+                    className="object-cover"
+                  />
+                </div>
 
                 <div className="col-span-1">
                   {item.tag && <Tag>{item.tag[lang]}</Tag>}
@@ -92,20 +107,26 @@ export function UpcomingEvents({ items }: { items: ReservationItem[] }) {
                   >
                     {item.title[lang]}
                   </h3>
-                  {item.body[lang] && (
-                    <p className="mt-1 text-sm leading-relaxed text-muted-foreground text-pretty">
-                      {item.body[lang]}
-                    </p>
-                  )}
-                  <MetaList className="mt-3">
+                  {/* Directly under the title, above the summary. These are
+                      what someone scanning a list is deciding on — when, where,
+                      and whether there is room — and underneath a paragraph
+                      they were being read last or not at all. */}
+                  <MetaList className="mt-2">
                     <MetaItem icon={Calendar}>{item.time[lang]}</MetaItem>
                     {item.place[lang] && (
                       <MetaItem icon={MapPin}>{item.place[lang]}</MetaItem>
                     )}
-                    {!item.hasStarted && item.spots > 0 && (
-                      <MetaItem icon={Users}>{t.spotsLeft(item.spots)}</MetaItem>
+                    {!item.hasStarted && (
+                      <MetaItem icon={Users}>
+                        {t.seats(item.spots, item.capacity)}
+                      </MetaItem>
                     )}
                   </MetaList>
+                  {item.body[lang] && (
+                    <p className="mt-3 text-sm leading-relaxed text-muted-foreground text-pretty">
+                      {item.body[lang]}
+                    </p>
+                  )}
                 </div>
 
                 {/* A class that already started is past what /book accepts, so

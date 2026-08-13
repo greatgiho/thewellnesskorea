@@ -18,6 +18,7 @@ export const SESSION_SUMMARY_SELECT = `
     title,
     starts_at,
     ends_at,
+    is_all_floors,
     price_currency,
     price_amount,
     discount_type,
@@ -67,6 +68,7 @@ export type SessionSummaryRelation = Rel<{
   title: string
   starts_at: string
   ends_at: string
+  is_all_floors?: boolean
   price_currency?: string
   price_amount?: number | string
   discount_type?: string | null
@@ -101,7 +103,11 @@ export function mapSessionSummary(
     title: session.title,
     startsAt: session.starts_at,
     endsAt: session.ends_at,
-    floorName: floor?.name_en ?? fallback.floor,
+    // A class using the whole building is not on a floor. The admin form has
+    // said so since it was built; only the public side kept printing 1F.
+    floorName: session.is_all_floors
+      ? "All floors"
+      : (floor?.name_en ?? fallback.floor),
     instructorName: instructor?.name_en ?? fallback.instructor,
     price: applyDiscount(
       money(session.price_currency, session.price_amount),

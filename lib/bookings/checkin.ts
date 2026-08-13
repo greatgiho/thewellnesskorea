@@ -43,6 +43,7 @@ const TICKET_SELECT = `
     title,
     starts_at,
     ends_at,
+    is_all_floors,
     floor:floors (name_ko, name_en),
     instructor:partners (name_ko, name_en)
   )
@@ -58,6 +59,7 @@ type TicketRow = {
         title: string
         starts_at: string
         ends_at: string
+        is_all_floors: boolean | null
         floor: { name_ko: string | null; name_en: string | null } | null
         instructor: { name_ko: string | null; name_en: string | null } | null
       }
@@ -86,7 +88,9 @@ function toTicket(row: TicketRow): TicketSummary | null {
     sessionTitle: session.title,
     sessionStartsAt: session.starts_at,
     sessionEndsAt: session.ends_at,
-    floorName: floor?.name_ko ?? floor?.name_en ?? "",
+    floorName: session.is_all_floors
+      ? "전층"
+      : (floor?.name_ko ?? floor?.name_en ?? ""),
     instructorName: instructor?.name_ko ?? instructor?.name_en ?? "",
     checkedInAt: row.checked_in_at,
   }

@@ -31,7 +31,9 @@ export function BookingSessionSummary({
   const startsAt = summary?.sessionStartsAt ?? session?.starts_at
   const endsAt = summary?.sessionEndsAt ?? session?.ends_at
   const floorName =
-    summary?.floorName ?? session?.floor?.name_en ?? "Brickwell"
+    summary?.floorName ??
+    (session?.is_all_floors ? "All floors" : session?.floor?.name_en) ??
+    "Brickwell"
   const instructorName =
     summary?.instructorName ?? session?.instructor?.name_en ?? "Wellness Guide"
 

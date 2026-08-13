@@ -274,6 +274,34 @@ export function SessionFormDialog({
               />
             </label>
 
+            {/* The column has existed since 049 and the list card has always
+                read it, but there was nowhere to type it — so every card fell
+                back to the full intro and became a wall of text. */}
+            <div className="space-y-1.5">
+              <span className="text-sm font-medium">
+                한 줄 소개{" "}
+                <span className="font-normal text-muted-foreground">
+                  (목록 카드)
+                </span>
+              </span>
+              <input
+                className={fieldClass}
+                placeholder="EN — 비우면 목록 카드에 소개가 안 나옵니다"
+                value={input.blurb_en}
+                onChange={(e) =>
+                  setInput((v) => ({ ...v, blurb_en: e.target.value }))
+                }
+              />
+              <input
+                className={fieldClass}
+                placeholder="KO"
+                value={input.blurb_ko}
+                onChange={(e) =>
+                  setInput((v) => ({ ...v, blurb_ko: e.target.value }))
+                }
+              />
+            </div>
+
             <div className="space-y-2">
               <span className="text-sm font-medium">Philosophy paths</span>
               <PhilosophyPathPicker
