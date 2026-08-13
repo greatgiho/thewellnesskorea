@@ -9,6 +9,10 @@ import type { PastEventItem } from "@/lib/schedule/map-redesign-content"
  * Four across at desktop, which is what the grid is built for — MAX_ITEMS keeps
  * it to a single full row rather than leaving two orphans on a second one.
  *
+ * Only the past week reaches this list (PAST_EVENT_WINDOW_DAYS). Before that
+ * the section had a ceiling but no floor, so a quiet season left the homepage
+ * showing gatherings from months ago as though they were recent.
+ *
  * The copy here is not run through the language toggle. The original wrote it
  * in English, and the season strings this reads come out of an en-US formatter
  * (see toPastEvents), so switching only the headings would leave the section
@@ -32,7 +36,10 @@ export function PastEvents({ events }: { events: PastEventItem[] }) {
 
       {shown.length === 0 ? (
         <p className="mt-12 text-sm leading-relaxed text-muted-foreground text-pretty">
-          No past gatherings are on record yet.
+          {/* Not "none on record" any more: the archive only reaches back a
+              week now, so an empty section means a quiet one, not an empty
+              history. */}
+          Nothing here from the past week — the next gathering is above.
         </p>
       ) : (
         <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">

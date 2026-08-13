@@ -123,6 +123,15 @@ export async function getUpcomingBookableSessions(
 }
 
 /** Past sessions (already happened), most recent first, for PastEvents. */
+/**
+ * How long a finished event stays in the homepage archive.
+ *
+ * Measured from when it ended, not when it started, so a multi-day retreat
+ * gets its full week after the last day rather than losing days to its own
+ * length.
+ */
+export const PAST_EVENT_WINDOW_DAYS = 7
+
 export async function getPastSessions(
   experienceId: string,
   limit = 8,
@@ -137,6 +146,13 @@ export async function getPastSessions(
   const supabase = await createClient()
   const { start } = kstDayRange(todayDateKeyInKst())
 
+  // The archive had no floor to it: with only "before today" and a limit of 8,
+  // an event from months ago sat on the homepage until eight newer ones pushed
+  // it off. A quiet season left the front page advertising last spring.
+  const cutoff = new Date(
+    Date.now() - PAST_EVENT_WINDOW_DAYS * 24 * 60 * 60 * 1000,
+  ).toISOString()
+
   const { data, error } = await supabase
     .from("sessions")
     .select(REDESIGN_SESSION_SELECT)
@@ -144,6 +160,7 @@ export async function getPastSessions(
     .eq("status", "confirmed")
     .eq("is_published", true)
     .lt("starts_at", start)
+    .gte("ends_at", cutoff)
     .order("starts_at", { ascending: false })
     .limit(limit)
 
