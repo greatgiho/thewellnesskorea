@@ -1,4 +1,17 @@
+import type { Metadata } from "next"
 import Link from "next/link"
+
+/**
+ * Belt and braces for the routes the proxy does not pre-check.
+ *
+ * Next answers 200 for any streamed response, so a page that calls notFound()
+ * after its shell has flushed serves this body under a 200 and a crawler reads
+ * it as a real page. noindex is what stops a dead URL being indexed even when
+ * the status cannot say so.
+ */
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+}
 
 export default function NotFound() {
   return (
