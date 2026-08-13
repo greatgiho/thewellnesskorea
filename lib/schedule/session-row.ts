@@ -29,6 +29,10 @@ export function sessionRowFromInput(
     instructor_id: input.instructor_id,
     partner_program_id: input.partner_program_id || null,
     title: input.title.trim(),
+    // Empty string and null mean the same thing to the card, but null is what
+    // "nobody wrote one" looks like in the column.
+    blurb_en: input.blurb_en.trim() || null,
+    blurb_ko: input.blurb_ko.trim() || null,
     path_keys: input.path_keys,
     starts_at,
     ends_at,
