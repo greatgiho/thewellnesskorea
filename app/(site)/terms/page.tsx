@@ -1,12 +1,18 @@
 import type { Metadata } from "next"
 import { LegalPageLayout, LegalSection } from "@/components/legal/legal-page-layout"
+import { DEFAULT_CONTACT_EMAIL, getSiteSettings } from "@/lib/site/settings"
 
 export const metadata: Metadata = {
   title: "Terms of Use — The Wellness Korea",
   description: "Terms and conditions for using The Wellness Korea website and services.",
 }
 
-export default function TermsPage() {
+export default async function TermsPage() {
+  // Edited in the admin, so a change of address does not need a deploy —
+  // and does not leave these two pages naming an inbox nobody reads.
+  const { site } = await getSiteSettings()
+  const contactEmail = site.contactEmail || DEFAULT_CONTACT_EMAIL
+
   return (
     <LegalPageLayout title="Terms of Use" updated="June 16, 2026">
       <LegalSection title="1. Agreement">
@@ -129,10 +135,10 @@ export default function TermsPage() {
         <p>
           Questions about these Terms:{" "}
           <a
-            href="mailto:hello@thewellnesskorea.com"
+            href={`mailto:${contactEmail}`}
             className="text-primary underline-offset-4 hover:underline"
           >
-            hello@thewellnesskorea.com
+            {contactEmail}
           </a>
         </p>
       </LegalSection>

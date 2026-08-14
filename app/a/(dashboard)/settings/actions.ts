@@ -6,6 +6,7 @@ import { requireAdminSession } from "@/lib/auth/require-session"
 import { assertNotViewAs } from "@/lib/view-as-server"
 import { asActionResult, UserFacingError, type ActionResult } from "@/lib/errors"
 import { MIN_PASSWORD_LENGTH } from "@/lib/auth/password"
+import { pickEditableColumns } from "@/lib/site/settings"
 
 /**
  * Check a password by signing in with it, without disturbing the session.
@@ -92,31 +93,24 @@ export async function changeAdminPassword(
  * grants UPDATE to admins only, and the row can be neither inserted nor
  * deleted. The service client would bypass exactly the check worth keeping.
  */
-export async function saveBusinessInfo(
+export async function saveSiteSettings(
   _prev: ActionResult | null,
   formData: FormData,
 ): Promise<ActionResult> {
   return asActionResult(
-    "saveBusinessInfo",
-    "사업자 정보를 저장하지 못했습니다. 다시 시도해 주세요.",
+    "saveSiteSettings",
+    "설정을 저장하지 못했습니다. 다시 시도해 주세요.",
     async () => {
       await requireAdminSession()
       await assertNotViewAs()
 
-      const field = (name: string) => String(formData.get(name) ?? "").trim()
+      const patch = pickEditableColumns(formData)
 
-      // Every field is optional. This block is a legal notice, not a form to
-      // pass — half of it entered is still worth showing, and refusing to save
-      // a partly-filled draft would just mean losing the part that is filled.
-      const patch = {
-        business_name: field("business_name"),
-        representative_name: field("representative_name"),
-        business_number: field("business_number"),
-        mail_order_number: field("mail_order_number"),
-        address: field("address"),
-        phone: field("phone"),
-        email: field("email"),
-        privacy_officer: field("privacy_officer"),
+      // Every field is optional — a legal notice half-entered is still worth
+      // showing, and refusing a partly-filled save would only lose the part
+      // that is filled. An empty submission, though, is a bug somewhere else.
+      if (Object.keys(patch).length === 0) {
+        throw new UserFacingError("저장할 항목이 없습니다.")
       }
 
       const supabase = await createClient()
@@ -132,7 +126,7 @@ export async function saveBusinessInfo(
       // save worked and see the old values come back on reload.
       if (!data || data.length === 0) {
         throw new UserFacingError(
-          "사업자 정보를 저장할 권한이 없거나 설정 행이 없습니다.",
+          "저장할 권한이 없거나 설정 행이 없습니다.",
         )
       }
     },

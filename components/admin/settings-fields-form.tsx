@@ -1,67 +1,71 @@
 "use client"
 
 import { useActionState } from "react"
-import { saveBusinessInfo } from "@/app/a/(dashboard)/settings/actions"
-import type { BusinessInfo } from "@/lib/site/business-info"
+import { saveSiteSettings } from "@/app/a/(dashboard)/settings/actions"
 import type { ActionResult } from "@/lib/errors"
+
+/**
+ * One section of the site settings row.
+ *
+ * The two sections — the footer's own copy and the trader details — are
+ * separate forms rather than one long one, so each has its own save button and
+ * saving one cannot silently rewrite the other. They post to the same action,
+ * which writes only the fields it was given.
+ *
+ * Inputs are named after their columns. That is what lets the action allowlist
+ * them without a second mapping to keep in step.
+ */
 
 const FIELD =
   "mt-1.5 w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground outline-none transition-colors focus:border-primary"
 
-/**
- * Order follows how the footer reads it, so the form and the result line up.
- * `hint` only where the value is a number nobody remembers the shape of.
- */
-const FIELDS: {
-  name: keyof BusinessInfo
+export type SettingsField = {
+  /** Database column, and the input's name. */
   column: string
   label: string
   hint?: string
-}[] = [
-  { name: "businessName", column: "business_name", label: "상호" },
-  { name: "representativeName", column: "representative_name", label: "대표자" },
-  {
-    name: "businessNumber",
-    column: "business_number",
-    label: "사업자등록번호",
-    hint: "000-00-00000",
-  },
-  {
-    name: "mailOrderNumber",
-    column: "mail_order_number",
-    label: "통신판매업 신고번호",
-    hint: "제0000-지역0000호",
-  },
-  { name: "address", column: "address", label: "주소" },
-  { name: "phone", column: "phone", label: "전화번호" },
-  { name: "email", column: "email", label: "이메일" },
-  {
-    name: "privacyOfficer",
-    column: "privacy_officer",
-    label: "개인정보관리책임자",
-  },
-]
+  multiline?: boolean
+}
 
-export function BusinessInfoForm({ info }: { info: BusinessInfo }) {
+export function SettingsFieldsForm({
+  fields,
+  values,
+  saved,
+}: {
+  fields: SettingsField[]
+  values: Record<string, string>
+  /** What to say after a successful save; the two sections differ. */
+  saved: string
+}) {
   const [state, formAction, pending] = useActionState<
     ActionResult | null,
     FormData
-  >(saveBusinessInfo, null)
+  >(saveSiteSettings, null)
 
   return (
     <form action={formAction} className="max-w-md space-y-5">
-      {FIELDS.map((f) => (
+      {fields.map((f) => (
         <div key={f.column}>
           <label htmlFor={f.column} className="text-sm text-foreground">
             {f.label}
           </label>
-          <input
-            id={f.column}
-            name={f.column}
-            type="text"
-            defaultValue={info[f.name]}
-            className={FIELD}
-          />
+          {f.multiline ? (
+            <textarea
+              id={f.column}
+              name={f.column}
+              rows={3}
+              defaultValue={values[f.column] ?? ""}
+              className={`${FIELD} resize-y`}
+            />
+          ) : (
+            <input
+              id={f.column}
+              name={f.column}
+              type="text"
+              defaultValue={values[f.column] ?? ""}
+              className={FIELD}
+            />
+          )}
           {f.hint ? (
             <p className="mt-1.5 text-xs text-muted-foreground">{f.hint}</p>
           ) : null}
@@ -75,7 +79,7 @@ export function BusinessInfoForm({ info }: { info: BusinessInfo }) {
       ) : null}
       {state?.ok ? (
         <p className="rounded-xl border border-primary/30 bg-primary/10 px-4 py-3 text-sm text-foreground">
-          저장했습니다. 사이트 하단에 바로 반영됩니다.
+          {saved}
         </p>
       ) : null}
 

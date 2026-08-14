@@ -4,26 +4,28 @@ import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useLang } from "@/components/redesign/language-provider"
-import type { BusinessInfo } from "@/lib/site/business-info"
+import type { BusinessInfo, SiteInfo } from "@/lib/site/settings"
 import {
   FOOTER_SECTION_LINKS,
   PAGE_LINKS,
   sectionHref,
 } from "@/components/redesign/nav-links"
 
+/**
+ * What is still written here is what only a developer would ever change: the
+ * column headings and the copyright line. The tagline and the address moved
+ * into site_settings, because they are the site talking about itself and
+ * operations has to be able to correct them without a deploy.
+ */
 const T = {
   en: {
-    tagline: "A calm place for Korean wellness in Seochon, Seoul. Soft, warm, and natural — come as you are.",
     explore: "Explore",
     visit: "Visit",
-    address: ["Brickwell, Tongui-dong", "Seochon, Jongno-gu, Seoul", "hello@thewellnesskorea.com"],
     rights: (year: number) => `© ${year} The Wellness Korea. Made with stillness.`,
   },
   ko: {
-    tagline: "서울 서촌에 자리한, 한국식 웰니스를 위한 고요한 공간. 부드럽고, 따뜻하고, 자연스럽게 — 있는 그대로 오세요.",
     explore: "둘러보기",
     visit: "찾아오기",
-    address: ["브릭웰, 통의동", "서촌, 종로구, 서울", "hello@thewellnesskorea.com"],
     rights: (year: number) => `© ${year} 더 웰니스 코리아. 고요함으로 만듭니다.`,
   },
 }
@@ -48,10 +50,26 @@ const BUSINESS_FIELDS: {
   { key: "privacyOfficer", en: "Privacy officer", ko: "개인정보관리책임자" },
 ]
 
-export function SiteFooter({ business }: { business: BusinessInfo | null }) {
+export function SiteFooter({
+  site,
+  business,
+}: {
+  site: SiteInfo
+  business: BusinessInfo | null
+}) {
   const { lang } = useLang()
   const pathname = usePathname()
   const t = T[lang]
+
+  const tagline = lang === "ko" ? site.taglineKo : site.taglineEn
+  // Stored as one field per language, a line per line, because that is how an
+  // address is written and how it has to come back out.
+  const addressLines = (
+    lang === "ko" ? site.visitAddressKo : site.visitAddressEn
+  )
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
 
   return (
     <footer className="border-t border-border bg-background py-16">
@@ -64,7 +82,9 @@ export function SiteFooter({ business }: { business: BusinessInfo | null }) {
             height={64}
             className="h-14 w-auto object-contain"
           />
-          <p className="mt-4 text-sm leading-relaxed text-muted-foreground text-pretty">{t.tagline}</p>
+          {tagline ? (
+            <p className="mt-4 text-sm leading-relaxed text-muted-foreground text-pretty">{tagline}</p>
+          ) : null}
         </div>
 
         <div className="flex flex-col gap-8 sm:flex-row sm:gap-16">
@@ -97,14 +117,28 @@ export function SiteFooter({ business }: { business: BusinessInfo | null }) {
             </ul>
           </nav>
 
-          <div>
-            <p className="text-sm text-[var(--sage)]">{t.visit}</p>
-            <address className="mt-3 space-y-2 text-sm not-italic text-muted-foreground">
-              {t.address.map((line) => (
-                <p key={line}>{line}</p>
-              ))}
-            </address>
-          </div>
+          {/* Heading and all: a "Visit" column with nothing under it reads as
+              a broken page, not as an address nobody has entered yet. */}
+          {addressLines.length > 0 || site.contactEmail ? (
+            <div>
+              <p className="text-sm text-[var(--sage)]">{t.visit}</p>
+              <address className="mt-3 space-y-2 text-sm not-italic text-muted-foreground">
+                {addressLines.map((line) => (
+                  <p key={line}>{line}</p>
+                ))}
+                {site.contactEmail ? (
+                  <p>
+                    <a
+                      href={`mailto:${site.contactEmail}`}
+                      className="transition-colors hover:text-foreground"
+                    >
+                      {site.contactEmail}
+                    </a>
+                  </p>
+                ) : null}
+              </address>
+            </div>
+          ) : null}
         </div>
       </div>
 

@@ -1,12 +1,18 @@
 import type { Metadata } from "next"
 import { LegalPageLayout, LegalSection } from "@/components/legal/legal-page-layout"
+import { DEFAULT_CONTACT_EMAIL, getSiteSettings } from "@/lib/site/settings"
 
 export const metadata: Metadata = {
   title: "Privacy Policy — The Wellness Korea",
   description: "How The Wellness Korea collects, uses, and protects your personal information.",
 }
 
-export default function PrivacyPage() {
+export default async function PrivacyPage() {
+  // Edited in the admin, so a change of address does not need a deploy —
+  // and does not leave these two pages naming an inbox nobody reads.
+  const { site } = await getSiteSettings()
+  const contactEmail = site.contactEmail || DEFAULT_CONTACT_EMAIL
+
   return (
     <LegalPageLayout title="Privacy Policy" updated="June 16, 2026">
       <LegalSection title="1. Who we are">
@@ -101,10 +107,10 @@ export default function PrivacyPage() {
           withdraw consent where processing is consent-based. To make a request,
           contact us at{" "}
           <a
-            href="mailto:hello@thewellnesskorea.com"
+            href={`mailto:${contactEmail}`}
             className="text-primary underline-offset-4 hover:underline"
           >
-            hello@thewellnesskorea.com
+            {contactEmail}
           </a>
           .
         </p>
@@ -138,10 +144,10 @@ export default function PrivacyPage() {
         <p>
           For privacy-related questions, contact:{" "}
           <a
-            href="mailto:hello@thewellnesskorea.com"
+            href={`mailto:${contactEmail}`}
             className="text-primary underline-offset-4 hover:underline"
           >
-            hello@thewellnesskorea.com
+            {contactEmail}
           </a>
         </p>
       </LegalSection>
