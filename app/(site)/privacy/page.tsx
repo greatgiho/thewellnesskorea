@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { LegalPageLayout, LegalSection } from "@/components/legal/legal-page-layout"
-import { DEFAULT_CONTACT_EMAIL, getSiteSettings } from "@/lib/site/settings"
+import { DEFAULT_CONTACT_EMAIL } from "@/lib/site/settings"
+import { resolveSiteSettings } from "@/lib/site/settings-source"
 
 export const metadata: Metadata = {
   title: "Privacy Policy — The Wellness Korea",
@@ -10,7 +11,7 @@ export const metadata: Metadata = {
 export default async function PrivacyPage() {
   // Edited in the admin, so a change of address does not need a deploy —
   // and does not leave these two pages naming an inbox nobody reads.
-  const { site } = await getSiteSettings()
+  const { site } = await resolveSiteSettings()
   const contactEmail = site.contactEmail || DEFAULT_CONTACT_EMAIL
 
   return (
