@@ -1,4 +1,8 @@
 import type { ReactNode } from "react"
+import {
+  getBusinessInfo,
+  isBusinessInfoEmpty,
+} from "@/lib/site/business-info"
 import { LanguageProvider } from "@/components/redesign/language-provider"
 import { SiteNav } from "@/components/redesign/site-nav"
 import { SiteFooter } from "@/components/redesign/site-footer"
@@ -24,21 +28,29 @@ import { SectionHeader } from "@/components/redesign/primitives"
  *
  * Admin, partner, and viewer areas deliberately do not use this: they are tools
  * with their own dashboard chrome, not part of the public site.
+ *
+ * The business details are fetched here rather than in the footer because the
+ * footer is a client component — it reads the language toggle — and this is
+ * the nearest server component that every public page passes through.
  */
-export function PublicShell({
+export async function PublicShell({
   banner,
   children,
 }: {
   banner?: ReactNode
   children: ReactNode
 }) {
+  const business = await getBusinessInfo()
+
   return (
     <LanguageProvider>
       <div className="min-h-screen bg-background">
         {banner}
         <SiteNav />
         {children}
-        <SiteFooter />
+        <SiteFooter
+          business={isBusinessInfoEmpty(business) ? null : business}
+        />
       </div>
     </LanguageProvider>
   )

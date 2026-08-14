@@ -4,6 +4,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useLang } from "@/components/redesign/language-provider"
+import type { BusinessInfo } from "@/lib/site/business-info"
 import {
   FOOTER_SECTION_LINKS,
   PAGE_LINKS,
@@ -27,7 +28,27 @@ const T = {
   },
 }
 
-export function SiteFooter() {
+/**
+ * The legally required trader details, in the order they are conventionally
+ * printed. The values are one set — a registration number and a registered
+ * address have one official form — so only the labels follow the toggle.
+ */
+const BUSINESS_FIELDS: {
+  key: keyof BusinessInfo
+  en: string
+  ko: string
+}[] = [
+  { key: "businessName", en: "Business name", ko: "상호" },
+  { key: "representativeName", en: "Representative", ko: "대표자" },
+  { key: "businessNumber", en: "Business reg. no.", ko: "사업자등록번호" },
+  { key: "mailOrderNumber", en: "Mail-order reg. no.", ko: "통신판매업신고번호" },
+  { key: "address", en: "Address", ko: "주소" },
+  { key: "phone", en: "Tel", ko: "전화" },
+  { key: "email", en: "Email", ko: "이메일" },
+  { key: "privacyOfficer", en: "Privacy officer", ko: "개인정보관리책임자" },
+]
+
+export function SiteFooter({ business }: { business: BusinessInfo | null }) {
   const { lang } = useLang()
   const pathname = usePathname()
   const t = T[lang]
@@ -88,6 +109,18 @@ export function SiteFooter() {
       </div>
 
       <div className="mx-auto mt-12 max-w-6xl border-t border-border px-6 pt-6">
+        {/* Entered in the admin, one field at a time, so a half-filled record
+            is normal — each line appears only once it has something to say. */}
+        {business ? (
+          <ul className="mb-3 flex flex-wrap gap-x-4 gap-y-1 text-xs leading-relaxed text-muted-foreground">
+            {BUSINESS_FIELDS.filter((f) => business[f.key]).map((f) => (
+              <li key={f.key}>
+                <span className="text-muted-foreground/60">{f[lang]}</span>{" "}
+                {business[f.key]}
+              </li>
+            ))}
+          </ul>
+        ) : null}
         <p className="text-xs text-muted-foreground">{t.rights(new Date().getFullYear())}</p>
       </div>
     </footer>

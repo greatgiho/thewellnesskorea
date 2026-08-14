@@ -84,3 +84,57 @@ export async function changeAdminPassword(
     },
   )
 }
+
+/**
+ * Save the business/representative details the public footer prints.
+ *
+ * Written through the request's own client, so RLS decides: site_settings
+ * grants UPDATE to admins only, and the row can be neither inserted nor
+ * deleted. The service client would bypass exactly the check worth keeping.
+ */
+export async function saveBusinessInfo(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  return asActionResult(
+    "saveBusinessInfo",
+    "사업자 정보를 저장하지 못했습니다. 다시 시도해 주세요.",
+    async () => {
+      await requireAdminSession()
+      await assertNotViewAs()
+
+      const field = (name: string) => String(formData.get(name) ?? "").trim()
+
+      // Every field is optional. This block is a legal notice, not a form to
+      // pass — half of it entered is still worth showing, and refusing to save
+      // a partly-filled draft would just mean losing the part that is filled.
+      const patch = {
+        business_name: field("business_name"),
+        representative_name: field("representative_name"),
+        business_number: field("business_number"),
+        mail_order_number: field("mail_order_number"),
+        address: field("address"),
+        phone: field("phone"),
+        email: field("email"),
+        privacy_officer: field("privacy_officer"),
+      }
+
+      const supabase = await createClient()
+      const { data, error } = await supabase
+        .from("site_settings")
+        .update(patch)
+        .eq("id", true)
+        .select("id")
+
+      if (error) throw new Error(error.message)
+      // RLS refusing an update is not an error to PostgREST — it is zero rows
+      // touched. Without this, a non-admin (or a missing row) would be told the
+      // save worked and see the old values come back on reload.
+      if (!data || data.length === 0) {
+        throw new UserFacingError(
+          "사업자 정보를 저장할 권한이 없거나 설정 행이 없습니다.",
+        )
+      }
+    },
+  )
+}
