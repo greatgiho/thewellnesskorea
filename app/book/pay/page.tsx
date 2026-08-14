@@ -5,7 +5,13 @@ import { BookingPageLayout } from "@/components/booking/booking-page-layout"
 import { BookingSessionSummary } from "@/components/booking/booking-session-summary"
 import { DevMockPaymentButton } from "@/components/booking/dev-mock-payment-button"
 import { PaypalCheckoutButton } from "@/components/booking/paypal-checkout-button"
-import { money, formatMoney, paymentMode } from "@/lib/payments/money"
+import { TossCheckoutButton } from "@/components/booking/toss-checkout-button"
+import {
+  money,
+  formatMoney,
+  onlineProviderFor,
+  toTossAmount,
+} from "@/lib/payments/money"
 import { getPendingBookingPayment } from "@/lib/bookings/payment-queries"
 
 export const metadata: Metadata = {
@@ -82,11 +88,17 @@ export default async function BookPayPage({ searchParams }: BookPayPageProps) {
     process.env.PAYMENT_DEV_MOCK === "true"
 
   const paypalClientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID
+  const tossClientKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY
   const currency = pending.summary.price.final.currency
-  // Only online (USD, amount > 0) classes get the PayPal button — never a free
-  // ($0) or on-site hold, even if reached here directly.
-  const isOnline = paymentMode(money(currency, pending.amount)) === "online"
-  const showPaypal = Boolean(paypalClientId) && isOnline
+  const price = money(currency, pending.amount)
+
+  // The currency picks the processor — PayPal cannot charge won and Toss
+  // cannot charge dollars, so this is not a choice to put in front of anyone.
+  // Null for a free ($0) or on-site hold, even if this page is reached
+  // directly.
+  const provider = pending.amount > 0 ? onlineProviderFor(currency) : null
+  const showPaypal = provider === "paypal" && Boolean(paypalClientId)
+  const showToss = provider === "toss" && Boolean(tossClientKey)
 
   return (
     <BookingPageLayout
@@ -124,9 +136,18 @@ export default async function BookPayPage({ searchParams }: BookPayPageProps) {
             clientId={paypalClientId as string}
             currency={currency}
           />
+        ) : showToss ? (
+          <TossCheckoutButton
+            clientKey={tossClientKey as string}
+            orderId={pending.merchantUid}
+            amount={toTossAmount(price)}
+            orderName={pending.summary.sessionTitle}
+            customerEmail={pending.guestEmail}
+            customerName={pending.guestName}
+          />
         ) : (
           <p className="rounded-2xl border border-dashed border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
-            {currency === "USD"
+            {provider
               ? "Online payment is temporarily unavailable. Please contact us to complete your booking."
               : "This class is paid on-site."}
           </p>

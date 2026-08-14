@@ -140,17 +140,64 @@ export function isDiscounted(priced: PricedMoney): boolean {
 
 export type PaymentMode = "free" | "online" | "onsite"
 
+/** Who can actually take the money for a given currency. */
+export type OnlineProvider = "paypal" | "toss"
+
+/**
+ * Whether Toss is wired up, from the one variable the browser can also see.
+ *
+ * This has to answer the same way on both sides — the booking form decides
+ * what to show from it, the pay page decides what to render, and the two
+ * disagreeing would offer a customer a payment they cannot complete.
+ * NEXT_PUBLIC_TOSS_CLIENT_KEY is checked rather than the secret because only
+ * the public one exists in a browser bundle; the server checks both in
+ * isTossConfigured() before it will talk to Toss.
+ */
+export function tossEnabled(): boolean {
+  return Boolean(process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY)
+}
+
+/**
+ * Which processor takes this currency, if any.
+ *
+ * Not a choice the customer makes. PayPal cannot charge won and Toss cannot
+ * charge dollars, so the price decides and there is nothing to pick between.
+ *
+ * KRW returns null until Toss is configured, which is what keeps this change
+ * inert: with no key, a won-priced class stays on-site exactly as before, and
+ * removing the key puts it back.
+ */
+export function onlineProviderFor(
+  currency: Currency,
+  toss: boolean = tossEnabled(),
+): OnlineProvider | null {
+  if (currency === "USD") return "paypal"
+  if (currency === "KRW") return toss ? "toss" : null
+  return null
+}
+
 /**
  * How a class is paid for:
  * - free   : no charge (amount 0) — reserve directly, nothing to pay.
- * - online : has a fee paid now via PayPal. PayPal only supports USD, so a USD
- *   price = online.
- * - onsite : has a fee paid in person (any non-USD price, e.g. KRW) — reserve
- *   now, pay at the studio.
+ * - online : has a fee and a processor that can take it.
+ * - onsite : has a fee and nothing that can take it online — reserve now, pay
+ *   at the studio.
  */
-export function paymentMode(m: Money): PaymentMode {
+export function paymentMode(m: Money, toss?: boolean): PaymentMode {
   if (m.amount <= 0) return "free"
-  return m.currency === "USD" ? "online" : "onsite"
+  return onlineProviderFor(m.currency, toss ?? tossEnabled()) ? "online" : "onsite"
+}
+
+/**
+ * The integer amount Toss charges in.
+ *
+ * Won has no subunit, so this is the whole price — but it is stated as a
+ * separate step because the number is compared for equality on the way back
+ * from the payment window, and a value that has been through a float divide
+ * would not match.
+ */
+export function toTossAmount(m: Money): number {
+  return Math.round(m.amount)
 }
 
 /** PayPal decimal amount string, e.g. "30.00". */

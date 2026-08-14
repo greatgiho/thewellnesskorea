@@ -37,11 +37,12 @@ async function loadBookingPayment(
 export async function finalizePaidBooking(
   bookingId: string,
   captureId: string,
+  provider: string = "paypal",
 ): Promise<boolean> {
   const info = await loadBookingPayment(bookingId)
   if (!info) return false
 
-  await confirmBookingPaymentRpc(info.merchantUid, captureId, "paypal", info.amount)
+  await confirmBookingPaymentRpc(info.merchantUid, captureId, provider, info.amount)
 
   const summary = await getBookingSummaryById(bookingId)
   if (summary) {
@@ -62,16 +63,43 @@ export async function finalizePaidBooking(
 export async function recordPendingCapture(
   bookingId: string,
   captureId: string,
+  provider: string = "paypal",
 ): Promise<void> {
   const service = createServiceClient()
   const info = await loadBookingPayment(bookingId)
   if (info) {
     await service
       .from("payments")
-      .update({ pg_tid: captureId, pg_provider: "paypal" })
+      .update({ pg_tid: captureId, pg_provider: provider })
       .eq("merchant_uid", info.merchantUid)
   }
   await service.from("bookings").update({ expires_at: null }).eq("id", bookingId)
+}
+
+/**
+ * The booking a Toss order id belongs to.
+ *
+ * Toss hands back our merchant_uid as its orderId, and both the return from
+ * the payment window and the webhook identify the payment that way — neither
+ * knows our booking id. Read with the service client because neither arrives
+ * with a session: one is a redirect the customer may not be signed in for, the
+ * other is a server calling us.
+ */
+export async function findBookingByMerchantUid(
+  merchantUid: string,
+): Promise<{ bookingId: string; amount: number; status: string } | null> {
+  const service = createServiceClient()
+  const { data } = await service
+    .from("payments")
+    .select("booking_id, amount, status")
+    .eq("merchant_uid", merchantUid)
+    .maybeSingle<{ booking_id: string; amount: number | string; status: string }>()
+  if (!data) return null
+  return {
+    bookingId: data.booking_id,
+    amount: Number(data.amount),
+    status: data.status,
+  }
 }
 
 /**
