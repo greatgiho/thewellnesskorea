@@ -1,5 +1,13 @@
 import type { Metadata } from "next"
 import { requireAdminSession } from "@/lib/auth/require-session"
+import { getSiteSettings, toColumnValues } from "@/lib/site/settings"
+import { resolveSiteSettings } from "@/lib/site/settings-source"
+import { SettingsFieldsForm } from "@/components/admin/settings-fields-form"
+import { SettingsSourceNotice } from "@/components/admin/settings-source-notice"
+import {
+  BUSINESS_INFO_FIELDS,
+  SITE_INFO_FIELDS,
+} from "@/components/admin/settings-fields"
 import { ChangePasswordForm } from "@/components/admin/change-password-form"
 
 export const metadata: Metadata = {
@@ -8,6 +16,11 @@ export const metadata: Metadata = {
 
 export default async function AdminSettingsPage() {
   const { userEmail } = await requireAdminSession()
+  // The forms show the database, not the resolved chain. Filling them with a
+  // fallback's values would make the fallback look like something someone typed
+  // here, and one save would copy it in for real.
+  const values = toColumnValues(await getSiteSettings())
+  const resolved = await resolveSiteSettings()
 
   return (
     <div className="space-y-6">
@@ -17,6 +30,36 @@ export default async function AdminSettingsPage() {
           <p className="mt-2 text-sm text-muted-foreground">{userEmail}</p>
         ) : null}
       </div>
+
+      <SettingsSourceNotice resolved={resolved} />
+
+      <section className="rounded-3xl border border-border bg-card p-6 sm:p-8">
+        <h2 className="font-serif text-xl text-foreground">사이트 정보</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          사이트 하단에 표시됩니다. 저장하면 바로 반영됩니다.
+        </p>
+        <div className="mt-6">
+          <SettingsFieldsForm
+            fields={SITE_INFO_FIELDS}
+            values={values}
+            saved="사이트 정보를 저장했습니다."
+          />
+        </div>
+      </section>
+
+      <section className="rounded-3xl border border-border bg-card p-6 sm:p-8">
+        <h2 className="font-serif text-xl text-foreground">사업자 정보</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          사이트 하단에 표시됩니다. 모두 비우면 표시되지 않습니다.
+        </p>
+        <div className="mt-6">
+          <SettingsFieldsForm
+            fields={BUSINESS_INFO_FIELDS}
+            values={values}
+            saved="사업자 정보를 저장했습니다."
+          />
+        </div>
+      </section>
 
       <section className="rounded-3xl border border-border bg-card p-6 sm:p-8">
         <h2 className="font-serif text-xl text-foreground">비밀번호 변경</h2>

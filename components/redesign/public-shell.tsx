@@ -1,7 +1,13 @@
 import type { ReactNode } from "react"
+import { isBusinessInfoEmpty } from "@/lib/site/settings"
+import {
+  mustBlockPublicSite,
+  resolveSiteSettings,
+} from "@/lib/site/settings-source"
 import { LanguageProvider } from "@/components/redesign/language-provider"
 import { SiteNav } from "@/components/redesign/site-nav"
 import { SiteFooter } from "@/components/redesign/site-footer"
+import { SettingsRequiredScreen } from "@/components/redesign/settings-required-screen"
 import { SectionHeader } from "@/components/redesign/primitives"
 
 /**
@@ -24,21 +30,41 @@ import { SectionHeader } from "@/components/redesign/primitives"
  *
  * Admin, partner, and viewer areas deliberately do not use this: they are tools
  * with their own dashboard chrome, not part of the public site.
+ *
+ * The site settings are fetched here rather than in the footer because the
+ * footer is a client component — it reads the language toggle — and this is
+ * the nearest server component that every public page passes through.
+ *
+ * Which is also why the "not configured" guard sits here. It has to cover every
+ * public page and no admin one, and this shell is exactly that set: /a, /p and
+ * /v have their own chrome, so the screen it shows can honestly tell you to go
+ * and fix it.
  */
-export function PublicShell({
+export async function PublicShell({
   banner,
   children,
 }: {
   banner?: ReactNode
   children: ReactNode
 }) {
+  const settings = await resolveSiteSettings()
+
+  if (mustBlockPublicSite(settings)) {
+    return <SettingsRequiredScreen missing={settings.missingInDatabase} />
+  }
+
   return (
     <LanguageProvider>
       <div className="min-h-screen bg-background">
         {banner}
         <SiteNav />
         {children}
-        <SiteFooter />
+        <SiteFooter
+          site={settings.site}
+          business={
+            isBusinessInfoEmpty(settings.business) ? null : settings.business
+          }
+        />
       </div>
     </LanguageProvider>
   )

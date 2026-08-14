@@ -4,33 +4,72 @@ import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useLang } from "@/components/redesign/language-provider"
+import type { BusinessInfo, SiteInfo } from "@/lib/site/settings"
 import {
   FOOTER_SECTION_LINKS,
   PAGE_LINKS,
   sectionHref,
 } from "@/components/redesign/nav-links"
 
+/**
+ * What is still written here is what only a developer would ever change: the
+ * column headings and the copyright line. The tagline and the address moved
+ * into site_settings, because they are the site talking about itself and
+ * operations has to be able to correct them without a deploy.
+ */
 const T = {
   en: {
-    tagline: "A calm place for Korean wellness in Seochon, Seoul. Soft, warm, and natural — come as you are.",
     explore: "Explore",
     visit: "Visit",
-    address: ["Brickwell, Tongui-dong", "Seochon, Jongno-gu, Seoul", "hello@thewellnesskorea.com"],
     rights: (year: number) => `© ${year} The Wellness Korea. Made with stillness.`,
   },
   ko: {
-    tagline: "서울 서촌에 자리한, 한국식 웰니스를 위한 고요한 공간. 부드럽고, 따뜻하고, 자연스럽게 — 있는 그대로 오세요.",
     explore: "둘러보기",
     visit: "찾아오기",
-    address: ["브릭웰, 통의동", "서촌, 종로구, 서울", "hello@thewellnesskorea.com"],
     rights: (year: number) => `© ${year} 더 웰니스 코리아. 고요함으로 만듭니다.`,
   },
 }
 
-export function SiteFooter() {
+/**
+ * The legally required trader details, in the order they are conventionally
+ * printed. The values are one set — a registration number and a registered
+ * address have one official form — so only the labels follow the toggle.
+ */
+const BUSINESS_FIELDS: {
+  key: keyof BusinessInfo
+  en: string
+  ko: string
+}[] = [
+  { key: "businessName", en: "Business name", ko: "상호" },
+  { key: "representativeName", en: "Representative", ko: "대표자" },
+  { key: "businessNumber", en: "Business reg. no.", ko: "사업자등록번호" },
+  { key: "mailOrderNumber", en: "Mail-order reg. no.", ko: "통신판매업신고번호" },
+  { key: "address", en: "Address", ko: "주소" },
+  { key: "phone", en: "Tel", ko: "전화" },
+  { key: "email", en: "Email", ko: "이메일" },
+  { key: "privacyOfficer", en: "Privacy officer", ko: "개인정보관리책임자" },
+]
+
+export function SiteFooter({
+  site,
+  business,
+}: {
+  site: SiteInfo
+  business: BusinessInfo | null
+}) {
   const { lang } = useLang()
   const pathname = usePathname()
   const t = T[lang]
+
+  const tagline = lang === "ko" ? site.taglineKo : site.taglineEn
+  // Stored as one field per language, a line per line, because that is how an
+  // address is written and how it has to come back out.
+  const addressLines = (
+    lang === "ko" ? site.visitAddressKo : site.visitAddressEn
+  )
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
 
   return (
     <footer className="border-t border-border bg-background py-16">
@@ -43,7 +82,9 @@ export function SiteFooter() {
             height={64}
             className="h-14 w-auto object-contain"
           />
-          <p className="mt-4 text-sm leading-relaxed text-muted-foreground text-pretty">{t.tagline}</p>
+          {tagline ? (
+            <p className="mt-4 text-sm leading-relaxed text-muted-foreground text-pretty">{tagline}</p>
+          ) : null}
         </div>
 
         <div className="flex flex-col gap-8 sm:flex-row sm:gap-16">
@@ -76,18 +117,44 @@ export function SiteFooter() {
             </ul>
           </nav>
 
-          <div>
-            <p className="text-sm text-[var(--sage)]">{t.visit}</p>
-            <address className="mt-3 space-y-2 text-sm not-italic text-muted-foreground">
-              {t.address.map((line) => (
-                <p key={line}>{line}</p>
-              ))}
-            </address>
-          </div>
+          {/* Heading and all: a "Visit" column with nothing under it reads as
+              a broken page, not as an address nobody has entered yet. */}
+          {addressLines.length > 0 || site.contactEmail ? (
+            <div>
+              <p className="text-sm text-[var(--sage)]">{t.visit}</p>
+              <address className="mt-3 space-y-2 text-sm not-italic text-muted-foreground">
+                {addressLines.map((line) => (
+                  <p key={line}>{line}</p>
+                ))}
+                {site.contactEmail ? (
+                  <p>
+                    <a
+                      href={`mailto:${site.contactEmail}`}
+                      className="transition-colors hover:text-foreground"
+                    >
+                      {site.contactEmail}
+                    </a>
+                  </p>
+                ) : null}
+              </address>
+            </div>
+          ) : null}
         </div>
       </div>
 
       <div className="mx-auto mt-12 max-w-6xl border-t border-border px-6 pt-6">
+        {/* Entered in the admin, one field at a time, so a half-filled record
+            is normal — each line appears only once it has something to say. */}
+        {business ? (
+          <ul className="mb-3 flex flex-wrap gap-x-4 gap-y-1 text-xs leading-relaxed text-muted-foreground">
+            {BUSINESS_FIELDS.filter((f) => business[f.key]).map((f) => (
+              <li key={f.key}>
+                <span className="text-muted-foreground/60">{f[lang]}</span>{" "}
+                {business[f.key]}
+              </li>
+            ))}
+          </ul>
+        ) : null}
         <p className="text-xs text-muted-foreground">{t.rights(new Date().getFullYear())}</p>
       </div>
     </footer>

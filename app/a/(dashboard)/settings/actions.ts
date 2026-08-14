@@ -6,6 +6,7 @@ import { requireAdminSession } from "@/lib/auth/require-session"
 import { assertNotViewAs } from "@/lib/view-as-server"
 import { asActionResult, UserFacingError, type ActionResult } from "@/lib/errors"
 import { MIN_PASSWORD_LENGTH } from "@/lib/auth/password"
+import { pickEditableColumns } from "@/lib/site/settings"
 
 /**
  * Check a password by signing in with it, without disturbing the session.
@@ -81,6 +82,53 @@ export async function changeAdminPassword(
         password: newPassword,
       })
       if (error) throw new Error(error.message)
+    },
+  )
+}
+
+/**
+ * Save the business/representative details the public footer prints.
+ *
+ * Written through the request's own client, so RLS decides: site_settings
+ * grants UPDATE to admins only, and the row can be neither inserted nor
+ * deleted. The service client would bypass exactly the check worth keeping.
+ */
+export async function saveSiteSettings(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  return asActionResult(
+    "saveSiteSettings",
+    "설정을 저장하지 못했습니다. 다시 시도해 주세요.",
+    async () => {
+      await requireAdminSession()
+      await assertNotViewAs()
+
+      const patch = pickEditableColumns(formData)
+
+      // Every field is optional — a legal notice half-entered is still worth
+      // showing, and refusing a partly-filled save would only lose the part
+      // that is filled. An empty submission, though, is a bug somewhere else.
+      if (Object.keys(patch).length === 0) {
+        throw new UserFacingError("저장할 항목이 없습니다.")
+      }
+
+      const supabase = await createClient()
+      const { data, error } = await supabase
+        .from("site_settings")
+        .update(patch)
+        .eq("id", true)
+        .select("id")
+
+      if (error) throw new Error(error.message)
+      // RLS refusing an update is not an error to PostgREST — it is zero rows
+      // touched. Without this, a non-admin (or a missing row) would be told the
+      // save worked and see the old values come back on reload.
+      if (!data || data.length === 0) {
+        throw new UserFacingError(
+          "저장할 권한이 없거나 설정 행이 없습니다.",
+        )
+      }
     },
   )
 }
