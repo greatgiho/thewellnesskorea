@@ -1,7 +1,9 @@
 import type { Metadata } from "next"
 import { LegalPageLayout, LegalSection } from "@/components/legal/legal-page-layout"
-import { DEFAULT_CONTACT_EMAIL } from "@/lib/site/settings"
-import { resolveSiteSettings } from "@/lib/site/settings-source"
+import {
+  PLACEHOLDER_SITE_INFO,
+  resolveSiteSettings,
+} from "@/lib/site/settings-source"
 
 export const metadata: Metadata = {
   title: "Privacy Policy — The Wellness Korea",
@@ -12,7 +14,11 @@ export default async function PrivacyPage() {
   // Edited in the admin, so a change of address does not need a deploy —
   // and does not leave these two pages naming an inbox nobody reads.
   const { site } = await resolveSiteSettings()
-  const contactEmail = site.contactEmail || DEFAULT_CONTACT_EMAIL
+  // Cleared on purpose is still a cleared field, and "contact us at ." is
+  // not a sentence — so these two pages, unlike the footer, need the
+  // built-in default even when the rest of the block resolved fine.
+  const contactEmail =
+    site.contactEmail || PLACEHOLDER_SITE_INFO.contactEmail
 
   return (
     <LegalPageLayout title="Privacy Policy" updated="June 16, 2026">

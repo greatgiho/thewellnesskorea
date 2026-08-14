@@ -51,16 +51,6 @@ export type SiteSettings = {
   business: BusinessInfo
 }
 
-/**
- * Only for the legal pages, which name the contact address mid-sentence.
- *
- * The footer can simply drop a line it has nothing for; "contact us at ." is
- * not a sentence, so those two pages need something to print when the field
- * has been cleared. Safe to hard-code, unlike the trader details: this is a
- * published address, not a claim about a company.
- */
-export const DEFAULT_CONTACT_EMAIL = "hello@thewellnesskorea.com"
-
 export const EMPTY_SITE_INFO: SiteInfo = {
   taglineEn: "",
   taglineKo: "",
