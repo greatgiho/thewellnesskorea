@@ -25,20 +25,34 @@ describe("onlineProviderFor", () => {
 
 describe("paymentMode", () => {
   it("keeps won on-site until Toss is configured", () => {
-    expect(paymentMode(money("KRW", 50000), false)).toBe("onsite")
-    expect(paymentMode(money("KRW", 50000), true)).toBe("online")
+    expect(paymentMode(money("KRW", 50000), "online", false)).toBe("onsite")
+    expect(paymentMode(money("KRW", 50000), "online", true)).toBe("online")
   })
 
   it("leaves the dollar path exactly as it was", () => {
-    expect(paymentMode(money("USD", 30), false)).toBe("online")
-    expect(paymentMode(money("USD", 30), true)).toBe("online")
+    expect(paymentMode(money("USD", 30), "online", false)).toBe("online")
+    expect(paymentMode(money("USD", 30), "online", true)).toBe("online")
   })
 
-  it("calls a free class free, whichever currency it is priced in", () => {
+  it("honours a class set to on-site, whatever could charge it", () => {
+    // The reason this setting exists: 국내일반결제 will not authorise a card
+    // issued outside Korea, so a won-priced class with foreign guests needs a
+    // pay-at-the-door route even though Toss could technically take the money.
+    expect(paymentMode(money("KRW", 50000), "onsite", true)).toBe("onsite")
+    expect(paymentMode(money("USD", 30), "onsite", true)).toBe("onsite")
+  })
+
+  it("defaults to online, matching the column default", () => {
+    // A caller that has not been given a method must behave as a row written
+    // before the column existed does.
+    expect(paymentMode(money("USD", 30), undefined, true)).toBe("online")
+  })
+
+  it("calls a free class free, whichever way it is set up", () => {
     // A 100% coupon lands here, and there is nothing for either processor to
     // charge — offering a payment window would be a dead end.
-    expect(paymentMode(money("KRW", 0), true)).toBe("free")
-    expect(paymentMode(money("USD", 0), true)).toBe("free")
+    expect(paymentMode(money("KRW", 0), "online", true)).toBe("free")
+    expect(paymentMode(money("USD", 0), "onsite", true)).toBe("free")
   })
 })
 

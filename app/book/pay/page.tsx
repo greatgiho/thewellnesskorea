@@ -92,11 +92,15 @@ export default async function BookPayPage({ searchParams }: BookPayPageProps) {
   const currency = pending.summary.price.final.currency
   const price = money(currency, pending.amount)
 
-  // The currency picks the processor — PayPal cannot charge won and Toss
-  // cannot charge dollars, so this is not a choice to put in front of anyone.
-  // Null for a free ($0) or on-site hold, even if this page is reached
-  // directly.
-  const provider = pending.amount > 0 ? onlineProviderFor(currency) : null
+  // Two gates, and the class's own setting comes first: a class marked
+  // on-site has no processor even when one could take its currency. Then the
+  // currency picks which — PayPal cannot charge won and Toss cannot charge
+  // dollars, so that half is not a choice to put in front of anyone. Null for
+  // a free ($0) or on-site hold, even if this page is reached directly.
+  const provider =
+    pending.amount > 0 && pending.summary.paymentMethod !== "onsite"
+      ? onlineProviderFor(currency)
+      : null
   const showPaypal = provider === "paypal" && Boolean(paypalClientId)
   const showToss = provider === "toss" && Boolean(tossClientKey)
 

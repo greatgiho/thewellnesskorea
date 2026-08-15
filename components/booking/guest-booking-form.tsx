@@ -62,7 +62,10 @@ export function GuestBookingForm({
   )
   // The discounted total is what gets charged, so it drives the flow too — a
   // 100% discount makes this a free booking with no payment step.
-  const mode = paymentMode(quote.total)
+  // The class's own setting decides whether money is due now; the currency
+  // only decides who could take it. A won-priced class set to on-site keeps
+  // the "pay when you arrive" route a foreign card has no alternative to.
+  const mode = paymentMode(quote.total, session.payment_method)
   // Never offer more seats than exist. The booking transaction checks this
   // again under a lock, so a class that fills up meanwhile is caught there.
   const spotsLeft = Math.max(0, session.capacity - session.booked_count)
