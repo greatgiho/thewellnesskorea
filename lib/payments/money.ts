@@ -177,14 +177,32 @@ export function onlineProviderFor(
 }
 
 /**
+ * What the class was set up to do, chosen in the admin.
+ *
+ * Not the same thing as PaymentMode: this is the intent, that is the outcome.
+ * A class set to 'online' whose currency no processor handles still ends up
+ * on-site — offering a payment nobody can complete would be worse than saying
+ * "pay when you arrive".
+ */
+export type SessionPaymentMethod = "online" | "onsite"
+
+/**
  * How a class is paid for:
  * - free   : no charge (amount 0) — reserve directly, nothing to pay.
- * - online : has a fee and a processor that can take it.
- * - onsite : has a fee and nothing that can take it online — reserve now, pay
- *   at the studio.
+ * - online : has a fee, is set up to take it now, and a processor can.
+ * - onsite : reserve now, pay at the studio. Either the class says so, or
+ *   nothing can charge that currency.
+ *
+ * `method` defaults to 'online' to match sessions.payment_method's default, so
+ * a caller that has not been given one behaves as the database would.
  */
-export function paymentMode(m: Money, toss?: boolean): PaymentMode {
+export function paymentMode(
+  m: Money,
+  method: SessionPaymentMethod = "online",
+  toss?: boolean,
+): PaymentMode {
   if (m.amount <= 0) return "free"
+  if (method === "onsite") return "onsite"
   return onlineProviderFor(m.currency, toss ?? tossEnabled()) ? "online" : "onsite"
 }
 

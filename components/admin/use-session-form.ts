@@ -61,6 +61,7 @@ export const defaultInput = (
   price_currency: "USD",
   price_amount: 0,
   child_price_amount: null,
+  payment_method: "online",
   tiers: [],
   discount_type: null,
   discount_value: null,
@@ -139,6 +140,8 @@ export function useSessionForm({
           session.child_price_amount != null
             ? Number(session.child_price_amount)
             : null,
+        payment_method:
+          session.payment_method === "onsite" ? "onsite" : "online",
         tiers: (session.tiers ?? []).map((t) => ({
           id: t.id,
           code: t.code,

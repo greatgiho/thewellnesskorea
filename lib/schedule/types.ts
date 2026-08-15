@@ -1,4 +1,5 @@
 import type { PathKey } from "@/lib/paths/paths-data"
+import type { SessionPaymentMethod } from "@/lib/payments/money"
 
 export type SessionStatus = "processing" | "confirmed" | "cancelled"
 
@@ -42,6 +43,8 @@ export type SessionRow = {
   price_amount: number
   /** Null = this class has no child rate. 0 = children attend free. */
   child_price_amount: number | null
+  /** Pay now, or pay at the door. See 058_session_payment_method.sql. */
+  payment_method: SessionPaymentMethod
   discount_type: "fixed" | "percent" | null
   discount_value: number | null
   is_published: boolean
@@ -132,6 +135,7 @@ export type SessionFormInput = {
   price_currency: Currency
   price_amount: number
   child_price_amount: number | null
+  payment_method: SessionPaymentMethod
   /** Empty = one price for the class. Otherwise capacity is their sum. */
   tiers: SeatTierInput[]
   discount_type: "fixed" | "percent" | null

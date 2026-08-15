@@ -6,6 +6,7 @@ import {
   discountFrom,
   money,
   type PricedMoney,
+  type SessionPaymentMethod,
 } from "@/lib/payments/money"
 
 /**
@@ -21,6 +22,7 @@ export const SESSION_SUMMARY_SELECT = `
     is_all_floors,
     price_currency,
     price_amount,
+    payment_method,
     discount_type,
     discount_value,
     floor:floors (name_en),
@@ -71,6 +73,7 @@ export type SessionSummaryRelation = Rel<{
   is_all_floors?: boolean
   price_currency?: string
   price_amount?: number | string
+  payment_method?: string | null
   discount_type?: string | null
   discount_value?: number | string | null
   floor?: Rel<{ name_en: string }>
@@ -85,6 +88,12 @@ export type SessionSummary = {
   instructorName: string
   /** List price and the discounted price actually charged. */
   price: PricedMoney
+  /**
+   * How the class was set up to be paid for. Carried on the summary because
+   * every screen that shows a price also has to say whether it is due now or
+   * at the door, and the currency no longer answers that on its own.
+   */
+  paymentMethod: SessionPaymentMethod
 }
 
 const DEFAULT_FALLBACK = { floor: "Brickwell", instructor: "Wellness Guide" }
@@ -113,5 +122,8 @@ export function mapSessionSummary(
       money(session.price_currency, session.price_amount),
       discountFrom(session.discount_type, session.discount_value),
     ),
+    // Anything unrecognised reads as 'online', matching the column default —
+    // a row written before this existed behaves as it did yesterday.
+    paymentMethod: session.payment_method === "onsite" ? "onsite" : "online",
   }
 }

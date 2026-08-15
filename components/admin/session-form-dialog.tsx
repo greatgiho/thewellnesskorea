@@ -383,8 +383,31 @@ export function SessionFormDialog({
                 />
               </div>
               <p className="text-xs text-muted-foreground">
-                0 = free / on-site payment. Above 0 requires online payment at
-                booking (B7).
+                0 = 무료. 그 이상이면 아래 결제 방식을 따릅니다.
+              </p>
+            </label>
+
+            <label className="block space-y-1.5">
+              <span className="text-sm font-medium">결제 방식</span>
+              <select
+                className={fieldClass}
+                value={input.payment_method}
+                onChange={(e) =>
+                  setInput((v) => ({
+                    ...v,
+                    payment_method: e.target.value as "online" | "onsite",
+                  }))
+                }
+              >
+                <option value="online">온라인 결제 (예약 시 선결제)</option>
+                <option value="onsite">현장 결제 (예약만 하고 와서 결제)</option>
+              </select>
+              <p className="text-xs text-muted-foreground">
+                {input.payment_method === "onsite"
+                  ? "결제창을 띄우지 않습니다. 해외 카드 손님이 오는 수업에 쓰세요 — 국내일반결제로는 해외 발급 카드가 승인되지 않습니다."
+                  : input.price_currency === "USD"
+                    ? "PayPal 로 결제합니다."
+                    : "토스로 결제합니다. 해외 발급 카드는 승인되지 않습니다."}
               </p>
             </label>
 

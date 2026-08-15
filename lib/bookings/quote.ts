@@ -3,6 +3,7 @@ import {
   discountFrom,
   money,
   paymentMode,
+  type SessionPaymentMethod,
   quoteOrder,
   type Money,
   type OrderLine,
@@ -96,8 +97,8 @@ export async function quoteBooking(
   const { data: session, error } = await supabase
     .from("sessions")
     .select(
-      `price_currency, price_amount, child_price_amount, discount_type,
-       discount_value, capacity, booked_count,
+      `price_currency, price_amount, child_price_amount, payment_method,
+       discount_type, discount_value, capacity, booked_count,
        tiers:session_tiers (${SESSION_TIER_SELECT})`,
     )
     .eq("id", sessionId)
@@ -119,9 +120,14 @@ export async function quoteBooking(
     lines,
   )
 
+  // The class decides whether money is due now; the currency only decides who
+  // could take it. Read once here so all three exits below agree.
+  const method: SessionPaymentMethod =
+    session.payment_method === "onsite" ? "onsite" : "online"
+
   const code = couponCode?.trim()
   if (!code) {
-    return { priced, total: priced.total, mode: paymentMode(priced.total), coupon: null }
+    return { priced, total: priced.total, mode: paymentMode(priced.total, method), coupon: null }
   }
 
   // No lock here: this is a preview. The booking transaction re-checks under
@@ -140,7 +146,7 @@ export async function quoteBooking(
     return {
       priced,
       total: priced.total,
-      mode: paymentMode(priced.total),
+      mode: paymentMode(priced.total, method),
       coupon: { applied: false, reason: (row?.reason ?? "not_found") as CouponReason },
     }
   }
@@ -149,7 +155,7 @@ export async function quoteBooking(
   return {
     priced,
     total,
-    mode: paymentMode(total),
+    mode: paymentMode(total, method),
     coupon: { applied: true, discountAmount: Number(row.discount_amount ?? 0) },
   }
 }

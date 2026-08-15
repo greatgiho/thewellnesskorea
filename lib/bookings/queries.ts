@@ -9,7 +9,10 @@ import {
   type SessionSnapshot,
   type SessionSummaryRelation,
 } from "./session-summary"
-import type { PricedMoney } from "@/lib/payments/money"
+import type {
+  PricedMoney,
+  SessionPaymentMethod,
+} from "@/lib/payments/money"
 import { SESSION_WITH_RELATIONS } from "@/lib/schedule/constants"
 import { toSessionWithRelations } from "@/lib/schedule/queries"
 import type { SessionRelationRow, SessionWithRelations } from "@/lib/schedule/types"
@@ -38,6 +41,8 @@ export type BookingSummary = {
   floorName: string
   instructorName: string
   price: PricedMoney
+  /** Pay now or pay at the door — the class's own setting, not the currency. */
+  paymentMethod: SessionPaymentMethod
   /** Photos and the three description blocks; null when none were filled in. */
   snapshot: SessionSnapshot | null
 }
@@ -107,6 +112,7 @@ function toBookingSummary(
     floorName: summary.floorName,
     instructorName: summary.instructorName,
     price: summary.price,
+    paymentMethod: summary.paymentMethod,
     snapshot: mapSessionSnapshot(row.session),
   }
 }
