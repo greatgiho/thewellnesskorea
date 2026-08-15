@@ -2,6 +2,10 @@ import { render } from "@react-email/render"
 import { BookingConfirmationEmail } from "./emails/booking-confirmation"
 import { BookingCancelledEmail } from "./emails/booking-cancelled"
 import { WaitlistAvailableEmail } from "./emails/waitlist-available"
+import {
+  BookingLookupEmail,
+  type BookingLookupEmailProps,
+} from "./emails/booking-lookup"
 
 export type SessionDetails = {
   sessionTitle: string
@@ -63,4 +67,16 @@ export async function renderWaitlistAvailableEmail(
   data: WaitlistAvailableData,
 ): Promise<string> {
   return render(WaitlistAvailableEmail(data))
+}
+
+// ---------------------------------------------------------------------------
+// Booking Lookup — "email me my links again"
+// ---------------------------------------------------------------------------
+
+export type BookingLookupData = BookingLookupEmailProps
+
+export async function renderBookingLookupEmail(
+  data: BookingLookupData,
+): Promise<string> {
+  return render(BookingLookupEmail(data))
 }
