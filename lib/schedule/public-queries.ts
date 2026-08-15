@@ -35,6 +35,7 @@ export async function getPublishedSessionsForExperienceIds(
     .in("experience_id", experienceIds)
     .eq("status", "confirmed")
     .eq("is_published", true)
+    .eq("is_listed", true)
     .gte("starts_at", start)
     .lt("starts_at", end)
     .order("starts_at", { ascending: true })

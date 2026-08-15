@@ -411,6 +411,27 @@ export function SessionFormDialog({
               </p>
             </label>
 
+            <label className="flex items-start gap-3">
+              <input
+                type="checkbox"
+                className="mt-0.5"
+                checked={!input.is_listed}
+                onChange={(e) =>
+                  setInput((v) => ({ ...v, is_listed: !e.target.checked }))
+                }
+              />
+              <span className="space-y-1">
+                <span className="block text-sm font-medium">
+                  목록에 숨기기 (스텔스)
+                </span>
+                <span className="block text-xs text-muted-foreground">
+                  홈·강사 페이지·일정에 나오지 않고, 링크를 아는 사람만 예약할 수
+                  있습니다. 비공개 수업이나 결제 테스트에 쓰세요.
+                </span>
+              </span>
+            </label>
+
+
             <label className="block space-y-1.5">
               <span className="text-sm font-medium">Child price</span>
               <input

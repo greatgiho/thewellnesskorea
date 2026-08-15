@@ -48,6 +48,8 @@ export type SessionRow = {
   discount_type: "fixed" | "percent" | null
   discount_value: number | null
   is_published: boolean
+  /** false = bookable by direct link, kept off every public list. See 060. */
+  is_listed: boolean
   status: SessionStatus
   slot_lane: number
   confirmed_at: string | null
@@ -141,6 +143,7 @@ export type SessionFormInput = {
   discount_type: "fixed" | "percent" | null
   discount_value: number | null
   is_published: boolean
+  is_listed: boolean
   status: SessionStatus
   image_paths: string[]
   description_blocks: SessionDescriptionBlocks

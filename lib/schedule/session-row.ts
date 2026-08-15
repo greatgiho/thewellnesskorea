@@ -44,6 +44,7 @@ export function sessionRowFromInput(
     discount_type: input.discount_type,
     discount_value: input.discount_value,
     is_published: input.status === "confirmed" ? input.is_published : false,
+    is_listed: input.is_listed,
     status: input.status,
     slot_lane,
     image_paths: input.image_paths,

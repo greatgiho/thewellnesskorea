@@ -167,6 +167,7 @@ async function confirmSessionCore(
     discount_type: session.discount_type ?? null,
     discount_value: session.discount_value ?? null,
     is_published: session.is_published,
+    is_listed: session.is_listed ?? true,
     status: "confirmed",
     image_paths: session.image_paths ?? [],
     description_blocks: session.description_blocks as SessionDescriptionBlocks,
@@ -249,6 +250,7 @@ async function unconfirmSessionCore(
   }
 
   const input: SessionFormInput = {
+    is_listed: session.is_listed ?? true,
     floor_id: session.floor_id,
     is_all_floors: session.is_all_floors,
     instructor_id: session.instructor_id,
@@ -340,6 +342,9 @@ async function duplicateSessionCore(
   if (!source) throw new Error("Source session not found.")
 
   const input: SessionFormInput = {
+    // A copy of an unlisted class is unlisted too — duplicating a private
+    // session onto the public homepage is not what "duplicate" means.
+    is_listed: source.is_listed ?? true,
     floor_id: target.floor_id,
     is_all_floors: source.is_all_floors,
     instructor_id: source.instructor_id,

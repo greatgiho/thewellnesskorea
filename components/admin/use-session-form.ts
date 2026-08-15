@@ -66,6 +66,7 @@ export const defaultInput = (
   discount_type: null,
   discount_value: null,
   is_published: false,
+  is_listed: true,
   status: "processing",
   image_paths: [],
   description_blocks: { ...EMPTY_SESSION_DESCRIPTION },
@@ -154,6 +155,7 @@ export function useSessionForm({
         discount_type: session.discount_type ?? null,
         discount_value: session.discount_value != null ? Number(session.discount_value) : null,
         is_published: session.is_published,
+        is_listed: session.is_listed ?? true,
         status: session.status ?? "confirmed",
         image_paths: session.image_paths ?? [],
         description_blocks: session.description_blocks ?? {
