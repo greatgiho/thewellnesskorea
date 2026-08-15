@@ -105,6 +105,7 @@ export function TossCheckoutButton({
   customerName,
 }: Props) {
   const widgetsRef = useRef<Widgets | null>(null)
+  const methodsRef = useRef<HTMLDivElement | null>(null)
   const [ready, setReady] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -117,11 +118,16 @@ export function TossCheckoutButton({
         const TossPayments = await loadSdk()
         if (cancelled) return
 
+        // No stored cards and no billing keys, so there is no customer to
+        // recognise between payments. The constant is not the string it looks
+        // like — it is "@@ANONYMOUS" — so there is no sensible literal to fall
+        // back to, and guessing one would send a customerKey Toss rejects.
+        if (!TossPayments.ANONYMOUS) {
+          throw new Error("결제 모듈 버전이 예상과 다릅니다.")
+        }
+
         const widgets = TossPayments(clientKey).widgets({
-          // No stored cards and no billing keys, so there is no customer to
-          // recognise between payments. Toss exports the value it expects; the
-          // literal is only a fallback for a build that predates it.
-          customerKey: TossPayments.ANONYMOUS ?? "ANONYMOUS",
+          customerKey: TossPayments.ANONYMOUS,
         })
 
         // Before rendering, or the methods draw against no amount and the
@@ -129,16 +135,29 @@ export function TossCheckoutButton({
         await widgets.setAmount({ currency: "KRW", value: amount })
         if (cancelled) return
 
-        await Promise.all([
-          widgets.renderPaymentMethods({
-            selector: "#toss-payment-methods",
-            variantKey: "DEFAULT",
-          }),
-          widgets.renderAgreement({
-            selector: "#toss-agreement",
-            variantKey: "AGREEMENT",
-          }),
-        ])
+        // One after the other, methods first. Run as a Promise.all these can
+        // resolve with the methods pane still empty, which lights up the pay
+        // button over a widget that has nothing in it.
+        await widgets.renderPaymentMethods({
+          selector: "#toss-payment-methods",
+          variantKey: "DEFAULT",
+        })
+        if (cancelled) return
+
+        // Belt and braces: renderPaymentMethods has been seen to resolve
+        // without drawing anything, and a pay button above an empty box is
+        // worse than an error message. What is on screen is the thing worth
+        // checking, not what the promise said.
+        if (!methodsRef.current?.childElementCount) {
+          throw new Error(
+            "결제 수단을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.",
+          )
+        }
+
+        await widgets.renderAgreement({
+          selector: "#toss-agreement",
+          variantKey: "AGREEMENT",
+        })
         if (cancelled) return
 
         widgetsRef.current = widgets
@@ -198,7 +217,7 @@ export function TossCheckoutButton({
     <div className="space-y-4">
       {/* Toss renders into these. They must exist before the widget mounts,
           which is why they are not behind the `ready` flag. */}
-      <div id="toss-payment-methods" />
+      <div id="toss-payment-methods" ref={methodsRef} />
       <div id="toss-agreement" />
 
       {error ? (
