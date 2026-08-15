@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation"
 import { useLang } from "@/components/redesign/language-provider"
 import type { BusinessInfo, SiteInfo } from "@/lib/site/settings"
 import {
+  FOOTER_ONLY_LINKS,
   FOOTER_SECTION_LINKS,
   PAGE_LINKS,
   sectionHref,
@@ -104,7 +105,7 @@ export function SiteFooter({
               {/* The old footer carried these. Dropping them would take
                   Journal, Privacy, and Terms off every page that only ever
                   reached them from here. */}
-              {PAGE_LINKS.map((l) => (
+              {[...PAGE_LINKS, ...FOOTER_ONLY_LINKS].map((l) => (
                 <li key={l.href}>
                   <Link
                     href={l.href}

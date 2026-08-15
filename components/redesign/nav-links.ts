@@ -54,3 +54,17 @@ export const PAGE_LINKS: { href: string; label: BilingualText }[] = [
   { href: "/privacy", label: { en: "Privacy", ko: "개인정보" } },
   { href: "/terms", label: { en: "Terms", ko: "이용약관" } },
 ]
+
+/**
+ * Footer only, not the nav.
+ *
+ * Retrieving a lost reservation is something a handful of people need badly
+ * and nobody needs twice — the wrong shape for a header that has four items
+ * and one call to action, and the right shape for the place people already
+ * scroll to looking for the thing they could not find. Reachable from every
+ * page either way, which is the part that matters: a guest booking exists only
+ * in an email, so the way back has to exist somewhere that is not that email.
+ */
+export const FOOTER_ONLY_LINKS: { href: string; label: BilingualText }[] = [
+  { href: "/book/find", label: { en: "Find reservation", ko: "예약 조회" } },
+]
