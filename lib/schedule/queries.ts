@@ -121,6 +121,9 @@ export async function getUpcomingSessions(
     .eq("instructor_id", instructorId)
     .eq("status", "confirmed")
     .eq("is_published", true)
+    // A partner's public page is a list like any other, so an unlisted class
+    // stays off it. The direct booking link still works.
+    .eq("is_listed", true)
     .gte("starts_at", now)
     .order("starts_at", { ascending: true })
 
