@@ -22,7 +22,7 @@ async function handle(request: NextRequest) {
     NextResponse.redirect(
       new URL(
         `/book/toss/failed?message=${encodeURIComponent(message)}` +
-          (code ? `&code=${encodeURIComponent(code)}` : "") +
+          (code ? `&pgCode=${encodeURIComponent(code)}` : "") +
           (bookingId ? `&booking=${encodeURIComponent(bookingId)}` : ""),
         request.url,
       ),

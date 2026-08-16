@@ -17,9 +17,9 @@ export const metadata: Metadata = {
 export default async function TossFailPage({
   searchParams,
 }: {
-  searchParams: Promise<{ message?: string; code?: string; booking?: string }>
+  searchParams: Promise<{ message?: string; pgCode?: string; booking?: string }>
 }) {
-  const { message, code, booking } = await searchParams
+  const { message, pgCode, booking } = await searchParams
 
   return (
     <BookingPageLayout
@@ -31,9 +31,9 @@ export default async function TossFailPage({
         {message ? (
           <div className="rounded-2xl border border-border bg-card px-5 py-4">
             <p className="text-sm text-foreground">{message}</p>
-            {code ? (
+            {pgCode ? (
               <p className="mt-2 font-mono text-xs text-muted-foreground">
-                {code}
+                {pgCode}
               </p>
             ) : null}
           </div>

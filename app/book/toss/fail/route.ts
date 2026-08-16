@@ -23,7 +23,9 @@ async function handle(request: NextRequest) {
 
   const params = new URLSearchParams()
   params.set("message", message ?? "결제가 완료되지 않았습니다.")
-  if (code) params.set("code", code)
+  // Not "code": that is Supabase's parameter on this site, and a page
+  // carrying one gets mistaken for a magic link (see isPaymentReturnPath).
+  if (code) params.set("pgCode", code)
   if (booking) params.set("booking", booking.bookingId)
 
   return NextResponse.redirect(
