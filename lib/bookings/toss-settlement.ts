@@ -117,11 +117,27 @@ export async function applyTossStatus(
       return { ok: true, bookingId, status: "awaiting_deposit" }
 
     case "CANCELED":
-    case "PARTIAL_CANCELED":
     case "ABORTED":
     case "EXPIRED":
+      // The money is gone or never arrived, so the seat goes back and the
+      // payment row is marked cancelled with it.
       await releaseDeniedBooking(bookingId)
       return { ok: false, reason: `결제가 완료되지 않았습니다 (${payment.status}).`, bookingId }
+
+    case "PARTIAL_CANCELED":
+      // Deliberately does nothing. Part of the money went back, which does not
+      // obviously mean the seat should — releasing it in full would take away
+      // a place someone still partly paid for, and keeping it silently leaves
+      // the books out of step. There is no partial-refund policy to encode
+      // yet (see #107), so this asks for a person instead of guessing.
+      console.error(
+        `[toss] partial cancellation on booking ${bookingId} — seat left in place, needs a decision`,
+      )
+      return {
+        ok: false,
+        reason: "부분 취소된 결제입니다. 확인이 필요합니다.",
+        bookingId,
+      }
 
     default:
       // READY / IN_PROGRESS: authorised but not settled. Nothing to do — the
