@@ -3,6 +3,12 @@ import { enforceSiteAccess } from "@/lib/site-access"
 import { updateSession } from "@/lib/supabase/middleware"
 import { updatePartnerSession } from "@/lib/supabase/partner-middleware"
 import { detailRouteCheck, slugOf } from "@/lib/seo/route-exists"
+import {
+  REFERRAL_COOKIE,
+  REFERRAL_MAX_AGE,
+  REFERRAL_PARAM,
+  normalizeReferralCode,
+} from "@/lib/referrals/cookie"
 
 /**
  * A path that matches no route, so Next serves not-found.tsx with a real 404.
@@ -38,7 +44,38 @@ export async function middleware(request: NextRequest) {
     return NextResponse.rewrite(new URL(NOT_FOUND_REWRITE, request.url))
   }
 
-  return updateSession(request)
+  const response = await updateSession(request)
+  rememberReferral(request, response)
+  return response
+}
+
+/**
+ * Keep a ?ref= from the URL for as long as the booking might take.
+ *
+ * Set here rather than on a page because a referral link can point anywhere —
+ * the homepage, a class, a partner's profile — and every one of them passes
+ * through this. Written onto whatever response was already being returned, so
+ * it survives a redirect as well as a render.
+ *
+ * The code is not checked against the referrers table here. That would be a
+ * database round trip on every request carrying a query string, to reject
+ * something the booking side has to re-check anyway; an unknown code parked in
+ * a cookie costs nothing and attributes nothing.
+ */
+function rememberReferral(request: NextRequest, response: NextResponse): void {
+  const code = normalizeReferralCode(
+    request.nextUrl.searchParams.get(REFERRAL_PARAM),
+  )
+  if (!code) return
+
+  // Last click wins: overwriting is the rule, not an accident.
+  response.cookies.set(REFERRAL_COOKIE, code, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    maxAge: REFERRAL_MAX_AGE,
+    path: "/",
+  })
 }
 
 export const config = {

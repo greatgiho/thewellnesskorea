@@ -16,6 +16,7 @@ import {
   getBookingSummaryByCancelToken,
 } from "@/lib/bookings/queries"
 import { validateGuestBookingInput } from "@/lib/bookings/validate"
+import { attributeBooking } from "@/lib/referrals/attribute"
 import {
   formatMoney,
   money,
@@ -136,6 +137,12 @@ export async function submitGuestBooking(
         lines,
       })
 
+      // Both booking paths get stamped, and both after the fact — the hold as
+      // well as the direct reservation. A hold that never gets paid still
+      // shows up in reporting as an attributed booking that did not convert,
+      // which is worth being able to see.
+      await attributeBooking(hold.bookingId)
+
       revalidatePath("/")
       redirect(`/book/pay?booking=${hold.bookingId}`)
     }
@@ -149,6 +156,8 @@ export async function submitGuestBooking(
       couponCode,
       lines,
     })
+
+    await attributeBooking(result.bookingId)
 
     const summary = await getBookingSummaryById(result.bookingId)
     if (summary) {
