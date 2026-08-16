@@ -21,6 +21,24 @@ function authCallbackParams(params: URLSearchParams): boolean {
   )
 }
 
+/**
+ * Paths where a `code` in the query is not Supabase's.
+ *
+ * A payment processor returning a customer to us puts its own error code in a
+ * parameter called `code`, and it chose that name, not us. Without this, a
+ * customer who simply pressed cancel in the payment window was sent to the
+ * homepage with ?error=auth: the middleware read `code=PAY_PROCESS_CANCELED`
+ * as a magic link, tried to exchange it for a session, failed, and bounced
+ * them. No message, no way back to the booking — it just looked like the site
+ * had thrown them out.
+ *
+ * Matched on the path rather than on the shape of the code because a code we
+ * do not recognise is exactly the case that has to keep working.
+ */
+function isPaymentReturnPath(pathname: string): boolean {
+  return pathname.startsWith("/book/toss/")
+}
+
 export async function updateSession(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -60,7 +78,11 @@ export async function updateSession(request: NextRequest) {
   // and redirect away before the route runs, so OAuth users never get the
   // member role. Let /auth/callback fall through to its route handler; the
   // middleware still handles magic-link callbacks that land on other paths.
-  if (authCallbackParams(params) && pathname !== "/auth/callback") {
+  if (
+    authCallbackParams(params) &&
+    pathname !== "/auth/callback" &&
+    !isPaymentReturnPath(pathname)
+  ) {
     const { ok } = await completeAuthFromUrl(supabase, params)
     const next = params.get("next") ?? "/"
     const redirectUrl = request.nextUrl.clone()
