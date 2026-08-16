@@ -113,4 +113,23 @@ export async function releaseDeniedBooking(bookingId: string): Promise<void> {
   } catch (err) {
     console.error("[booking] release after denied capture failed:", err)
   }
+
+  // cancel_booking_by_token releases the seat and marks the booking cancelled,
+  // and stops there — it was written for a customer cancelling their own
+  // reservation, where whether money goes back is a separate decision.
+  //
+  // Here it is not separate: we are reacting to the money already having gone
+  // back. Leaving the payment row reading 'paid' would put the refund nowhere
+  // — the admin list would show a cancelled booking that was paid for, and any
+  // reconciliation against Toss would disagree about the day's takings.
+  const service = createServiceClient()
+  const { error } = await service
+    .from("payments")
+    .update({ status: "cancelled", cancelled_at: new Date().toISOString() })
+    .eq("merchant_uid", info.merchantUid)
+    .neq("status", "cancelled")
+
+  if (error) {
+    console.error("[booking] marking payment cancelled failed:", error.message)
+  }
 }
