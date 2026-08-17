@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { listReferralPartners } from "@/lib/referrals/queries"
-import { partnerPath, referralLink } from "@/lib/referrals/links"
+import { partnerPath, qrFilename, referralLink } from "@/lib/referrals/links"
 import { QrBlock } from "@/components/referrals/qr-block"
 import { CopyLinkButton } from "@/components/referrals/copy-link-button"
 import { CreatePartnerReferrerButton } from "@/components/referrals/create-partner-referrer-button"
@@ -39,6 +39,7 @@ export async function PartnerReferralSection({
         <div className="mt-4 flex flex-col gap-5 sm:flex-row sm:items-start">
           <QrBlock
             link={referralLink(partner.referrer.code, partnerPath(partner.slug))}
+            filename={qrFilename(partner.referrer.code)}
           />
           <div className="min-w-0">
             <p className="font-mono text-xs text-muted-foreground">

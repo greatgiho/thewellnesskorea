@@ -67,3 +67,38 @@ export function formatSessionWhen(startsAt: string): string {
   const dateKey = formatDateKeyInKst(new Date(startsAt))
   return `${formatDisplayDate(dateKey)} ${formatTimeInKst(startsAt)}`
 }
+
+/**
+ * What a downloaded QR is called.
+ *
+ * Five cafés get five QRs, and the folder they land in fills up with
+ * qrcode(3).png. Carrying the code and the class in the name is the difference
+ * between reprinting one and reprinting all five.
+ *
+ * Korean is kept. This is read by people who read Korean, and every system
+ * these files touch handles it; only the characters a filesystem actually
+ * refuses are stripped.
+ */
+export function qrFilename(...parts: (string | null | undefined)[]): string {
+  const name = ["twk-qr", ...parts]
+    .filter((p): p is string => Boolean(p && p.trim()))
+    .map((p) =>
+      p
+        .replace(/[\\/:*?"<>|]+/g, "")
+        .trim()
+        .replace(/\s+/g, "-"),
+    )
+    .filter(Boolean)
+    .join("-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+
+  // 80 is short of every limit that matters and long enough for a code, a
+  // class name and a date.
+  return name.slice(0, 80) || "twk-qr"
+}
+
+/** The class date as a filename would carry it: 20260825, in KST. */
+export function qrDateStamp(startsAt: string): string {
+  return formatDateKeyInKst(new Date(startsAt)).replace(/-/g, "")
+}

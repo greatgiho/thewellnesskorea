@@ -13,12 +13,14 @@ import { CopyLinkButton } from "@/components/referrals/copy-link-button"
  */
 export function ReferralLinkRow({
   link,
+  filename,
   who,
   label,
   tally,
   actions,
 }: {
   link: string
+  filename: string
   who: React.ReactNode
   label?: string
   tally?: ReferralTally
@@ -26,7 +28,7 @@ export function ReferralLinkRow({
 }) {
   return (
     <li className="flex flex-col gap-4 rounded-2xl border border-border/70 p-4 sm:flex-row">
-      <QrBlock link={link} />
+      <QrBlock link={link} filename={filename} />
 
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-start justify-between gap-2">

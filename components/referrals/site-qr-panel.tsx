@@ -1,4 +1,4 @@
-import { siteLink } from "@/lib/referrals/links"
+import { qrFilename, siteLink } from "@/lib/referrals/links"
 import { QrBlock } from "@/components/referrals/qr-block"
 import { CopyLinkButton } from "@/components/referrals/copy-link-button"
 
@@ -25,7 +25,7 @@ export function SiteQrPanel() {
       </p>
 
       <div className="mt-6 flex flex-col gap-6 sm:flex-row sm:items-start">
-        <QrBlock link={link} size="lg" />
+        <QrBlock link={link} filename={qrFilename("사이트")} size="lg" />
         <div className="min-w-0">
           <p className="break-all font-mono text-sm text-foreground">{link}</p>
           <div className="mt-3">

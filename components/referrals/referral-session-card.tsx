@@ -4,7 +4,13 @@ import type {
   Referrer,
 } from "@/lib/referrals/queries"
 import type { ReferralTally } from "@/lib/referrals/tally"
-import { formatSessionWhen, referralLink, sessionPath } from "@/lib/referrals/links"
+import {
+  formatSessionWhen,
+  qrDateStamp,
+  qrFilename,
+  referralLink,
+  sessionPath,
+} from "@/lib/referrals/links"
 import { siteOrigin } from "@/lib/site-origin"
 import { ReferralLinkRow } from "@/components/referrals/referral-link-row"
 import { ReferrerPicker } from "@/components/referrals/referrer-picker"
@@ -74,6 +80,11 @@ export function ReferralSessionCard({
               <ReferralLinkRow
                 key={link.id}
                 link={referralLink(referrer.code, link.path)}
+                filename={qrFilename(
+                  referrer.code,
+                  session.title,
+                  qrDateStamp(session.startsAt),
+                )}
                 who={
                   <>
                     {referrer.name}
