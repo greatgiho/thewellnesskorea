@@ -26,8 +26,7 @@ export function NewReferrerForm() {
         </label>
         <input id="code" name="code" required className={FIELD} placeholder="cafe-tongui" />
         <p className="mt-1.5 text-xs text-muted-foreground">
-          링크에 들어갑니다. 영문·숫자·하이픈·밑줄 2~32자. 대소문자는 구분하지
-          않으니 종이에 적힌 대로 쳐도 됩니다.
+          영문·숫자·하이픈·밑줄 2~32자. 대소문자 구분 안 함.
         </p>
       </div>
 

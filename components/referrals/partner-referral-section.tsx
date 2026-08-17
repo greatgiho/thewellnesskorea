@@ -64,8 +64,7 @@ export async function PartnerReferralSection({
       ) : (
         <div className="mt-4">
           <p className="mb-3 text-sm text-muted-foreground">
-            이 파트너의 QR 이 아직 없습니다. 만들면 자기 소개 페이지로 가는
-            링크가 생기고, 거기로 들어온 예약이 이 사람 몫으로 잡힙니다.
+            아직 없습니다.
           </p>
           <CreatePartnerReferrerButton partnerId={partner.id} />
         </div>

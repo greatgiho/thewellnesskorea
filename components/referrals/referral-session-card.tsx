@@ -69,7 +69,7 @@ export function ReferralSessionCard({
 
       {links.length === 0 ? (
         <p className="mt-5 text-sm text-muted-foreground">
-          이 수업을 소개할 사람이 아직 없습니다.
+          아직 없습니다.
         </p>
       ) : (
         <ul className="mt-5 space-y-3">
