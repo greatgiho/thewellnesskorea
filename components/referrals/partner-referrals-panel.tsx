@@ -73,7 +73,7 @@ export async function PartnerReferralsPanel({
       ) : null}
 
       <section className="rounded-3xl border border-border bg-card p-6 sm:p-8">
-        <h2 className="font-serif text-xl text-foreground">선생 · 파트너</h2>
+        <h2 className="font-serif text-xl text-foreground">파트너</h2>
         <p className="mt-2 text-sm text-muted-foreground">
           소개 페이지로 착지합니다.
         </p>
