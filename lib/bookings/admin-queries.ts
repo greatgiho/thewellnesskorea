@@ -71,6 +71,15 @@ export type AdminBookingItem = {
   instructorName: string
   /** null for a free class — those deliberately have no payment row. */
   payment: AdminBookingPayment | null
+  /**
+   * The referral in effect when this was booked, if any.
+   *
+   * The code as stored, not a lookup: bookings keep it as text so a past
+   * statement does not change when someone edits a referrer (061). Shown on
+   * the roster so a settlement can be reconciled booking by booking, rather
+   * than only against a total nobody can take apart.
+   */
+  referralCode: string | null
 }
 
 type BookingQueryRow = {
@@ -84,6 +93,7 @@ type BookingQueryRow = {
   status: BookingStatus
   cancelled_at: string | null
   created_at: string
+  referral_code: string | null
   session: SessionSummaryRelation
   payments?: RawPayment[] | RawPayment | null
 }
@@ -99,6 +109,7 @@ const BOOKING_WITH_SESSION = `
   status,
   cancelled_at,
   created_at,
+  referral_code,
   session:sessions (${SESSION_SUMMARY_SELECT}),
   payments ( status, amount, currency, pg_provider )
 `
@@ -153,6 +164,7 @@ function mapAdminBookingRow(row: BookingQueryRow): AdminBookingItem | null {
     floorName: summary.floorName,
     instructorName: summary.instructorName,
     payment: mapPayment(row.payments),
+    referralCode: row.referral_code,
   }
 }
 

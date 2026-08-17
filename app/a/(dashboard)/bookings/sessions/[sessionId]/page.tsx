@@ -6,6 +6,7 @@ import { requireAdminSession } from "@/lib/auth/require-session"
 import { getSessionById } from "@/lib/schedule/queries"
 import { getBookingsForSessionAdmin } from "@/lib/bookings/admin-queries"
 import { getWaitlistForSession } from "@/lib/waitlist/admin-queries"
+import { listReferrers } from "@/lib/referrals/queries"
 import { formatBookingDateTime } from "@/lib/bookings/format"
 import { money, formatMoney, isPaid } from "@/lib/payments/money"
 import { sessionStatusLabel } from "@/lib/schedule/session-status"
@@ -27,13 +28,22 @@ export default async function AdminSessionBookingsPage({ params }: Props) {
   const { sessionId } = await params
   const { supabase } = await requireAdminSession()
 
-  const [session, bookings, waitlist] = await Promise.all([
+  const [session, bookings, waitlist, referrers] = await Promise.all([
     getSessionById(sessionId),
     getBookingsForSessionAdmin(supabase, sessionId),
     getWaitlistForSession(sessionId),
+    listReferrers(),
   ])
 
   if (!session) notFound()
+
+  // Codes are what bookings store; a name is what anyone reading the roster
+  // recognises. Matched on lower(code) because that is what referrers is
+  // unique on — and a referrer that has since been deleted simply falls back
+  // to its code, which is still the honest answer.
+  const referrerNames = new Map(
+    referrers.map((r) => [r.code.toLowerCase(), r.name]),
+  )
 
   const { heading, timeRange } = formatBookingDateTime(
     session.starts_at,
@@ -115,6 +125,7 @@ export default async function AdminSessionBookingsPage({ params }: Props) {
         capacity={session.capacity}
         bookings={bookings}
         waitlist={waitlist}
+        referrerNames={referrerNames}
       />
     </div>
   )
