@@ -12,6 +12,7 @@ import { SessionTiersField } from "@/components/admin/session-tiers-field"
 import { WhenWhereFields } from "@/components/admin/session-form/when-where-fields"
 import { WhoWhatFields } from "@/components/admin/session-form/who-what-fields"
 import { PricingFields } from "@/components/admin/session-form/pricing-fields"
+import { VisibilityFields } from "@/components/admin/session-form/visibility-fields"
 import { formatTimeInKst } from "@/lib/schedule/utils"
 import { FIELD } from "@/lib/ui/field"
 import { useSessionForm } from "@/components/admin/use-session-form"
@@ -142,6 +143,8 @@ export function SessionFormDialog({
                   {error}
                 </p>
               )}
+
+              <VisibilityFields {...fields} />
 
               <WhenWhereFields
                 {...fields}
