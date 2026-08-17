@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { listReferralPartners, referralTallies } from "@/lib/referrals/queries"
 import { totalsByCode, type ReferralTotals } from "@/lib/referrals/tally"
-import { partnerPath, referralLink } from "@/lib/referrals/links"
+import { partnerPath, qrFilename, referralLink } from "@/lib/referrals/links"
 import { formatMoney, type Money } from "@/lib/payments/money"
 import { QrBlock } from "@/components/referrals/qr-block"
 import { CopyLinkButton } from "@/components/referrals/copy-link-button"
@@ -58,6 +58,7 @@ export async function PartnerReferralsPanel({
                 partnerPath(selected.slug),
               )}
               code={selected.referrer.code}
+              filename={qrFilename(selected.referrer.code)}
               totals={totals.get(selected.referrer.code.toLowerCase())}
             />
           ) : (
@@ -133,15 +134,17 @@ export async function PartnerReferralsPanel({
 function PartnerQr({
   link,
   code,
+  filename,
   totals,
 }: {
   link: string
   code: string
+  filename: string
   totals: ReferralTotals | undefined
 }) {
   return (
     <div className="mt-5 flex flex-col gap-6 sm:flex-row sm:items-start">
-      <QrBlock link={link} size="lg" />
+      <QrBlock link={link} filename={filename} size="lg" />
       <div className="min-w-0">
         <p className="font-mono text-xs text-muted-foreground">{code}</p>
         <p className="mt-1 break-all font-mono text-sm text-foreground">
