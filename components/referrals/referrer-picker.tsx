@@ -42,8 +42,7 @@ export function ReferrerPicker({
     return (
       <div className="space-y-3">
         <p className="text-sm text-muted-foreground">
-          고를 대상이 없습니다. 새로 만들거나, 선생 탭에서 선생의 레퍼럴을 먼저
-          만드세요.
+          고를 대상이 없습니다.
         </p>
         <NewSeed />
       </div>

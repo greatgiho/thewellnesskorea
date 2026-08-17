@@ -74,9 +74,8 @@ export async function PartnerReferralsPanel({
 
       <section className="rounded-3xl border border-border bg-card p-6 sm:p-8">
         <h2 className="font-serif text-xl text-foreground">선생 · 파트너</h2>
-        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-          한 사람당 QR 하나입니다. 찍으면 그 사람의 소개 페이지로 가고, 거기에
-          그 사람의 다가오는 수업이 붙어 있습니다. 이름을 눌러 QR 을 여세요.
+        <p className="mt-2 text-sm text-muted-foreground">
+          소개 페이지로 착지합니다.
         </p>
 
         {partners.length === 0 ? (

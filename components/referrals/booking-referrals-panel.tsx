@@ -80,9 +80,8 @@ export async function BookingReferralsPanel() {
     <div className="space-y-6">
       <section className="space-y-4">
         <h2 className="font-serif text-xl text-foreground">다가오는 수업</h2>
-        <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
-          수업마다 소개할 사람을 고르면 그 사람 몫의 예약 링크와 QR 이 만들어집니다.
-          귀속은 <strong>마지막으로 클릭한 코드 기준, 30일</strong>.
+        <p className="text-sm text-muted-foreground">
+          귀속: 마지막으로 클릭한 코드, 30일.
         </p>
         {ahead.length === 0 ? (
           <p className="rounded-2xl border border-dashed border-border px-5 py-8 text-center text-sm text-muted-foreground">
@@ -97,7 +96,7 @@ export async function BookingReferralsPanel() {
         <section className="space-y-4">
           <h2 className="font-serif text-xl text-foreground">지난 수업</h2>
           <p className="text-sm text-muted-foreground">
-            레퍼럴이 붙었던 수업만 보입니다. 정산 확인용입니다.
+            레퍼럴이 붙었던 수업만.
           </p>
           {past.map(cardFor)}
         </section>

@@ -25,11 +25,6 @@ export async function SeedPanel() {
   return (
     <section className="rounded-3xl border border-border bg-card p-6 sm:p-8">
       <h2 className="font-serif text-xl text-foreground">바이럴 시드</h2>
-      <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-        소개해 줄 사람이나 채널을 여기 등록하면 예약 레퍼럴에서 고를 수 있습니다.
-        지우지 않고 비활성으로 둡니다 — 이미 나간 QR 과 지난 정산이 남아야 하니까요.
-      </p>
-
       <div className="mt-6">
         <NewReferrerForm />
       </div>
