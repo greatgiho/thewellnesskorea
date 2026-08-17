@@ -16,7 +16,7 @@ type Tab = { label: string; href: string; children?: Tab[] }
 function tabsFor(base: string): Tab[] {
   return [
     { label: "사이트", href: base },
-    { label: "선생", href: `${base}/partners` },
+    { label: "파트너", href: `${base}/partners` },
     {
       label: "예약",
       href: `${base}/bookings`,
