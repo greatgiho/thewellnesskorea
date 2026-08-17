@@ -6,6 +6,7 @@ import { formatMoney, type Money } from "@/lib/payments/money"
 import { QrBlock } from "@/components/referrals/qr-block"
 import { CopyLinkButton } from "@/components/referrals/copy-link-button"
 import { CreatePartnerReferrerButton } from "@/components/referrals/create-partner-referrer-button"
+import type { PartnerKind } from "@/lib/partners/types"
 
 /**
  * One QR per teacher, made when someone asks for it.
@@ -38,8 +39,8 @@ export async function PartnerReferralsPanel({
             <h2 className="font-serif text-xl text-foreground">
               {selected.name}
               {!selected.isPublished ? (
-                <span className="ml-2 align-middle text-xs text-muted-foreground">
-                  비공개
+                <span className="ml-1.5 align-middle text-sm text-muted-foreground/60">
+                  (비공개)
                 </span>
               ) : null}
             </h2>
@@ -101,14 +102,12 @@ export async function PartnerReferralsPanel({
                   >
                     {p.name}
                   </Link>
-                  <span className="ml-2 text-xs text-muted-foreground">
-                    {p.kind}
-                  </span>
                   {!p.isPublished ? (
-                    <span className="ml-2 text-xs text-muted-foreground">
-                      비공개
+                    <span className="ml-1.5 text-xs text-muted-foreground/60">
+                      (비공개)
                     </span>
                   ) : null}
+                  <KindBadge kind={p.kind} />
                 </div>
 
                 {p.referrer ? (
@@ -127,6 +126,28 @@ export async function PartnerReferralsPanel({
         )}
       </section>
     </div>
+  )
+}
+
+/**
+ * A colour per kind, so the list can be scanned rather than read. Same
+ * tint-plus-darker-text shape the other badges in the admin use.
+ */
+const KIND_STYLE: Record<PartnerKind, string> = {
+  guide: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+  artist: "bg-violet-500/10 text-violet-700 dark:text-violet-300",
+  both: "bg-sky-500/10 text-sky-700 dark:text-sky-300",
+  brand: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
+}
+
+function KindBadge({ kind }: { kind: string }) {
+  const style = KIND_STYLE[kind as PartnerKind] ?? "bg-muted text-muted-foreground"
+  return (
+    <span
+      className={`ml-2 rounded-full px-2 py-0.5 text-[11px] font-medium ${style}`}
+    >
+      {kind}
+    </span>
   )
 }
 
