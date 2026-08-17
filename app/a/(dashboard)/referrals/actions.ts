@@ -57,7 +57,10 @@ export async function createReferrer(
 }
 
 /**
- * Save a link target for a partner: a class, or the front page.
+ * Put one referrer on one class: the link and QR they will post.
+ *
+ * One class can carry many referrers, and the same referrer can carry many
+ * classes — which is why this is a row rather than a column on either side.
  *
  * The path is built here from a picked session id, never taken from the form,
  * so nothing typed into a browser decides where a printed QR sends people.
@@ -77,37 +80,35 @@ export async function createReferralLink(
       const sessionId = String(formData.get("sessionId") ?? "").trim()
       const label = String(formData.get("label") ?? "").trim()
 
-      if (!referrerId) throw new UserFacingError("레퍼럴을 찾을 수 없습니다.")
+      if (!sessionId) throw new UserFacingError("수업을 찾을 수 없습니다.")
+      if (!referrerId) throw new UserFacingError("레퍼럴 대상을 골라 주세요.")
 
       const supabase = await createClient()
 
-      // "" means the front page. Anything else has to be a session we can
-      // actually find: a link to a class that does not exist is a QR that
-      // 404s, and it would be discovered by the person holding the flyer.
-      let path = "/"
-      if (sessionId) {
-        const { data: session } = await supabase
-          .from("sessions")
-          .select("id")
-          .eq("id", sessionId)
-          .maybeSingle<{ id: string }>()
+      // The class has to be one we can actually find. A link to a class that
+      // does not exist is a QR that 404s, and it would be discovered by the
+      // person holding the flyer.
+      const { data: session } = await supabase
+        .from("sessions")
+        .select("id")
+        .eq("id", sessionId)
+        .maybeSingle<{ id: string }>()
 
-        if (!session) throw new UserFacingError("수업을 찾을 수 없습니다.")
-        path = sessionPath(session.id)
-      }
+      if (!session) throw new UserFacingError("수업을 찾을 수 없습니다.")
 
       const { error } = await supabase.from("referral_links").insert({
         referrer_id: referrerId,
-        session_id: sessionId || null,
-        path,
+        session_id: session.id,
+        path: sessionPath(session.id),
         label,
       })
 
       if (error) {
-        // The unique index on (referrer_id, path). Making the same QR twice is
-        // a slip, and two rows for it means two answers to what we handed out.
+        // The unique index on (referrer_id, path). The same person twice on
+        // the same class is a slip, and two rows for it means two answers to
+        // what we handed out.
         if (error.code === "23505") {
-          throw new UserFacingError("이미 같은 대상의 링크가 있습니다.")
+          throw new UserFacingError("이 수업에 이미 등록된 레퍼럴입니다.")
         }
         throw new Error(error.message)
       }

@@ -1,24 +1,27 @@
-import { referralQrSvg, type ReferralLink } from "@/lib/referrals/queries"
-import { formatSessionWhen } from "@/lib/referrals/links"
+import { referralQrSvg } from "@/lib/referrals/queries"
+import type { ReferralTally } from "@/lib/referrals/tally"
+import { formatMoney, type Money } from "@/lib/payments/money"
 import { CopyLinkButton } from "@/components/admin/copy-link-button"
 
 /**
- * One printable link: what it points at, the QR, and the URL under it.
+ * One referrer on one class: who, the QR they post, and what it brought in.
  *
  * Shared by the admin screen and the read-only /v one so the QR a collaborator
- * sees is byte-for-byte the one an admin printed. The `actions` slot is where
- * the admin puts its delete button; /v passes nothing and gets a page with no
- * controls on it at all.
+ * sees is byte-for-byte the one an admin handed out. The `actions` slot is
+ * where the admin puts its remove button; /v passes nothing and gets a page
+ * with no controls on it at all.
  */
 export async function ReferralLinkRow({
   link,
-  target,
+  who,
   label,
+  tally,
   actions,
 }: {
   link: string
-  target: React.ReactNode
+  who: React.ReactNode
   label?: string
+  tally?: ReferralTally
   actions?: React.ReactNode
 }) {
   const qr = await referralQrSvg(link)
@@ -33,7 +36,7 @@ export async function ReferralLinkRow({
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div className="min-w-0">
-            <div className="text-sm text-foreground">{target}</div>
+            <div className="text-sm text-foreground">{who}</div>
             {label ? (
               <p className="mt-0.5 text-xs text-muted-foreground">{label}</p>
             ) : null}
@@ -44,37 +47,39 @@ export async function ReferralLinkRow({
         <p className="mt-2 break-all font-mono text-xs text-muted-foreground">
           {link}
         </p>
-        <div className="mt-2">
+
+        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
           <CopyLinkButton link={link} />
+          {tally ? <TallyLine tally={tally} /> : null}
         </div>
       </div>
     </li>
   )
 }
 
-/** What a saved link points at, in words rather than as a path. */
-export function LinkTarget({ link }: { link: ReferralLink }) {
-  if (!link.session) {
-    // Either the front page, or a class that has since been deleted. The path
-    // is the honest answer to both, and it is what the QR actually does.
-    return link.path === "/" ? (
-      <span>사이트 홈</span>
-    ) : (
-      <span className="text-muted-foreground">
-        없어진 수업 <span className="font-mono">{link.path}</span>
-      </span>
-    )
-  }
-
+/**
+ * What this link brought in: confirmed bookings first, then the money.
+ *
+ * Confirmed rather than total, because a cancelled booking is not something
+ * anyone gets paid for — the total is there beside it so the difference is
+ * visible rather than quietly dropped.
+ */
+export function TallyLine({ tally }: { tally: ReferralTally }) {
   return (
-    <span>
-      {link.session.title}
-      {link.session.isCancelled ? (
-        <span className="ml-1.5 text-xs text-destructive">취소된 수업</span>
+    <p className="text-xs text-muted-foreground">
+      <span className="text-foreground">예약 {tally.confirmed}건</span>
+      {tally.total !== tally.confirmed ? ` (전체 ${tally.total}건)` : null}
+      {tally.revenue.length ? (
+        <>
+          {" · "}
+          {tally.revenue
+            // Currency arrives from the database as text; formatMoney's union
+            // exists to stop a wrong literal being written in code, not to
+            // re-check a column that is already constrained.
+            .map((m) => formatMoney(m as Money))
+            .join(", ")}
+        </>
       ) : null}
-      <span className="ml-2 text-xs text-muted-foreground">
-        {formatSessionWhen(link.session.startsAt)}
-      </span>
-    </span>
+    </p>
   )
 }
