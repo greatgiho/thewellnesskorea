@@ -1,4 +1,4 @@
-import { KST_TIMEZONE } from "./constants"
+import { KST_TIMEZONE } from "@/lib/time/kst"
 import { addDaysToDateKey, todayDateKeyInKst } from "./utils"
 
 /** Rolling horizon for public schedule (covers pre-announced programs beyond 14 days). */

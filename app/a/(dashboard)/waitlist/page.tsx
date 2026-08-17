@@ -4,6 +4,7 @@ import { getWaitlistByDateRange } from "@/lib/waitlist/admin-queries"
 import { todayDateKeyInKst, addDaysToDateKey } from "@/lib/schedule/utils"
 import { formatScheduleDayHeading } from "@/lib/schedule/public-week"
 import { formatTimeInKst } from "@/lib/schedule/utils"
+import { formatKstDate } from "@/lib/time/kst"
 
 export const metadata: Metadata = {
   title: "Waitlist — Admin",
@@ -71,10 +72,7 @@ export default async function AdminWaitlistPage() {
                         {entry.guestPhone ?? "—"}
                       </td>
                       <td className="hidden px-6 py-3 text-muted-foreground sm:table-cell">
-                        {new Intl.DateTimeFormat("en-US", {
-                          dateStyle: "medium",
-                          timeZone: "Asia/Seoul",
-                        }).format(new Date(entry.createdAt))}
+                        {formatKstDate(entry.createdAt, { lang: "en", month: "short" })}
                       </td>
                     </tr>
                   ))}

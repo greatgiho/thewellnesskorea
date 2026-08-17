@@ -3,17 +3,10 @@
 import Link from "next/link"
 import { journalCategoryLabel } from "@/lib/journal/copy"
 import type { JournalPostRow } from "@/lib/journal/types"
+import { formatKstDate } from "@/lib/time/kst"
 
 type AdminJournalListProps = {
   posts: JournalPostRow[]
-}
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  })
 }
 
 export function AdminJournalList({ posts }: AdminJournalListProps) {
@@ -54,7 +47,7 @@ export function AdminJournalList({ posts }: AdminJournalListProps) {
                     {journalCategoryLabel(post.category)}
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
-                    {formatDate(post.published_at)}
+                    {formatKstDate(post.published_at, { lang: "en", month: "short" })}
                   </td>
                   <td className="px-4 py-3">
                     {post.is_published ? (

@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { CommunityPostType } from '@/lib/actions/community-actions';
+import { formatKstDate } from "@/lib/time/kst"
 
 interface CommunityPostListProps {
   posts: {
@@ -14,14 +15,6 @@ interface CommunityPostListProps {
   currentPage: number;
   itemsPerPage: number;
   totalCount: number; // totalCount 추가
-}
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("ko-KR", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
 }
 
 export function CommunityPostList({ posts, currentPage, itemsPerPage, totalCount }: CommunityPostListProps) {
@@ -72,7 +65,7 @@ export function CommunityPostList({ posts, currentPage, itemsPerPage, totalCount
                 )}
               </td>
               <td className="px-4 py-3 text-right text-muted-foreground w-[15%]">
-                {formatDate(post.created_at)}
+                {formatKstDate(post.created_at)}
               </td>
             </tr>
           ))}

@@ -7,6 +7,7 @@ import {
 } from "@/app/a/bookings/actions"
 import { formatBookingDateTime } from "@/lib/bookings/format"
 import type { AdminBookingItem } from "@/lib/bookings/admin-queries"
+import { formatKstDateTime } from "@/lib/time/kst"
 
 type SessionBookingsPanelProps = {
   sessionId: string
@@ -116,7 +117,7 @@ export function SessionBookingsPanel({
                       {heading} · {timeRange}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Booked {new Date(booking.createdAt).toLocaleString("en-GB")}
+                      Booked {formatKstDateTime(booking.createdAt, { lang: "en" })}
                       {booking.userId ? " · member account" : " · guest"}
                     </p>
                   </div>

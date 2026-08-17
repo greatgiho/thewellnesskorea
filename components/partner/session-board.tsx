@@ -5,6 +5,7 @@ import { createSessionPost, deleteSessionPost } from "@/app/p/session-actions"
 import { cn } from "@/lib/utils"
 import { FIELD_ROOMY } from "@/lib/ui/field"
 import type { SessionPost } from "@/lib/partner/queries"
+import { formatKstDateTime } from "@/lib/time/kst"
 
 type Props = {
   sessionId: string
@@ -81,14 +82,7 @@ export function SessionBoard({ sessionId, posts: initialPosts, partnerName }: Pr
                     )}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {new Date(post.created_at).toLocaleString("ko-KR", {
-                      timeZone: "Asia/Seoul",
-                      year: "numeric",
-                      month: "short",
-                      day: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
+                    {formatKstDateTime(post.created_at)}
                   </p>
                 </div>
                 {post.author_type === "teacher" && (

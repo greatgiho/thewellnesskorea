@@ -13,6 +13,7 @@ import {
   toTossAmount,
 } from "@/lib/payments/money"
 import { getPendingBookingPayment } from "@/lib/bookings/payment-queries"
+import { formatKstDateTime } from "@/lib/time/kst"
 
 export const metadata: Metadata = {
   title: "Complete payment — The Wellness Korea",
@@ -24,11 +25,7 @@ type BookPayPageProps = {
 }
 
 function formatExpiresAt(iso: string): string {
-  return new Intl.DateTimeFormat("en-US", {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone: "Asia/Seoul",
-  }).format(new Date(iso))
+  return formatKstDateTime(iso, { lang: "en" })
 }
 
 export default async function BookPayPage({ searchParams }: BookPayPageProps) {

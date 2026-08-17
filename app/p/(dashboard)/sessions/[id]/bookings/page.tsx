@@ -8,6 +8,7 @@ import {
   isAwaitingPayment,
 } from "@/lib/partner/utils"
 import { createClient } from "@/lib/supabase/server"
+import { formatKstDate } from "@/lib/time/kst"
 
 type Props = { params: Promise<{ id: string }> }
 
@@ -94,7 +95,7 @@ export default async function SessionBookingsPage({ params }: Props) {
                   <td className="px-4 py-3 text-muted-foreground">{booking.guest_email}</td>
                   <td className="px-4 py-3 text-muted-foreground">{booking.guest_phone ?? "—"}</td>
                   <td className="px-4 py-3 text-muted-foreground text-xs">
-                    {new Date(booking.created_at).toLocaleDateString("ko-KR", { timeZone: "Asia/Seoul" })}
+                    {formatKstDate(booking.created_at, { month: "short" })}
                   </td>
                 </tr>
               ))}
