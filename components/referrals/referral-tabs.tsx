@@ -21,8 +21,8 @@ function tabsFor(base: string): Tab[] {
       label: "예약",
       href: `${base}/bookings`,
       children: [
+        { label: "바이럴 호스트", href: `${base}/hosts` },
         { label: "예약 레퍼럴", href: `${base}/bookings` },
-        { label: "바이럴 시드", href: `${base}/seeds` },
       ],
     },
   ]

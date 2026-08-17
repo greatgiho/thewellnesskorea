@@ -14,24 +14,24 @@ import { NewReferrerForm } from "@/components/referrals/new-referrer-form"
  * This is also the settlement view: one line per seed, everything they brought
  * in across every class. The per-class breakdown is on the booking tab.
  */
-export async function SeedPanel() {
+export async function HostPanel() {
   const [referrers, tallies] = await Promise.all([
     listReferrers(),
     referralTallies(),
   ])
   const totals = totalsByCode(tallies)
-  const seeds = referrers.filter((r) => !r.partnerId)
+  const hosts = referrers.filter((r) => !r.partnerId)
 
   return (
     <section className="rounded-3xl border border-border bg-card p-6 sm:p-8">
-      <h2 className="font-serif text-xl text-foreground">바이럴 시드</h2>
+      <h2 className="font-serif text-xl text-foreground">바이럴 호스트</h2>
       <div className="mt-6">
         <NewReferrerForm />
       </div>
 
-      {seeds.length > 0 ? (
+      {hosts.length > 0 ? (
         <div className="mt-8 space-y-3">
-          {seeds.map((r) => (
+          {hosts.map((r) => (
             <ReferrerCard
               key={r.id}
               referrer={r}
@@ -41,7 +41,7 @@ export async function SeedPanel() {
         </div>
       ) : (
         <p className="mt-8 text-sm text-muted-foreground">
-          아직 만든 시드가 없습니다.
+          아직 만든 호스트가 없습니다.
         </p>
       )}
     </section>
