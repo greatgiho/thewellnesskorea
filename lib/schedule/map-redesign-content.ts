@@ -1,6 +1,7 @@
+import { KST_TIMEZONE } from "@/lib/time/kst"
 import { getSessionPhotoUrl } from "./images"
 import { formatTimeInKst } from "./utils"
-import { KST_TIMEZONE } from "./constants"
+
 import type { ContentCategory, RedesignSessionRow } from "./redesign-content"
 
 export type BilingualText = { en: string; ko: string }

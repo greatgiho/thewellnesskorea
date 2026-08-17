@@ -5,6 +5,7 @@ import Link from "next/link"
 import { useReveal } from "./use-reveal"
 import { journalCategoryLabel } from "@/lib/journal/copy"
 import type { JournalCardData } from "@/lib/journal/types"
+import { formatKstMonthYear } from "@/lib/time/kst"
 
 type Props = {
   post: JournalCardData
@@ -45,10 +46,7 @@ export function JournalStory({ post, index }: Props) {
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
 
-  const formattedDate = new Date(post.publishedAt).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-  })
+  const formattedDate = formatKstMonthYear(post.publishedAt)
 
   return (
     <section

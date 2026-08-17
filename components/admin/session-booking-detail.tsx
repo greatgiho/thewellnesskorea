@@ -10,6 +10,7 @@ import { OnsitePaymentButton } from "@/components/admin/onsite-payment-button"
 import { formatOrder } from "@/lib/bookings/lines"
 import type { AdminBookingItem } from "@/lib/bookings/admin-queries"
 import type { WaitlistEntry } from "@/lib/waitlist/admin-queries"
+import { formatKstDateTime } from "@/lib/time/kst"
 
 type SessionBookingDetailProps = {
   sessionId: string
@@ -131,7 +132,7 @@ export function SessionBookingDetail({
                       {b.guestPhone ? <p className="text-xs">{b.guestPhone}</p> : null}
                     </td>
                     <td className="px-4 py-3 text-xs text-muted-foreground">
-                      {new Date(b.createdAt).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })}
+                      {formatKstDateTime(b.createdAt)}
                     </td>
                     <td className="px-4 py-3 text-xs text-muted-foreground">
                       {b.userId ? "Member" : "Guest"}
@@ -252,7 +253,7 @@ export function SessionBookingDetail({
                       {w.guestPhone ? <p className="text-xs">{w.guestPhone}</p> : null}
                     </td>
                     <td className="px-4 py-3 text-xs text-muted-foreground">
-                      {new Date(w.createdAt).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })}
+                      {formatKstDateTime(w.createdAt)}
                     </td>
                     <td className="px-4 py-3">
                       {w.notifiedAt ? (

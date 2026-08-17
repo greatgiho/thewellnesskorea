@@ -3,41 +3,26 @@ import {
   SCHEDULE_START_HOUR,
   SLOT_HEIGHT_PX,
   SLOT_MINUTES,
-  KST_TIMEZONE,
 } from "./constants"
+import {
+  KST_TIMEZONE,
+  addDaysToDateKey,
+  dateKeyToUtcDate,
+  formatDateKeyInKst,
+  formatTimeInKst,
+  todayDateKeyInKst,
+} from "@/lib/time/kst"
 import type { SessionRow, SessionWithRelations } from "./types"
 
-export function todayDateKeyInKst(): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: KST_TIMEZONE }).format(
-    new Date(),
-  )
-}
-
-export function formatDateKeyInKst(date: Date): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: KST_TIMEZONE }).format(date)
-}
-
-export function addDaysToDateKey(dateKey: string, days: number): string {
-  const [y, m, d] = dateKey.split("-").map(Number)
-  const utc = new Date(Date.UTC(y, m - 1, d + days))
-  return formatDateKeyInKst(utc)
-}
-
-export function formatDisplayDate(dateKey: string): string {
-  const date = dateKeyToUtcDate(dateKey)
-  return new Intl.DateTimeFormat("ko-KR", {
-    timeZone: KST_TIMEZONE,
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    weekday: "short",
-  }).format(date)
-}
-
-function dateKeyToUtcDate(dateKey: string): Date {
-  const [y, m, d] = dateKey.split("-").map(Number)
-  return new Date(Date.UTC(y, m - 1, d, 12, 0, 0))
-}
+// Re-exported for the schedule screens, which read a day key and a clock time
+// constantly. Owned by lib/time/kst — see there for why.
+export {
+  addDaysToDateKey,
+  formatDateKeyInKst,
+  formatDisplayDate,
+  formatTimeInKst,
+  todayDateKeyInKst,
+} from "@/lib/time/kst"
 
 export function buildTimeSlots(): string[] {
   const slots: string[] = []
@@ -97,16 +82,6 @@ export function minutesFromScheduleStart(time: string): number {
 export function minutesFromScheduleStartIso(iso: string): number {
   const time = formatTimeInKst(iso)
   return minutesFromScheduleStart(time)
-}
-
-export function formatTimeInKst(iso: string): string {
-  const date = new Date(iso)
-  return new Intl.DateTimeFormat("en-GB", {
-    timeZone: KST_TIMEZONE,
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).format(date)
 }
 
 export function sessionDurationMinutes(session: SessionRow): number {

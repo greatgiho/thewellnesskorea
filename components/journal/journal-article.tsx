@@ -9,18 +9,11 @@ import type { JournalPostRow } from "@/lib/journal/types"
 import { JournalPartnerTags } from "@/components/journal/journal-partner-tags"
 import Image from "next/image"
 import Link from "next/link"
+import { formatKstDate } from "@/lib/time/kst"
 
 type JournalArticleProps = {
   post: JournalPostRow
   partners?: JournalPartnerTag[]
-}
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  })
 }
 
 export function JournalArticle({ post, partners = [] }: JournalArticleProps) {
@@ -41,7 +34,7 @@ export function JournalArticle({ post, partners = [] }: JournalArticleProps) {
         {post.title_en}
       </h1>
       <p className="mt-5 text-sm text-muted-foreground">
-        The Wellness Korea · {formatDate(post.published_at)} ·{" "}
+        The Wellness Korea · {formatKstDate(post.published_at, { lang: "en" })} ·{" "}
         {post.read_minutes} min read · {journalCategoryLabel(post.category)}
       </p>
 

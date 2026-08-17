@@ -3,17 +3,10 @@ import Image from "next/image"
 import type { JournalCardData } from "@/lib/journal/types"
 import { journalCategoryLabel } from "@/lib/journal/copy"
 import { shouldUnoptimizeJournalPhoto } from "@/lib/journal/images"
+import { formatKstDate } from "@/lib/time/kst"
 
 type JournalCardProps = {
   post: JournalCardData
-}
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  })
 }
 
 export function JournalCard({ post }: JournalCardProps) {
@@ -45,7 +38,7 @@ export function JournalCard({ post }: JournalCardProps) {
             {post.excerpt}
           </p>
           <p className="mt-4 text-xs text-muted-foreground">
-            {formatDate(post.publishedAt)} · {post.readMinutes} min read
+            {formatKstDate(post.publishedAt, { lang: "en" })} · {post.readMinutes} min read
           </p>
         </div>
       </Link>

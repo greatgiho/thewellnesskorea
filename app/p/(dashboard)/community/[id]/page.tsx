@@ -12,6 +12,7 @@ import { notFound, redirect } from 'next/navigation';
 import { CommunityCopyButton } from '../_components/community-copy-button';
 import { CommunityDeleteButton } from '../_components/community-delete-button';
 import { cn } from '@/lib/utils'; // cn 임포트
+import { formatKstDate } from "@/lib/time/kst"
 
 interface CommunityPostDetailPageProps {
   params: Promise<{
@@ -110,7 +111,7 @@ export default async function CommunityPostDetailPage({
             <span className="font-semibold">By {post.authorName}</span>
             <span>&bull;</span>
             <span className="text-sm">
-              {new Date(post.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+              {formatKstDate(post.created_at, { lang: "en" })}
             </span>
           </CardDescription>
         </CardHeader>
