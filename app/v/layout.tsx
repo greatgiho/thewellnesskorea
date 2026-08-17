@@ -22,9 +22,6 @@ export default async function ViewerLayout({
         <span className="font-serif text-base text-foreground">
           The Wellness Korea
         </span>
-        <span className="rounded-full bg-secondary px-2 py-0.5 text-xs text-muted-foreground">
-          읽기 전용
-        </span>
         <ViewerNav />
         <div className="ml-auto flex min-w-0 items-center gap-3">
           {role === "admin" ? (

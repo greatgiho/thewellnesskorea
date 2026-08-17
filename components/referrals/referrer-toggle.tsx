@@ -1,7 +1,7 @@
 "use client"
 
 import { useTransition } from "react"
-import { setReferrerActive } from "@/app/a/(dashboard)/referrals/actions"
+import { setReferrerActive } from "@/lib/referrals/actions"
 
 /**
  * Activate / deactivate. Never delete — bookings keep the code as text, so a

@@ -1,7 +1,7 @@
 import { referralQrSvg } from "@/lib/referrals/queries"
 import type { ReferralTally } from "@/lib/referrals/tally"
 import { formatMoney, type Money } from "@/lib/payments/money"
-import { CopyLinkButton } from "@/components/admin/copy-link-button"
+import { CopyLinkButton } from "@/components/referrals/copy-link-button"
 
 /**
  * One referrer on one class: who, the QR they post, and what it brought in.

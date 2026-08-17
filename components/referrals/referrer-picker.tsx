@@ -1,7 +1,7 @@
 "use client"
 
 import { useActionState, useEffect, useRef } from "react"
-import { createReferralLink } from "@/app/a/(dashboard)/referrals/actions"
+import { createReferralLink } from "@/lib/referrals/actions"
 import type { Referrer } from "@/lib/referrals/queries"
 import type { ActionResult } from "@/lib/errors"
 
