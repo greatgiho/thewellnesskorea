@@ -1,7 +1,7 @@
 "use client"
 
 import { useActionState, useEffect, useRef } from "react"
-import { createReferrer } from "@/app/a/(dashboard)/referrals/actions"
+import { createReferrer } from "@/lib/referrals/actions"
 import type { ActionResult } from "@/lib/errors"
 
 const FIELD =

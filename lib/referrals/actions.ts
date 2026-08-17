@@ -1,17 +1,21 @@
 "use server"
 
-import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
-import { requireAdminSession } from "@/lib/auth/require-session"
+import { requireReferralEditor } from "@/lib/auth/require-viewer-session"
 import { assertNotViewAs } from "@/lib/view-as-server"
 import { asActionResult, UserFacingError, type ActionResult } from "@/lib/errors"
 import { normalizeReferralCode } from "@/lib/referrals/cookie"
 import { sessionPath } from "@/lib/referrals/links"
+import { revalidateReferralScreens } from "@/lib/referrals/revalidate"
 
 /**
- * Written through the request's own client so RLS decides: referrers grants
- * everything to admins and read-only to everyone else. The service client
- * would bypass the check worth keeping.
+ * Written through the request's own client so RLS decides who may write.
+ * Admins and viewers both manage referrals (063); everyone else is refused by
+ * the database, not by this file. The service client would bypass the check
+ * worth keeping.
+ *
+ * Lives in lib/ rather than under a route: two screens call these now, /a and
+ * /v, and neither owns them.
  */
 
 export async function createReferrer(
@@ -22,7 +26,7 @@ export async function createReferrer(
     "createReferrer",
     "레퍼럴을 만들지 못했습니다. 다시 시도해 주세요.",
     async () => {
-      await requireAdminSession()
+      await requireReferralEditor()
       await assertNotViewAs()
 
       const code = normalizeReferralCode(String(formData.get("code") ?? ""))
@@ -51,7 +55,7 @@ export async function createReferrer(
         throw new Error(error.message)
       }
 
-      revalidatePath("/a/referrals")
+      revalidateReferralScreens()
     },
   )
 }
@@ -73,7 +77,7 @@ export async function createReferralLink(
     "createReferralLink",
     "링크를 만들지 못했습니다. 다시 시도해 주세요.",
     async () => {
-      await requireAdminSession()
+      await requireReferralEditor()
       await assertNotViewAs()
 
       const referrerId = String(formData.get("referrerId") ?? "").trim()
@@ -113,7 +117,7 @@ export async function createReferralLink(
         throw new Error(error.message)
       }
 
-      revalidatePath("/a/referrals")
+      revalidateReferralScreens()
     },
   )
 }
@@ -127,7 +131,7 @@ export async function createReferralLink(
  */
 export async function deleteReferralLink(id: string): Promise<ActionResult> {
   return asActionResult("deleteReferralLink", "링크를 지우지 못했습니다.", async () => {
-    await requireAdminSession()
+    await requireReferralEditor()
     await assertNotViewAs()
 
     const supabase = await createClient()
@@ -142,7 +146,7 @@ export async function deleteReferralLink(id: string): Promise<ActionResult> {
       throw new UserFacingError("권한이 없거나 대상을 찾을 수 없습니다.")
     }
 
-    revalidatePath("/a/referrals")
+    revalidateReferralScreens()
   })
 }
 
@@ -154,7 +158,7 @@ export async function setReferrerActive(
     "setReferrerActive",
     "상태를 바꾸지 못했습니다.",
     async () => {
-      await requireAdminSession()
+      await requireReferralEditor()
       await assertNotViewAs()
 
       const supabase = await createClient()
@@ -173,7 +177,7 @@ export async function setReferrerActive(
         throw new UserFacingError("권한이 없거나 대상을 찾을 수 없습니다.")
       }
 
-      revalidatePath("/a/referrals")
+      revalidateReferralScreens()
     },
   )
 }

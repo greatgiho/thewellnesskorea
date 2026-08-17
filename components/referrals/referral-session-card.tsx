@@ -7,8 +7,8 @@ import type { ReferralTally } from "@/lib/referrals/tally"
 import { formatSessionWhen, referralLink, sessionPath } from "@/lib/referrals/links"
 import { siteOrigin } from "@/lib/site-origin"
 import { ReferralLinkRow } from "@/components/referrals/referral-link-row"
-import { ReferrerPicker } from "@/components/admin/referrer-picker"
-import { DeleteReferralLinkButton } from "@/components/admin/delete-referral-link-button"
+import { ReferrerPicker } from "@/components/referrals/referrer-picker"
+import { DeleteReferralLinkButton } from "@/components/referrals/delete-referral-link-button"
 
 /**
  * One class, and everyone posting it.

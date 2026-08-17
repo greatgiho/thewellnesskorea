@@ -2,8 +2,8 @@ import type { Referrer } from "@/lib/referrals/queries"
 import type { ReferralTotals } from "@/lib/referrals/tally"
 import { formatMoney, type Money } from "@/lib/payments/money"
 import { referralLink } from "@/lib/referrals/links"
-import { ReferrerToggle } from "@/components/admin/referrer-toggle"
-import { CopyLinkButton } from "@/components/admin/copy-link-button"
+import { ReferrerToggle } from "@/components/referrals/referrer-toggle"
+import { CopyLinkButton } from "@/components/referrals/copy-link-button"
 
 /**
  * One referrer in the roster: who they are, and what they are owed in total.

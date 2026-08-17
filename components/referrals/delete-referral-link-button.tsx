@@ -1,7 +1,7 @@
 "use client"
 
 import { useTransition } from "react"
-import { deleteReferralLink } from "@/app/a/(dashboard)/referrals/actions"
+import { deleteReferralLink } from "@/lib/referrals/actions"
 
 /**
  * Deleting a link removes a note about what we printed, not any attribution —
