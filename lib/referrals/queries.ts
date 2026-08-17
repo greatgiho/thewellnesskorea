@@ -1,9 +1,20 @@
 import "server-only"
 
 import QRCode from "qrcode"
+import type { SupabaseClient } from "@supabase/supabase-js"
 import { createServiceClient } from "@/lib/supabase/service"
-import { siteOrigin } from "@/lib/site-origin"
-import { REFERRAL_PARAM } from "@/lib/referrals/cookie"
+import { formatSessionWhen } from "@/lib/referrals/links"
+
+/**
+ * Which client reads.
+ *
+ * The admin screens pass nothing and get the service client, as before. /v
+ * passes its own request-scoped client so a read-only collaborator is read
+ * through RLS rather than around it — there are viewer SELECT policies for
+ * exactly these two tables (062), and a service client would make them
+ * decorative.
+ */
+type Db = SupabaseClient
 
 export type Referrer = {
   id: string
@@ -11,6 +22,24 @@ export type Referrer = {
   name: string
   note: string
   isActive: boolean
+  createdAt: string
+}
+
+/** The class a link points at, as far as we can still see it. */
+export type LinkedSession = {
+  id: string
+  title: string
+  startsAt: string
+  /** False once the class has been called off; the printed QR has not been. */
+  isCancelled: boolean
+}
+
+export type ReferralLink = {
+  id: string
+  referrerId: string
+  path: string
+  label: string
+  session: LinkedSession | null
   createdAt: string
 }
 
@@ -23,19 +52,14 @@ export type ReferrerStats = {
   lost: number
   /** Money actually taken and not refunded, by currency. */
   revenue: { currency: string; amount: number }[]
-}
-
-/**
- * The link a partner hands out.
- *
- * siteOrigin rather than deploymentOrigin: this one gets printed on a card and
- * stuck to a wall. A preview URL would work for a week and then stop, long
- * after anyone remembers where the QR came from.
- */
-export function referralLink(code: string, path = "/"): string {
-  const url = new URL(path, siteOrigin())
-  url.searchParams.set(REFERRAL_PARAM, code)
-  return url.toString()
+  /**
+   * Which classes the bookings were for, biggest first.
+   *
+   * Grouped by the class that was booked, not by the link that was scanned.
+   * Someone can scan the QR for Saturday's class and book Sunday's, and the
+   * money is Sunday's — so this is the column a statement gets written from.
+   */
+  bySession: { sessionId: string; title: string; when: string; count: number }[]
 }
 
 /**
@@ -55,8 +79,8 @@ export async function referralQrSvg(link: string): Promise<string> {
   })
 }
 
-export async function listReferrers(): Promise<Referrer[]> {
-  const service = createServiceClient()
+export async function listReferrers(db?: Db): Promise<Referrer[]> {
+  const service = db ?? createServiceClient()
   const { data, error } = await service
     .from("referrers")
     .select("id, code, name, note, is_active, created_at")
@@ -78,10 +102,98 @@ export async function listReferrers(): Promise<Referrer[]> {
   }))
 }
 
+type LinkRow = {
+  id: string
+  referrer_id: string
+  path: string
+  label: string | null
+  created_at: string
+  session:
+    | { id: string; title: string; starts_at: string; status: string }
+    | { id: string; title: string; starts_at: string; status: string }[]
+    | null
+}
+
+/**
+ * Every saved link, for every partner.
+ *
+ * One query rather than one per referrer: the whole point of the screen is to
+ * see them side by side, and there are tens of these, not thousands. The caller
+ * groups by referrerId.
+ */
+export async function listReferralLinks(db?: Db): Promise<ReferralLink[]> {
+  const service = db ?? createServiceClient()
+  const { data, error } = await service
+    .from("referral_links")
+    .select(
+      "id, referrer_id, path, label, created_at, session:sessions (id, title, starts_at, status)",
+    )
+    .order("created_at", { ascending: true })
+
+  if (error) {
+    console.error("[referral] link list failed:", error.message)
+    return []
+  }
+
+  return ((data ?? []) as unknown as LinkRow[]).map((row) => {
+    const session = Array.isArray(row.session) ? row.session[0] : row.session
+    return {
+      id: row.id,
+      referrerId: row.referrer_id,
+      path: row.path,
+      label: row.label ?? "",
+      createdAt: row.created_at,
+      session: session
+        ? {
+            id: session.id,
+            title: session.title,
+            startsAt: session.starts_at,
+            isCancelled: session.status === "cancelled",
+          }
+        : null,
+    }
+  })
+}
+
+/**
+ * The classes an admin can point a new link at.
+ *
+ * Unlisted classes included on purpose: a class that is bookable but kept off
+ * the schedule (060) is precisely the kind you hand out as a link, and leaving
+ * those out would make the two features useless together.
+ *
+ * Past classes are left out — a QR for something that already happened is not
+ * a thing anyone means to make.
+ */
+export async function listLinkableSessions(): Promise<LinkedSession[]> {
+  const service = createServiceClient()
+  const { data, error } = await service
+    .from("sessions")
+    .select("id, title, starts_at, status")
+    .gte("starts_at", new Date().toISOString())
+    .neq("status", "cancelled")
+    .order("starts_at", { ascending: true })
+    .limit(200)
+
+  if (error) {
+    console.error("[referral] session list failed:", error.message)
+    return []
+  }
+
+  return (data ?? []).map((s) => ({
+    id: s.id as string,
+    title: s.title as string,
+    startsAt: s.starts_at as string,
+    isCancelled: false,
+  }))
+}
+
 type StatRow = {
   referral_code: string | null
+  session_id: string | null
   status: string
   payments: { status: string; amount: number | string; currency: string }[] | null
+  session: { title: string; starts_at: string } | { title: string; starts_at: string }[] | null
 }
 
 /**
@@ -100,7 +212,9 @@ export async function referrerStats(): Promise<Map<string, ReferrerStats>> {
   const service = createServiceClient()
   const { data, error } = await service
     .from("bookings")
-    .select("referral_code, status, payments (status, amount, currency)")
+    .select(
+      "referral_code, session_id, status, payments (status, amount, currency), session:sessions (title, starts_at)",
+    )
     .not("referral_code", "is", null)
 
   const stats = new Map<string, ReferrerStats>()
@@ -118,10 +232,25 @@ export async function referrerStats(): Promise<Map<string, ReferrerStats>> {
       confirmed: 0,
       lost: 0,
       revenue: [],
+      bySession: [],
     }
     entry.total += 1
     if (row.status === "confirmed") entry.confirmed += 1
     else if (row.status === "cancelled") entry.lost += 1
+
+    const session = Array.isArray(row.session) ? row.session[0] : row.session
+    if (row.session_id && session) {
+      const line = entry.bySession.find((s) => s.sessionId === row.session_id)
+      if (line) line.count += 1
+      else {
+        entry.bySession.push({
+          sessionId: row.session_id,
+          title: session.title,
+          when: formatSessionWhen(session.starts_at),
+          count: 1,
+        })
+      }
+    }
 
     for (const p of row.payments ?? []) {
       if (p.status !== "paid") continue
@@ -133,6 +262,12 @@ export async function referrerStats(): Promise<Map<string, ReferrerStats>> {
     }
 
     stats.set(key, entry)
+  }
+
+  // Biggest first: the screen shows a few lines per partner, and the class
+  // worth arguing about is the one that sold.
+  for (const entry of stats.values()) {
+    entry.bySession.sort((a, b) => b.count - a.count)
   }
 
   return stats
