@@ -33,6 +33,28 @@ export function sessionPath(sessionId: string): string {
 }
 
 /**
+ * A partner's own page — where their QR lands.
+ *
+ * Their profile rather than the front page: it already lists their upcoming
+ * classes, so someone who scanned a teacher's code arrives at that teacher's
+ * classes instead of at everything we run.
+ */
+export function partnerPath(slug: string): string {
+  return `/partners/${slug}`
+}
+
+/**
+ * The plain address of the site, with no code on it.
+ *
+ * This is the QR for our own poster, so it is not a referral: nobody is owed
+ * anything for it, and giving it a code would put a line in the settlement
+ * list that can never be paid.
+ */
+export function siteLink(): string {
+  return new URL("/", siteOrigin()).toString()
+}
+
+/**
  * "2026년 8월 22일 토 09:23", in KST — the same shape the schedule screens use.
  *
  * Read in KST rather than sliced off the ISO string. A class at 08:00 KST is

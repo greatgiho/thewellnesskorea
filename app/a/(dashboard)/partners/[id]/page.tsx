@@ -4,6 +4,7 @@ import { PartnerDetailView } from "@/components/admin/partner-detail-view"
 import { getPartnerById } from "@/lib/partners/queries"
 import { getRegionsForForms } from "@/lib/regions/queries"
 import { startViewAs } from "@/app/a/view-as-actions"
+import { PartnerReferralSection } from "@/components/referrals/partner-referral-section"
 
 type Props = {
   params: Promise<{ id: string }>
@@ -41,6 +42,7 @@ export default async function PersonDetailPage({ params }: Props) {
         </form>
       </div>
       <PartnerDetailView person={person} sido={sido} />
+      <PartnerReferralSection partnerId={id} />
     </div>
   )
 }
