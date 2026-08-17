@@ -16,6 +16,8 @@ type SessionBookingDetailProps = {
   capacity: number
   bookings: AdminBookingItem[]
   waitlist: WaitlistEntry[]
+  /** lower(code) -> partner name, for reading the referral column. */
+  referrerNames: Map<string, string>
 }
 
 type ConfirmState =
@@ -27,6 +29,7 @@ export function SessionBookingDetail({
   capacity,
   bookings,
   waitlist,
+  referrerNames,
 }: SessionBookingDetailProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -102,6 +105,7 @@ export function SessionBookingDetail({
                   <th className="px-4 py-3 text-left">Contact</th>
                   <th className="px-4 py-3 text-left">Booked at</th>
                   <th className="px-4 py-3 text-left">Type</th>
+                  <th className="px-4 py-3 text-left">레퍼럴</th>
                   <th className="px-4 py-3 text-left">결제</th>
                   <th className="px-4 py-3" />
                 </tr>
@@ -131,6 +135,9 @@ export function SessionBookingDetail({
                     </td>
                     <td className="px-4 py-3 text-xs text-muted-foreground">
                       {b.userId ? "Member" : "Guest"}
+                    </td>
+                    <td className="px-4 py-3 text-xs">
+                      <Referral code={b.referralCode} names={referrerNames} />
                     </td>
                     <td className="px-4 py-3 text-xs">
                       {!b.payment ? (
@@ -191,6 +198,9 @@ export function SessionBookingDetail({
                     <tr key={b.id} className={i < otherBookings.length - 1 ? "border-b border-border/60" : ""}>
                       <td className="px-4 py-3 text-muted-foreground">{b.guestName}</td>
                       <td className="px-4 py-3 text-xs text-muted-foreground">{b.guestEmail}</td>
+                      <td className="px-4 py-3 text-xs">
+                        <Referral code={b.referralCode} names={referrerNames} />
+                      </td>
                       <td className="px-4 py-3">
                         <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
                           {b.status}
@@ -275,5 +285,34 @@ export function SessionBookingDetail({
         )}
       </section>
     </>
+  )
+}
+
+/**
+ * Who brought this booking in.
+ *
+ * Falls back to the raw code when no referrer matches it. That happens when a
+ * referrer row was deleted, and the code is still the truth about what the
+ * visitor arrived with — better than an empty cell that reads as "nobody".
+ */
+function Referral({
+  code,
+  names,
+}: {
+  code: string | null
+  names: Map<string, string>
+}) {
+  if (!code) return <span className="text-muted-foreground">—</span>
+
+  const name = names.get(code.toLowerCase())
+  return (
+    <span className="text-foreground">
+      {name ?? code}
+      {name ? (
+        <span className="ml-1.5 font-mono text-[11px] text-muted-foreground">
+          {code}
+        </span>
+      ) : null}
+    </span>
   )
 }
