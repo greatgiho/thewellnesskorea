@@ -61,6 +61,112 @@ export async function createReferrer(
 }
 
 /**
+ * A code built from a partner's slug.
+ *
+ * The slug is already the readable, url-safe name for that person, so reusing
+ * it means the code on a printed card matches the address of their page — one
+ * fewer thing to explain to the teacher holding it. Sanitised anyway, because
+ * a slug is only guaranteed to be url-safe, and a code has a tighter shape
+ * (referrers_code_format).
+ */
+function codeFromSlug(slug: string): string | null {
+  const cleaned = slug
+    .normalize("NFKD")
+    .replace(/[^A-Za-z0-9_-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 32)
+  return normalizeReferralCode(cleaned)
+}
+
+/**
+ * Give a partner their own referral, the first time anyone asks.
+ *
+ * Not created up front for every partner: most never hand out a QR, and a
+ * settlement list padded with codes nobody used is a list nobody reads.
+ *
+ * Idempotent. Two people pressing the button on the same teacher — one on the
+ * partner screen, one on the referral screen — should end with one code, not
+ * an error and a mystery.
+ */
+export async function createPartnerReferrer(
+  partnerId: string,
+): Promise<ActionResult> {
+  return asActionResult(
+    "createPartnerReferrer",
+    "레퍼럴을 만들지 못했습니다. 다시 시도해 주세요.",
+    async () => {
+      await requireReferralEditor()
+      await assertNotViewAs()
+
+      const supabase = await createClient()
+
+      const { data: partner } = await supabase
+        .from("partners")
+        .select("id, slug, name_ko, name_en")
+        .eq("id", partnerId)
+        .maybeSingle<{
+          id: string
+          slug: string
+          name_ko: string | null
+          name_en: string | null
+        }>()
+
+      if (!partner) throw new UserFacingError("파트너를 찾을 수 없습니다.")
+
+      const { data: existing } = await supabase
+        .from("referrers")
+        .select("id")
+        .eq("partner_id", partner.id)
+        .maybeSingle<{ id: string }>()
+
+      if (existing) {
+        revalidateReferralScreens()
+        return
+      }
+
+      const base = codeFromSlug(partner.slug)
+      if (!base) {
+        throw new UserFacingError(
+          "이 파트너의 slug 로는 코드를 만들 수 없습니다. 바이럴 시드에서 직접 만들어 주세요.",
+        )
+      }
+
+      // A slug clashing with a code someone typed by hand is rare but real —
+      // "jin" the café and Jin the teacher. Suffix rather than refuse: the
+      // person pressing this wants a QR, not a naming problem.
+      const { data: taken } = await supabase
+        .from("referrers")
+        .select("code")
+        .ilike("code", `${base}%`)
+
+      const used = new Set((taken ?? []).map((r) => String(r.code).toLowerCase()))
+      let code = base
+      for (let n = 2; used.has(code.toLowerCase()) && n < 100; n++) {
+        code = `${base.slice(0, 29)}-${n}`
+      }
+
+      const { error } = await supabase.from("referrers").insert({
+        code,
+        name: partner.name_ko || partner.name_en || partner.slug,
+        partner_id: partner.id,
+      })
+
+      if (error) {
+        // The unique index on partner_id. Someone else pressed it first, which
+        // is the outcome this was for.
+        if (error.code === "23505") {
+          revalidateReferralScreens()
+          return
+        }
+        throw new Error(error.message)
+      }
+
+      revalidateReferralScreens()
+    },
+  )
+}
+
+/**
  * Put one referrer on one class: the link and QR they will post.
  *
  * One class can carry many referrers, and the same referrer can carry many

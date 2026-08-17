@@ -5,21 +5,15 @@ import {
   referralTallies,
   type ReferralSession,
 } from "@/lib/referrals/queries"
-import {
-  talliesBySession,
-  totalsByCode,
-  type ReferralTally,
-} from "@/lib/referrals/tally"
+import { talliesBySession, type ReferralTally } from "@/lib/referrals/tally"
 import { ReferralSessionCard } from "@/components/referrals/referral-session-card"
-import { ReferrerCard } from "@/components/referrals/referrer-card"
-import { NewReferrerForm } from "@/components/referrals/new-referrer-form"
 
 /**
- * The referral screen, rendered identically at /a/referrals and /v/referrals.
+ * Classes, and who is posting each one.
  *
- * One component rather than two pages that look alike: admins and viewers do
- * the same job here (063), and a second copy is how the two would drift until
- * they disagree about what has been handed out.
+ * The same component at /a and /v: admins and viewers do the same job here
+ * (063), and a second copy is how the two would drift until they disagree
+ * about what has been handed out.
  *
  * Reads go through the service client, as the admin screen always has. The
  * takings come from bookings and payments, and giving viewers SELECT on those
@@ -27,7 +21,7 @@ import { NewReferrerForm } from "@/components/referrals/new-referrer-form"
  * page only ever shows the aggregate. Writes are the opposite: those go
  * through the request's own client, so RLS decides who may make them.
  */
-export async function ReferralScreen() {
+export async function BookingReferralsPanel() {
   const [referrers, links, upcoming, tallies] = await Promise.all([
     listReferrers(),
     listReferralLinks(),
@@ -36,7 +30,6 @@ export async function ReferralScreen() {
   ])
 
   const byId = new Map(referrers.map((r) => [r.id, r]))
-  const totals = totalsByCode(tallies)
   const perSession = talliesBySession(tallies)
 
   const linksBySession = new Map<string, typeof links>()
@@ -85,17 +78,12 @@ export async function ReferralScreen() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-serif text-3xl text-foreground">레퍼럴</h1>
-        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-          수업마다 소개할 사람을 정하면 그 사람 몫의 예약 링크와 QR 이 만들어집니다.
-          그 링크로 들어온 방문자가 예약하면 예약에 코드가 남고, 아래 숫자로 잡힙니다.
-          귀속은 <strong>마지막으로 클릭한 코드 기준, 30일</strong>. 자동 송금은 없습니다.
-        </p>
-      </div>
-
       <section className="space-y-4">
         <h2 className="font-serif text-xl text-foreground">다가오는 수업</h2>
+        <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
+          수업마다 소개할 사람을 고르면 그 사람 몫의 예약 링크와 QR 이 만들어집니다.
+          귀속은 <strong>마지막으로 클릭한 코드 기준, 30일</strong>.
+        </p>
         {ahead.length === 0 ? (
           <p className="rounded-2xl border border-dashed border-border px-5 py-8 text-center text-sm text-muted-foreground">
             예정된 수업이 없습니다.
@@ -115,29 +103,6 @@ export async function ReferralScreen() {
         </section>
       ) : null}
 
-      <section className="rounded-3xl border border-border bg-card p-6 sm:p-8">
-        <h2 className="font-serif text-xl text-foreground">레퍼럴 대상</h2>
-        <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-          소개해 줄 사람이나 채널을 먼저 여기 등록하면, 위 수업에서 고를 수 있습니다.
-          지우지 않고 비활성으로 둡니다 — 이미 나간 링크와 지난 정산이 남아야 하니까요.
-        </p>
-
-        <div className="mt-6">
-          <NewReferrerForm />
-        </div>
-
-        {referrers.length > 0 ? (
-          <div className="mt-8 space-y-3">
-            {referrers.map((r) => (
-              <ReferrerCard
-                key={r.id}
-                referrer={r}
-                totals={totals.get(r.code.toLowerCase())}
-              />
-            ))}
-          </div>
-        ) : null}
-      </section>
     </div>
   )
 }

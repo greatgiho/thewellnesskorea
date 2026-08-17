@@ -1,4 +1,4 @@
-import { referralQrSvg } from "@/lib/referrals/queries"
+import { QrBlock } from "@/components/referrals/qr-block"
 import type { ReferralTally } from "@/lib/referrals/tally"
 import { formatMoney, type Money } from "@/lib/payments/money"
 import { CopyLinkButton } from "@/components/referrals/copy-link-button"
@@ -11,7 +11,7 @@ import { CopyLinkButton } from "@/components/referrals/copy-link-button"
  * where the admin puts its remove button; /v passes nothing and gets a page
  * with no controls on it at all.
  */
-export async function ReferralLinkRow({
+export function ReferralLinkRow({
   link,
   who,
   label,
@@ -24,14 +24,9 @@ export async function ReferralLinkRow({
   tally?: ReferralTally
   actions?: React.ReactNode
 }) {
-  const qr = await referralQrSvg(link)
-
   return (
     <li className="flex flex-col gap-4 rounded-2xl border border-border/70 p-4 sm:flex-row">
-      <div
-        className="w-[112px] shrink-0 self-start rounded-xl bg-white p-2 [&>svg]:h-auto [&>svg]:w-full"
-        dangerouslySetInnerHTML={{ __html: qr }}
-      />
+      <QrBlock link={link} />
 
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-start justify-between gap-2">

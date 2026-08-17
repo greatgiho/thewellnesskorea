@@ -4,6 +4,7 @@ import { useActionState, useEffect, useRef } from "react"
 import { createReferralLink } from "@/lib/referrals/actions"
 import type { Referrer } from "@/lib/referrals/queries"
 import type { ActionResult } from "@/lib/errors"
+import { NewReferrerForm } from "@/components/referrals/new-referrer-form"
 
 const FIELD =
   "w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-primary"
@@ -14,6 +15,11 @@ const FIELD =
  * Only referrers that are still active are offered: a retired partner's
  * existing links keep working and keep being counted, but nobody should be
  * handed a new QR for one.
+ *
+ * Making a seed is folded in rather than left to its own tab. Otherwise the
+ * common case is "open the class, find the person missing, go to another
+ * screen, come back and start again" — and the seed tab exists to manage
+ * seeds, not to be a detour on the way here.
  */
 export function ReferrerPicker({
   sessionId,
@@ -34,9 +40,13 @@ export function ReferrerPicker({
 
   if (choices.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground">
-        고를 레퍼럴 대상이 없습니다. 아래에서 먼저 추가하세요.
-      </p>
+      <div className="space-y-3">
+        <p className="text-sm text-muted-foreground">
+          고를 대상이 없습니다. 새로 만들거나, 선생 탭에서 선생의 레퍼럴을 먼저
+          만드세요.
+        </p>
+        <NewSeed />
+      </div>
     )
   }
 
@@ -81,6 +91,25 @@ export function ReferrerPicker({
           {state.error}
         </p>
       ) : null}
+
+      <NewSeed />
     </form>
+  )
+}
+
+/**
+ * Collapsed by default: most of the time the person is already in the list,
+ * and an open form on every class card would bury the classes.
+ */
+function NewSeed() {
+  return (
+    <details className="group">
+      <summary className="inline-flex cursor-pointer select-none list-none text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
+        + 새 시드 만들기
+      </summary>
+      <div className="mt-4 rounded-2xl border border-border/70 p-4">
+        <NewReferrerForm />
+      </div>
+    </details>
   )
 }

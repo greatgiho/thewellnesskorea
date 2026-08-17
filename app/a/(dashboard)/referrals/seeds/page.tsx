@@ -1,12 +1,12 @@
 import type { Metadata } from "next"
 import { requireAdminSession } from "@/lib/auth/require-session"
-import { SiteQrPanel } from "@/components/referrals/site-qr-panel"
+import { SeedPanel } from "@/components/referrals/seed-panel"
 
 export const metadata: Metadata = {
-  title: "사이트 QR — 레퍼럴",
+  title: "바이럴 시드 — 레퍼럴",
 }
 
 export default async function Page() {
   await requireAdminSession()
-  return <SiteQrPanel />
+  return <SeedPanel />
 }
