@@ -2,6 +2,7 @@
 
 import type { SessionWithRelations } from "@/lib/schedule/types"
 import { PriceTag } from "@/components/booking/price-tag"
+import { tossEnabled } from "@/lib/payments/money"
 import type { SessionFieldsProps } from "@/components/admin/session-form/fields"
 
 type Priced = React.ComponentProps<typeof PriceTag>["priced"]
@@ -111,7 +112,12 @@ export function PricingFields({
             ? "결제창을 띄우지 않습니다. 해외 카드 손님이 오는 수업에 쓰세요 — 국내일반결제로는 해외 발급 카드가 승인되지 않습니다."
             : input.price_currency === "USD"
               ? "PayPal 로 결제합니다."
-              : "토스로 결제합니다. 해외 발급 카드는 승인되지 않습니다."}
+              : // Saying "토스로 결제합니다" while tossEnabled() is false would
+                // promise a window that never opens; the class falls back to
+                // on-site until the shop passes re-review.
+                tossEnabled()
+                ? "토스로 결제합니다. 해외 발급 카드는 승인되지 않습니다."
+                : "토스 심사 중이라 원화 온라인 결제가 꺼져 있습니다. 이 수업은 현장 결제로 진행됩니다."}
         </p>
       </label>
 
