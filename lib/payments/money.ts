@@ -154,8 +154,30 @@ export type OnlineProvider = "paypal" | "toss"
  * isTossConfigured() before it will talk to Toss.
  */
 export function tossEnabled(): boolean {
+  if (TOSS_SUSPENDED) return false
   return Boolean(process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY)
 }
+
+/**
+ * Toss is off until the shop passes re-review (#216).
+ *
+ * Live payment currently comes back NOT_AVAILABLE_PAYMENT_BY_MERCHANT, so the
+ * window opens and then refuses — worse for a customer than not offering it,
+ * because they have already committed to buying by the time it fails.
+ *
+ * A won-priced class therefore falls back to on-site, which is what happens
+ * with no key at all and what happened before Toss existed. Bookings still go
+ * through; the money is taken at the door.
+ *
+ * Deliberately here and not an env var: the reason is a fact about the
+ * merchant account, not about a deployment, and it should be as true on a
+ * preview as in production. **Delete this constant and the line above to turn
+ * Toss back on** — the key check is what governed it before and will again.
+ *
+ * Typed rather than inferred so the check does not narrow to a literal and
+ * make the line below read as dead.
+ */
+const TOSS_SUSPENDED: boolean = true
 
 /**
  * Which processor takes this currency, if any.
