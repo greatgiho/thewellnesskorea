@@ -19,7 +19,7 @@ const FIELD =
  * Making a seed is folded in rather than left to its own tab. Otherwise the
  * common case is "open the class, find the person missing, go to another
  * screen, come back and start again" — and the seed tab exists to manage
- * seeds, not to be a detour on the way here.
+ * hosts, not to be a detour on the way here.
  */
 export function ReferrerPicker({
   sessionId,
@@ -44,7 +44,7 @@ export function ReferrerPicker({
         <p className="text-sm text-muted-foreground">
           고를 대상이 없습니다.
         </p>
-        <NewSeed />
+        <NewHost />
       </div>
     )
   }
@@ -91,7 +91,7 @@ export function ReferrerPicker({
         </p>
       ) : null}
 
-      <NewSeed />
+      <NewHost />
     </form>
   )
 }
@@ -100,11 +100,11 @@ export function ReferrerPicker({
  * Collapsed by default: most of the time the person is already in the list,
  * and an open form on every class card would bury the classes.
  */
-function NewSeed() {
+function NewHost() {
   return (
     <details className="group">
       <summary className="inline-flex cursor-pointer select-none list-none text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
-        + 새 시드 만들기
+        + 새 호스트 만들기
       </summary>
       <div className="mt-4 rounded-2xl border border-border/70 p-4">
         <NewReferrerForm />
