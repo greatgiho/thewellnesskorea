@@ -40,6 +40,11 @@ export function shouldBypassSiteAccess(
   // site-unlock cookie, so the whole-site gate must not intercept them.
   if (pathname.startsWith("/api/webhooks/")) return true
   if (pathname.startsWith("/api/cron/")) return true
+  // The QR on the counter. Someone standing in the shop has no password and no
+  // reason to have one — gating this would make the printed QR land on a login
+  // screen, which is the same as not printing it. Nothing here reads or writes
+  // our data: it prices one item from a fixed menu and opens PayPal.
+  if (pathname === "/drinks") return true
   return false
 }
 
