@@ -42,6 +42,7 @@ export async function createOrder(input: {
   amount: string // decimal string, e.g. "1.00"
   currency?: string // PayPal-supported (NOT KRW); default USD
   reference?: string // custom_id (e.g. booking id)
+  description?: string // shown to the buyer on PayPal's own screen
 }): Promise<CreatedOrder> {
   const token = await accessToken()
   const res = await fetch(`${BASE}/v2/checkout/orders`, {
@@ -56,6 +57,11 @@ export async function createOrder(input: {
         {
           amount: { currency_code: input.currency ?? "USD", value: input.amount },
           ...(input.reference ? { custom_id: input.reference } : {}),
+          // Optional, and omitted by the booking flow, which names the class on
+          // our own page before PayPal ever opens. A counter sale has no such
+          // page — the QR goes straight to a button — so what is being bought
+          // has to survive as far as PayPal's screen.
+          ...(input.description ? { description: input.description } : {}),
         },
       ],
     }),
