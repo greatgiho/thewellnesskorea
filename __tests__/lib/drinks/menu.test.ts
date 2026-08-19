@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest"
 import {
   DEFAULT_DRINK_ID,
   DRINKS,
-  drinkReference,
   findDrink,
   receiptCode,
 } from "@/lib/drinks/menu"
@@ -50,12 +49,6 @@ describe("the menu", () => {
   it("is nothing for an item that is not for sale", () => {
     expect(findDrink("no-such-drink")).toBe(null)
     expect(findDrink("")).toBe(null)
-  })
-})
-
-describe("drinkReference", () => {
-  it("names the item, since PayPal is the only record of the sale", () => {
-    expect(drinkReference(DRINKS[0])).toBe(`drink:${DRINKS[0].id}`)
   })
 })
 

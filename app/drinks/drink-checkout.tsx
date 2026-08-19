@@ -2,22 +2,26 @@
 
 import { useState } from "react"
 import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js"
-import { captureDrinkOrder, createDrinkOrder, type DrinkReceipt } from "./actions"
+import {
+  captureDrinkPayment,
+  createDrinkPaypalOrder,
+  type DrinkReceipt,
+} from "./actions"
 import { formatKstDateTime } from "@/lib/time/kst"
 
 /**
- * Pay for a drink, then show what was paid.
+ * Pay for one rung-up drink, then show what was paid.
  *
- * The receipt lives in state and nowhere else. Nothing is stored, so a refresh
- * loses it — which is fine for the only way this is used: pay at the counter,
- * turn the phone around. Anything longer-lived would need a row to point at.
+ * The receipt is state rather than a redirect. Reloading lands on the page for
+ * an order that is now paid, which renders the same facts from the row — so
+ * nothing is lost, this just avoids a round trip in front of someone waiting.
  */
 export function DrinkCheckout({
-  drinkId,
+  orderId,
   clientId,
   currency,
 }: {
-  drinkId: string
+  orderId: string
   clientId: string
   currency: string
 }) {
@@ -25,7 +29,7 @@ export function DrinkCheckout({
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
-  if (receipt) return <Receipt receipt={receipt} />
+  if (receipt) return <PaidReceipt receipt={receipt} />
 
   return (
     <div className="space-y-3">
@@ -40,17 +44,17 @@ export function DrinkCheckout({
           disabled={busy}
           createOrder={async () => {
             setError(null)
-            return await createDrinkOrder(drinkId)
+            return await createDrinkPaypalOrder(orderId)
           }}
           onApprove={async (data) => {
             setBusy(true)
             try {
-              const result = await captureDrinkOrder(drinkId, data.orderID)
+              const result = await captureDrinkPayment(orderId, data.orderID)
               if (result.ok) {
                 setReceipt(result.receipt)
               } else if (result.pending) {
                 setError(
-                  "PayPal is reviewing this payment. Please ask our staff before ordering.",
+                  "PayPal is reviewing this payment. Please show this screen to our staff.",
                 )
               } else {
                 setError(`Payment did not complete (${result.status}).`)
@@ -75,28 +79,60 @@ export function DrinkCheckout({
   )
 }
 
+function PaidReceipt({ receipt }: { receipt: DrinkReceipt }) {
+  return (
+    <DrinkReceiptCard
+      nickname={receipt.nickname}
+      name={receipt.name}
+      amount={receipt.amount}
+      code={receipt.code}
+      paidAt={receipt.paidAt}
+    />
+  )
+}
+
 /**
  * What staff look at.
  *
- * The time is on it because this is the only thing separating a sale from a
- * screenshot of one — a receipt from an hour ago reads as an hour old.
+ * The name is the largest thing on it, because that is what gets called out
+ * and what a refund is found by. The time is there because it is the only
+ * thing separating a sale from a screenshot of one.
+ *
+ * Exported so the page can render the same card for an order that was already
+ * paid before this visit — one receipt, not two that drift apart.
  */
-function Receipt({ receipt }: { receipt: DrinkReceipt }) {
+export function DrinkReceiptCard({
+  nickname,
+  name,
+  amount,
+  code,
+  paidAt,
+}: {
+  nickname: string
+  name: string
+  amount: string
+  code: string
+  paidAt: string | null
+}) {
   return (
     <div className="rounded-3xl border border-border bg-card p-6 text-center sm:p-8">
       <p className="font-mono text-xs uppercase tracking-[0.25em] text-muted-foreground">
         Paid
       </p>
       <p className="mt-3 font-serif text-4xl font-light text-foreground">
-        {receipt.amount}
-      </p>
-      <p className="mt-1 text-sm text-muted-foreground">{receipt.name}</p>
-      <p className="mt-6 font-mono text-2xl tracking-[0.2em] text-foreground">
-        {receipt.code}
+        {nickname}
       </p>
       <p className="mt-2 text-sm text-muted-foreground">
-        {formatKstDateTime(receipt.paidAt, { lang: "en" })} KST
+        {name} · {amount}
       </p>
+      <p className="mt-6 font-mono text-2xl tracking-[0.2em] text-foreground">
+        {code}
+      </p>
+      {paidAt ? (
+        <p className="mt-2 text-sm text-muted-foreground">
+          {formatKstDateTime(paidAt, { lang: "en" })} KST
+        </p>
+      ) : null}
     </div>
   )
 }

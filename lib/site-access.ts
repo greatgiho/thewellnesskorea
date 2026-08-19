@@ -40,11 +40,12 @@ export function shouldBypassSiteAccess(
   // site-unlock cookie, so the whole-site gate must not intercept them.
   if (pathname.startsWith("/api/webhooks/")) return true
   if (pathname.startsWith("/api/cron/")) return true
-  // The QR on the counter. Someone standing in the shop has no password and no
-  // reason to have one — gating this would make the printed QR land on a login
-  // screen, which is the same as not printing it. Nothing here reads or writes
-  // our data: it prices one item from a fixed menu and opens PayPal.
-  if (pathname === "/drinks") return true
+  // The QR on the counter screen. Someone standing in the shop has no password
+  // and no reason to have one — gating this would make the QR land on a login
+  // screen, which is the same as not showing it. A prefix rather than one path
+  // because the id is in the URL, and the id is the credential: /drinks alone
+  // is not a page, so there is nothing here to reach without one.
+  if (pathname.startsWith("/drinks/")) return true
   return false
 }
 

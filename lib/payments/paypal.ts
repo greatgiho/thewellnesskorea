@@ -129,6 +129,38 @@ export async function getCaptureStatus(captureId: string): Promise<string | unde
   return data?.status as string | undefined
 }
 
+export type RefundResult = { refundId: string; status: string }
+
+/**
+ * Give a capture back in full.
+ *
+ * No amount in the body, which is how PayPal is told "all of it". Partial
+ * refunds are a different conversation — a drink is one price and half of one
+ * is not a thing anybody asks for — and leaving the amount out means there is
+ * no second number here to disagree with what was charged.
+ *
+ * PayPal is the authority on whether this is allowed: a capture already
+ * refunded, or too old to refund, comes back as an error rather than as a
+ * quiet success, and the caller must not mark the row refunded in that case.
+ */
+export async function refundCapture(captureId: string): Promise<RefundResult> {
+  const token = await accessToken()
+  const res = await fetch(`${BASE}/v2/payments/captures/${captureId}/refund`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: "{}",
+    cache: "no-store",
+  })
+  const data = await res.json()
+  if (!res.ok) {
+    throw new Error(`PayPal refund failed: ${res.status} ${JSON.stringify(data)}`)
+  }
+  return { refundId: data.id, status: data.status }
+}
+
 export type WebhookHeaders = {
   transmissionId: string
   transmissionTime: string

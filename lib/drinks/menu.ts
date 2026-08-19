@@ -1,13 +1,12 @@
 import type { Money } from "@/lib/payments/money"
-import { siteOrigin } from "@/lib/site-origin"
 
 /**
  * What is on sale at the counter.
  *
  * A drink is not a class: nothing is reserved, no seat is held, nobody is
- * emailed. Someone scans the QR on the counter, pays, and shows the screen.
- * So this deliberately does not go near sessions, bookings or the payments
- * table — the whole transaction is one PayPal order and a screen.
+ * emailed. It is rung up under a name, paid for from a QR, and handed over.
+ * So this deliberately does not go near sessions or the payments table — a
+ * counter sale is drink_orders (065) and one PayPal order.
  *
  * The menu lives in code rather than the database because it is one price that
  * changes about as often as a deploy does, and a table would drag an admin
@@ -16,17 +15,17 @@ import { siteOrigin } from "@/lib/site-origin"
  * editing this file is the wrong way to change a price, that is the signal to
  * move it, and the shape here is already the shape a row would have.
  *
+ * Nothing reads this after a sale is rung up. drink_orders copies the name and
+ * the price onto the row, so changing a price here cannot rewrite what someone
+ * was charged last week.
+ *
  * Priced in USD because PayPal cannot charge won. That is not a preference —
  * Toss is suspended until the merchant re-review passes (see TOSS_SUSPENDED in
  * lib/payments/money.ts), and until then dollars are the only online option.
  */
 
 export type Drink = {
-  /**
-   * Goes into the PayPal order as custom_id, so the dashboard says which item
-   * was sold. Nothing here writes to our database, which makes PayPal's own
-   * record the only ledger there is — it should be able to name the thing.
-   */
+  /** Recorded on the order as item_id, so a sale can name what it was for. */
   id: string
   name: string
   price: Money
@@ -42,33 +41,18 @@ export const DRINKS: Drink[] = [
   { id: "drink", name: "Drink", price: { currency: "USD", amount: 5 } },
 ]
 
-/** What /drinks sells when the URL names nothing. One drink, one QR. */
+/** What the counter rings up when nothing else is chosen. */
 export const DEFAULT_DRINK_ID = "drink"
 
 /**
- * The item being bought, or null.
+ * The item being sold, or null.
  *
- * Every price the customer is charged is read through here on the server. The
- * browser only ever sends an id, so there is no amount for it to change.
+ * Every price is read through here on the server, at the moment a sale is rung
+ * up. The browser only ever sends an id, so there is no amount for anyone to
+ * change on the way past.
  */
 export function findDrink(id: string): Drink | null {
   return DRINKS.find((drink) => drink.id === id) ?? null
-}
-
-/**
- * The address the counter QR points at.
- *
- * siteOrigin rather than deploymentOrigin, for the same reason the referral
- * cards use it: this gets printed and stuck to a counter, and a preview URL
- * would work for a week and then stop.
- */
-export function drinksLink(): string {
-  return new URL("/drinks", siteOrigin()).toString()
-}
-
-/** The PayPal custom_id for a drink order: enough to identify it in a refund. */
-export function drinkReference(drink: Drink): string {
-  return `drink:${drink.id}`
 }
 
 /**

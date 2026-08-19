@@ -1,46 +1,47 @@
 import type { Metadata } from "next"
 import { requireAdminSession } from "@/lib/auth/require-session"
-import { QrBlock } from "@/components/referrals/qr-block"
-import { CopyLinkButton } from "@/components/referrals/copy-link-button"
-import { qrFilename } from "@/lib/referrals/links"
-import { DEFAULT_DRINK_ID, drinksLink, findDrink } from "@/lib/drinks/menu"
+import { DrinkRingUpForm } from "@/components/admin/drink-ring-up-form"
+import { DrinkOrderPanel } from "@/components/admin/drink-order-panel"
+import { DrinkOrdersList } from "@/components/admin/drink-orders-list"
+import { DEFAULT_DRINK_ID, findDrink } from "@/lib/drinks/menu"
+import { getDrinkOrderAs, listDrinkOrders } from "@/lib/drinks/orders"
 import { formatMoney } from "@/lib/payments/money"
 
 export const metadata: Metadata = {
-  title: "음료 QR",
+  title: "음료 — Admin",
 }
 
-/**
- * The QR to print and put on the counter.
- *
- * Not under 레퍼럴 even though it borrows that screen's QR block: nothing here
- * carries a referral code and nobody is owed anything for it. It is a price
- * list with a way to pay, which makes it 결제.
- */
-export default async function Page() {
-  await requireAdminSession()
+// The list changes when a customer pays, which happens on their phone rather
+// than here. Cached, the counter would show a paid drink as still waiting.
+export const dynamic = "force-dynamic"
+
+type Props = { searchParams: Promise<{ order?: string; q?: string }> }
+
+export default async function AdminDrinksPage({ searchParams }: Props) {
+  const { supabase } = await requireAdminSession()
+  const { order: orderId, q } = await searchParams
 
   const drink = findDrink(DEFAULT_DRINK_ID)
-  const link = drinksLink()
+  const [current, orders] = await Promise.all([
+    orderId ? getDrinkOrderAs(supabase, orderId) : null,
+    listDrinkOrders(supabase, { search: q }),
+  ])
 
   return (
-    <section className="rounded-3xl border border-border bg-card p-6 sm:p-8">
-      <h2 className="font-serif text-xl text-foreground">음료 QR</h2>
-      {drink ? (
-        <p className="mt-2 text-sm text-muted-foreground">
-          {drink.name} · {formatMoney(drink.price)}
-        </p>
-      ) : null}
-
-      <div className="mt-6 flex flex-col gap-6 sm:flex-row sm:items-start">
-        <QrBlock link={link} filename={qrFilename("음료")} size="lg" />
-        <div className="min-w-0">
-          <p className="break-all font-mono text-sm text-foreground">{link}</p>
-          <div className="mt-3">
-            <CopyLinkButton link={link} />
-          </div>
-        </div>
+    <div className="space-y-6">
+      <div>
+        <h1 className="font-serif text-3xl text-foreground">음료</h1>
       </div>
-    </section>
+
+      {drink ? (
+        <DrinkRingUpForm price={formatMoney(drink.price)} />
+      ) : (
+        <p className="text-sm text-destructive">판매 중인 품목이 없습니다.</p>
+      )}
+
+      {current ? <DrinkOrderPanel order={current} /> : null}
+
+      <DrinkOrdersList orders={orders} initialSearch={q ?? ""} />
+    </div>
   )
 }
