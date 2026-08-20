@@ -7,6 +7,10 @@ import { cancelBookingAsAdmin, deleteWaitlistEntryAsAdmin } from "@/app/a/bookin
 import { formatBookingDateTime } from "@/lib/bookings/format"
 import { formatMoney, money } from "@/lib/payments/money"
 import { OnsitePaymentButton } from "@/components/admin/onsite-payment-button"
+import {
+  PAYMENT_STATUS_LABEL,
+  RefundPaymentButton,
+} from "@/components/admin/refund-payment-button"
 import { formatOrder } from "@/lib/bookings/lines"
 import type { AdminBookingItem } from "@/lib/bookings/admin-queries"
 import type { WaitlistEntry } from "@/lib/waitlist/admin-queries"
@@ -161,9 +165,26 @@ export function SessionBookingDetail({
                           />
                         </span>
                       ) : (
-                        <span className="text-muted-foreground">
-                          {formatMoney(money(b.payment.currency, b.payment.amount))} ·{" "}
-                          {b.payment.status}
+                        <span className="inline-flex flex-wrap items-center gap-2">
+                          <span className="text-muted-foreground">
+                            {formatMoney(money(b.payment.currency, b.payment.amount))} ·{" "}
+                            {PAYMENT_STATUS_LABEL[b.payment.status] ?? b.payment.status}
+                          </span>
+                          {/* Only what PayPal can actually give back: settled,
+                              and settled through PayPal. Refunding is not
+                              cancelling — the seat is let go separately, which
+                              is the same separation the customer's own cancel
+                              link has always kept from the other side. */}
+                          {b.payment.status === "paid" &&
+                          b.payment.provider === "paypal" ? (
+                            <RefundPaymentButton
+                              bookingId={b.id}
+                              guestName={b.guestName}
+                              amount={formatMoney(
+                                money(b.payment.currency, b.payment.amount),
+                              )}
+                            />
+                          ) : null}
                         </span>
                       )}
                     </td>
