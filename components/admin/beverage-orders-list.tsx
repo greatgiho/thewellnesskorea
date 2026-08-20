@@ -1,7 +1,6 @@
 "use client"
 
 import { useActionState, useState } from "react"
-import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Search } from "lucide-react"
 import { FIELD } from "@/lib/ui/field"
@@ -25,13 +24,25 @@ import type { BeverageOrder } from "@/lib/beverages/orders"
  * Searched by nickname because that is the only thing a customer asking for a
  * refund can tell us. They will not have an order number and they will not
  * know the time — they know the name they gave, and roughly when.
+ *
+ * Picking a row asks the counter above to show it, rather than linking to an
+ * address that names it. The address version is what made a ring-up stop
+ * changing the card (#239) — two things saying what the card was about, and a
+ * rule deciding between them. Only the search is in the address now, and the
+ * search does not say what the card shows.
  */
 export function BeverageOrdersList({
   orders,
   initialSearch,
+  selectedId,
+  busy,
+  onSelect,
 }: {
   orders: BeverageOrder[]
   initialSearch: string
+  selectedId: string | null
+  busy: boolean
+  onSelect: (id: string) => void
 }) {
   const router = useRouter()
   const [search, setSearch] = useState(initialSearch)
@@ -75,12 +86,15 @@ export function BeverageOrdersList({
             >
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <Link
-                    href={`/a/beverages?order=${order.id}`}
-                    className="truncate font-medium text-foreground hover:underline"
+                  <button
+                    type="button"
+                    onClick={() => onSelect(order.id)}
+                    disabled={busy}
+                    aria-current={order.id === selectedId ? "true" : undefined}
+                    className="truncate font-medium text-foreground hover:underline disabled:opacity-60 aria-[current]:underline"
                   >
                     {labels[order.id]}
-                  </Link>
+                  </button>
                   <BeverageOrderStatusBadge status={order.status} />
                 </div>
                 <p className="mt-0.5 text-xs text-muted-foreground">

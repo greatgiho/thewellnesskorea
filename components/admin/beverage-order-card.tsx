@@ -4,7 +4,7 @@ import { QrFigure } from "@/components/referrals/qr-figure"
 import { BeverageOrderStatusBadge } from "@/components/admin/beverage-order-status"
 import { qrFilename } from "@/lib/referrals/links"
 import { formatKstDateTime } from "@/lib/time/kst"
-import type { BeverageOrderStatus } from "@/lib/beverages/orders"
+import type { CounterOrder } from "@/lib/beverages/counter"
 
 /**
  * One rung-up beverage, as the counter sees it.
@@ -12,23 +12,10 @@ import type { BeverageOrderStatus } from "@/lib/beverages/orders"
  * The name is the largest thing here because it is what the barista is about
  * to call out, and what tells two QRs apart when the queue is three deep.
  *
- * The QR arrives as an SVG string rather than being drawn here, so the same
- * card serves both ways in: the page renders it for a reloaded ?order=, and
- * the ring-up action returns it with the order it just created. One card, so
- * the two cannot drift.
+ * The QR arrives as an SVG string rather than being drawn here. Both ways of
+ * putting an order on this card — ringing one up, picking one out of the list
+ * — go through toCounterOrder, so there is one shape and one place it is made.
  */
-
-export type CounterOrder = {
-  id: string
-  nickname: string
-  itemName: string
-  price: string
-  status: BeverageOrderStatus
-  createdAt: string
-  url: string
-  /** Server-rendered. Null once there is nothing left to scan. */
-  qrSvg: string | null
-}
 
 export function BeverageOrderCard({ order }: { order: CounterOrder }) {
   return (
