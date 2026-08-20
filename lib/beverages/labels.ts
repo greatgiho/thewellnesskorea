@@ -5,8 +5,8 @@ import { formatClockInKst } from "@/lib/time/kst"
  *
  * The nickname, normally — it is what the customer gave and what gets called
  * out. But nothing stops two people picking the same one, and two rows both
- * reading 태연 is how the wrong drink gets handed over and the wrong sale gets
- * refunded.
+ * reading 태연 is how the wrong beverage gets handed over and the wrong sale
+ * gets refunded.
  *
  * So the time is added only where it is needed. Prefixing everything would put
  * a clock in front of every row to solve a problem most of them do not have,
@@ -33,7 +33,7 @@ function key(nickname: string): string {
  * other name it clashes with. Someone called 태연 last Tuesday does not make
  * today's 태연 need a clock.
  */
-export function drinkOrderLabels(
+export function beverageOrderLabels(
   orders: LabelledOrder[],
 ): Record<string, string> {
   const counts = new Map<string, number>()

@@ -16,7 +16,7 @@ export const ADMIN_NAV: PortalNavGroup[] = [
     title: "결제 · 정산",
     items: [
       { label: "결제", href: "/a/bookings" },
-      { label: "음료", href: "/a/drinks" },
+      { label: "음료", href: "/a/beverages" },
       { label: "쿠폰", href: "/a/coupons" },
       // Under 결제·정산 rather than 운영: what it is for is working out who
       // gets paid, not running the day.

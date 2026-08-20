@@ -3,20 +3,20 @@
 import { useState } from "react"
 import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js"
 import {
-  captureDrinkPayment,
-  createDrinkPaypalOrder,
-  type DrinkReceipt,
+  captureBeveragePayment,
+  createBeveragePaypalOrder,
+  type BeverageReceipt,
 } from "./actions"
 import { formatKstDateTime } from "@/lib/time/kst"
 
 /**
- * Pay for one rung-up drink, then show what was paid.
+ * Pay for one rung-up beverage, then show what was paid.
  *
  * The receipt is state rather than a redirect. Reloading lands on the page for
  * an order that is now paid, which renders the same facts from the row — so
  * nothing is lost, this just avoids a round trip in front of someone waiting.
  */
-export function DrinkCheckout({
+export function BeverageCheckout({
   orderId,
   clientId,
   currency,
@@ -25,7 +25,7 @@ export function DrinkCheckout({
   clientId: string
   currency: string
 }) {
-  const [receipt, setReceipt] = useState<DrinkReceipt | null>(null)
+  const [receipt, setReceipt] = useState<BeverageReceipt | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
@@ -44,12 +44,12 @@ export function DrinkCheckout({
           disabled={busy}
           createOrder={async () => {
             setError(null)
-            return await createDrinkPaypalOrder(orderId)
+            return await createBeveragePaypalOrder(orderId)
           }}
           onApprove={async (data) => {
             setBusy(true)
             try {
-              const result = await captureDrinkPayment(orderId, data.orderID)
+              const result = await captureBeveragePayment(orderId, data.orderID)
               if (result.ok) {
                 setReceipt(result.receipt)
               } else if (result.pending) {
@@ -79,9 +79,9 @@ export function DrinkCheckout({
   )
 }
 
-function PaidReceipt({ receipt }: { receipt: DrinkReceipt }) {
+function PaidReceipt({ receipt }: { receipt: BeverageReceipt }) {
   return (
-    <DrinkReceiptCard
+    <BeverageReceiptCard
       nickname={receipt.nickname}
       name={receipt.name}
       amount={receipt.amount}
@@ -101,7 +101,7 @@ function PaidReceipt({ receipt }: { receipt: DrinkReceipt }) {
  * Exported so the page can render the same card for an order that was already
  * paid before this visit — one receipt, not two that drift apart.
  */
-export function DrinkReceiptCard({
+export function BeverageReceiptCard({
   nickname,
   name,
   amount,

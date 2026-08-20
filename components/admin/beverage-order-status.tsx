@@ -1,13 +1,13 @@
-import type { DrinkOrderStatus } from "@/lib/drinks/orders"
+import type { BeverageOrderStatus } from "@/lib/beverages/orders"
 
 /**
  * What state a counter sale is in, in one word.
  *
- * Colour carries the meaning at a glance across a counter: green is the drink
- * to start making, amber is the one still waiting on a phone, grey is done
- * with. The word is there because colour alone is not a label.
+ * Colour carries the meaning at a glance across a counter: green is the one to
+ * start making, amber is the one still waiting on a phone, grey is done with.
+ * The word is there because colour alone is not a label.
  */
-const STYLES: Record<DrinkOrderStatus, { label: string; className: string }> = {
+const STYLES: Record<BeverageOrderStatus, { label: string; className: string }> = {
   pending: {
     label: "대기",
     className: "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400",
@@ -23,7 +23,7 @@ const STYLES: Record<DrinkOrderStatus, { label: string; className: string }> = {
   },
 }
 
-export function DrinkOrderStatusBadge({ status }: { status: DrinkOrderStatus }) {
+export function BeverageOrderStatusBadge({ status }: { status: BeverageOrderStatus }) {
   const { label, className } = STYLES[status]
   return (
     <span

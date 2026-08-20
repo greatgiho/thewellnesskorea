@@ -135,9 +135,9 @@ export type RefundResult = { refundId: string; status: string }
  * Give a capture back in full.
  *
  * No amount in the body, which is how PayPal is told "all of it". Partial
- * refunds are a different conversation — a drink is one price and half of one
- * is not a thing anybody asks for — and leaving the amount out means there is
- * no second number here to disagree with what was charged.
+ * refunds are a different conversation — a beverage is one price and half of
+ * one is not a thing anybody asks for — and leaving the amount out means there
+ * is no second number here to disagree with what was charged.
  *
  * PayPal is the authority on whether this is allowed: a capture already
  * refunded, or too old to refund, comes back as an error rather than as a

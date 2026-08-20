@@ -5,14 +5,14 @@ import { useFormStatus } from "react-dom"
 import { useRouter } from "next/navigation"
 import { FIELD } from "@/lib/ui/field"
 import {
-  DrinkOrderCard,
+  BeverageOrderCard,
   type CounterOrder,
-} from "@/components/admin/drink-order-card"
+} from "@/components/admin/beverage-order-card"
 import {
-  drinkOrderStatus,
-  ringUpDrink,
+  beverageOrderStatus,
+  ringUpBeverage,
   type RingUpState,
-} from "@/app/a/(dashboard)/drinks/actions"
+} from "@/app/a/(dashboard)/beverages/actions"
 
 /**
  * The counter: ring one up, watch for it to be paid.
@@ -25,7 +25,7 @@ import {
  * Waiting is one row read rather than a page refresh, and the page is only
  * refreshed when the answer actually changes.
  */
-export function DrinkCounter({
+export function BeverageCounter({
   price,
   initialOrder,
 }: {
@@ -33,7 +33,7 @@ export function DrinkCounter({
   initialOrder: CounterOrder | null
 }) {
   const router = useRouter()
-  const [state, action] = useActionState<RingUpState, FormData>(ringUpDrink, {})
+  const [state, action] = useActionState<RingUpState, FormData>(ringUpBeverage, {})
   const [order, setOrder] = useState<CounterOrder | null>(initialOrder)
   const input = useRef<HTMLInputElement>(null)
 
@@ -68,7 +68,7 @@ export function DrinkCounter({
     // here is the render this screen was rebuilt to avoid. Nothing reads the
     // address to decide what to show any more, so it cannot fight anything.
     seenFromAddress.current = state.order.id
-    window.history.replaceState(null, "", `/a/drinks?order=${state.order.id}`)
+    window.history.replaceState(null, "", `/a/beverages?order=${state.order.id}`)
   }, [state.order])
 
   // Poll while there is something to wait for, and stop the moment there is
@@ -78,7 +78,7 @@ export function DrinkCounter({
     if (!order || order.status !== "pending") return
     const id = order.id
     const timer = setInterval(async () => {
-      const status = await drinkOrderStatus(id)
+      const status = await beverageOrderStatus(id)
       if (!status || status === "pending") return
       setOrder((prev) => (prev && prev.id === id ? { ...prev, status } : prev))
       router.refresh()
@@ -118,7 +118,7 @@ export function DrinkCounter({
         ) : null}
       </form>
 
-      {order ? <DrinkOrderCard order={order} /> : null}
+      {order ? <BeverageOrderCard order={order} /> : null}
     </div>
   )
 }

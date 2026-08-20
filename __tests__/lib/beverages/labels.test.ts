@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest"
-import { drinkOrderLabels } from "@/lib/drinks/labels"
+import { beverageOrderLabels } from "@/lib/beverages/labels"
 
 /**
  * Which counter rows get a clock in front of them.
  *
- * The cost of getting this wrong is a barista handing the wrong drink over, or
- * refunding the wrong sale — both of which happen at the moment two rows read
+ * The cost of getting this wrong is a barista handing the wrong beverage over,
+ * or refunding the wrong sale — both happen at the moment two rows read
  * the same. The other failure is quieter: putting a clock on every row turns a
  * queue into a log.
  */
@@ -20,9 +20,9 @@ const order = (id: string, nickname: string, clock: string) => ({
   createdAt: at(clock),
 })
 
-describe("drinkOrderLabels", () => {
+describe("beverageOrderLabels", () => {
   it("is just the nickname when nothing clashes", () => {
-    const labels = drinkOrderLabels([
+    const labels = beverageOrderLabels([
       order("1", "태연", "09:06:12"),
       order("2", "윤아", "09:07:44"),
     ])
@@ -33,7 +33,7 @@ describe("drinkOrderLabels", () => {
   it("puts the time on both when two share a name", () => {
     // Both, not just the second: the first is equally ambiguous once the
     // second exists, and labelling only one reads as a different kind of row.
-    const labels = drinkOrderLabels([
+    const labels = beverageOrderLabels([
       order("1", "태연", "09:06:12"),
       order("2", "태연", "09:31:05"),
     ])
@@ -42,7 +42,7 @@ describe("drinkOrderLabels", () => {
   })
 
   it("leaves the others alone", () => {
-    const labels = drinkOrderLabels([
+    const labels = beverageOrderLabels([
       order("1", "태연", "09:06:12"),
       order("2", "윤아", "09:10:00"),
       order("3", "태연", "09:31:05"),
@@ -55,7 +55,7 @@ describe("drinkOrderLabels", () => {
   it("keeps seconds, so a minute apart is still two people", () => {
     // To the minute these would read identically, which is the whole failure
     // this is meant to prevent.
-    const labels = drinkOrderLabels([
+    const labels = beverageOrderLabels([
       order("1", "태연", "09:06:12"),
       order("2", "태연", "09:06:48"),
     ])
@@ -67,7 +67,7 @@ describe("drinkOrderLabels", () => {
   it("counts a name as clashing whatever case or padding it came in", () => {
     // Someone typed it twice by hand. "Mia" and "mia " is one person's name
     // written two ways, and a collision missed is worse than one flagged.
-    const labels = drinkOrderLabels([
+    const labels = beverageOrderLabels([
       order("1", "Mia", "09:06:12"),
       order("2", "mia ", "09:31:05"),
     ])
@@ -77,8 +77,8 @@ describe("drinkOrderLabels", () => {
 
   it("reads the clock in KST, not the machine's zone", () => {
     // The row is stored in UTC. 09:06 KST is 00:06 the same day in UTC, and a
-    // counter in Seoul must not be told a drink was rung up at midnight.
-    const labels = drinkOrderLabels([
+    // counter in Seoul must not be told a beverage was rung up at midnight.
+    const labels = beverageOrderLabels([
       { id: "1", nickname: "태연", createdAt: "2026-08-20T00:06:12+00:00" },
       { id: "2", nickname: "태연", createdAt: "2026-08-20T00:31:05+00:00" },
     ])
@@ -87,6 +87,6 @@ describe("drinkOrderLabels", () => {
   })
 
   it("is empty for no orders", () => {
-    expect(drinkOrderLabels([])).toEqual({})
+    expect(beverageOrderLabels([])).toEqual({})
   })
 })
