@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest"
+import * as settings from "@/lib/site/settings"
 import {
   BUSINESS_INFO_COLUMNS,
   EDITABLE_COLUMNS,
-  SITE_INFO_COLUMNS,
   pickEditableColumns,
 } from "@/lib/site/settings"
 
@@ -54,11 +54,20 @@ describe("pickEditableColumns", () => {
   })
 
   it("lists every mapped column exactly once", () => {
-    const mapped = [
-      ...Object.values(SITE_INFO_COLUMNS),
-      ...Object.values(BUSINESS_INFO_COLUMNS),
-    ]
-    expect(EDITABLE_COLUMNS).toEqual(mapped)
+    // Every column map the module exports, found rather than listed. The
+    // earlier version named the maps it knew about, which meant adding a third
+    // and forgetting EDITABLE_COLUMNS also meant forgetting this line — so the
+    // test that exists to catch that could not catch it. It went unnoticed
+    // until a bank account was added and CI broke on the assertion instead of
+    // on the thing it guards.
+    // _INFO_COLUMNS, not _COLUMNS: EDITABLE_COLUMNS ends the same way and is
+    // the thing under test, so a looser filter counts every column twice.
+    const mapped = Object.entries(settings)
+      .filter(([name]) => name.endsWith("_INFO_COLUMNS"))
+      .flatMap(([, map]) => Object.values(map as Record<string, string>))
+
+    expect(mapped.length).toBeGreaterThan(0)
+    expect([...EDITABLE_COLUMNS].sort()).toEqual([...mapped].sort())
     expect(new Set(EDITABLE_COLUMNS).size).toBe(EDITABLE_COLUMNS.length)
   })
 })
