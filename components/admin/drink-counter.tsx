@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useRef, useState } from "react"
 import { useFormStatus } from "react-dom"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { FIELD } from "@/lib/ui/field"
 import {
   DrinkOrderCard,
@@ -34,25 +34,41 @@ export function DrinkCounter({
 }) {
   const router = useRouter()
   const [state, action] = useActionState<RingUpState, FormData>(ringUpDrink, {})
-  const [rungUp, setRungUp] = useState<CounterOrder | null>(null)
+  const [order, setOrder] = useState<CounterOrder | null>(initialOrder)
   const input = useRef<HTMLInputElement>(null)
 
-  // Which order the card is about.
+  // Which order the card is about: whichever source spoke last.
   //
-  // Two things can name one: the last ring-up, held here so it appears without
-  // a navigation, and ?order= in the address, which is how a reload, a second
-  // screen or a click in the list below arrives at one. The address wins when
-  // it names something else — otherwise clicking a name in the list would
-  // leave the card showing the drink before it.
-  const wanted = useSearchParams().get("order")
-  const order =
-    rungUp && (!wanted || wanted === rungUp.id) ? rungUp : initialOrder
+  // Two can name one — a ring-up here, and ?order= in the address, which is
+  // how a reload, a second screen or a click in the list arrives at one.
+  //
+  // Deciding by reading the address was wrong, and wrong in a way that got
+  // worse the longer the screen was open: ?order= does not clear itself, so
+  // once a click in the list had put one there, every ring-up after it was
+  // ignored and the counter showed the same QR forever. Which source is
+  // *newer* is the actual question, and the address cannot answer it.
+  const seenFromAddress = useRef(initialOrder?.id ?? null)
 
-  // Nothing else needs telling. The list below is sales, and ringing one up is
-  // not a sale yet — it joins the list when it is paid for, which is what the
-  // poll below is waiting to find out.
   useEffect(() => {
-    if (state.order) setRungUp(state.order)
+    // Only when the address moved to a different order. A re-render for any
+    // other reason — the poll's refresh, the list updating — hands back the
+    // same one, and adopting it would undo a ring-up that happened since.
+    const id = initialOrder?.id ?? null
+    if (id === seenFromAddress.current) return
+    seenFromAddress.current = id
+    setOrder(initialOrder)
+  }, [initialOrder])
+
+  useEffect(() => {
+    if (!state.order) return
+    setOrder(state.order)
+    // Put the new one in the address as well, so a reload or a second screen
+    // finds the QR that is on this one. replaceState rather than a navigation:
+    // this is the same page showing the same thing, and a router round trip
+    // here is the render this screen was rebuilt to avoid. Nothing reads the
+    // address to decide what to show any more, so it cannot fight anything.
+    seenFromAddress.current = state.order.id
+    window.history.replaceState(null, "", `/a/drinks?order=${state.order.id}`)
   }, [state.order])
 
   // Poll while there is something to wait for, and stop the moment there is
@@ -64,7 +80,7 @@ export function DrinkCounter({
     const timer = setInterval(async () => {
       const status = await drinkOrderStatus(id)
       if (!status || status === "pending") return
-      setRungUp((prev) => (prev && prev.id === id ? { ...prev, status } : prev))
+      setOrder((prev) => (prev && prev.id === id ? { ...prev, status } : prev))
       router.refresh()
     }, 3000)
     return () => clearInterval(timer)
