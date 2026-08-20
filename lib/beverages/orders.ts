@@ -4,7 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js"
 import { createServiceClient } from "@/lib/supabase/service"
 import { siteOrigin } from "@/lib/site-origin"
 import { money, type Money } from "@/lib/payments/money"
-import type { Drink } from "@/lib/drinks/menu"
+import type { Beverage } from "@/lib/beverages/menu"
 
 /**
  * Counter sales: writing them down, finding them again, and settling them.
@@ -14,20 +14,20 @@ import type { Drink } from "@/lib/drinks/menu"
  *   - the admin screens read and write through the caller's own session, so
  *     RLS is what decides they may. Nothing here elevates that.
  *   - the customer's page and the capture that follows it use the service
- *     client, because nobody buying a drink is signed in. The order id in the
- *     URL is the credential, exactly as the ticket and cancel-by-token pages
- *     treat theirs.
+ *     client, because nobody buying a beverage is signed in. The order id in
+ *     the URL is the credential, exactly as the ticket and cancel-by-token
+ *     pages treat theirs.
  */
 
-export type DrinkOrderStatus = "pending" | "paid" | "refunded"
+export type BeverageOrderStatus = "pending" | "paid" | "refunded"
 
-export type DrinkOrder = {
+export type BeverageOrder = {
   id: string
   nickname: string
   itemId: string
   itemName: string
   price: Money
-  status: DrinkOrderStatus
+  status: BeverageOrderStatus
   paypalCaptureId: string | null
   paidAt: string | null
   refundedAt: string | null
@@ -44,14 +44,14 @@ type Row = {
   item_name: string
   amount: number | string
   currency: string
-  status: DrinkOrderStatus
+  status: BeverageOrderStatus
   paypal_capture_id: string | null
   paid_at: string | null
   refunded_at: string | null
   created_at: string
 }
 
-function toOrder(row: Row): DrinkOrder {
+function toOrder(row: Row): BeverageOrder {
   return {
     id: row.id,
     nickname: row.nickname,
@@ -69,33 +69,33 @@ function toOrder(row: Row): DrinkOrder {
 }
 
 /** Where the QR on the counter screen sends whoever scans it. */
-export function drinkOrderUrl(orderId: string): string {
-  return new URL(`/drinks/${orderId}`, siteOrigin()).toString()
+export function beverageOrderUrl(orderId: string): string {
+  return new URL(`/beverages/${orderId}`, siteOrigin()).toString()
 }
 
 /**
- * Ring up one drink under a name.
+ * Ring up one beverage under a name.
  *
  * The price is copied off the menu here and never read from it again, so
- * editing lib/drinks/menu.ts cannot change what an order already on a screen
+ * editing lib/beverages/menu.ts cannot change what an order already on a screen
  * is asking for.
  */
-export async function createDrinkOrder(
+export async function createBeverageOrder(
   supabase: SupabaseClient,
-  input: { nickname: string; drink: Drink; createdBy: string },
-): Promise<DrinkOrder> {
+  input: { nickname: string; beverage: Beverage; createdBy: string },
+): Promise<BeverageOrder> {
   const nickname = input.nickname.trim()
   if (!nickname) throw new Error("닉네임을 입력하세요.")
   if (nickname.length > 40) throw new Error("닉네임이 너무 깁니다.")
 
   const { data, error } = await supabase
-    .from("drink_orders")
+    .from("beverage_orders")
     .insert({
       nickname,
-      item_id: input.drink.id,
-      item_name: input.drink.name,
-      amount: input.drink.price.amount,
-      currency: input.drink.price.currency,
+      item_id: input.beverage.id,
+      item_name: input.beverage.name,
+      amount: input.beverage.price.amount,
+      currency: input.beverage.price.currency,
       created_by: input.createdBy,
     })
     .select(COLUMNS)
@@ -112,10 +112,10 @@ export async function createDrinkOrder(
  * unknown id returns null rather than throwing, so the page can 404 instead
  * of erroring at someone who mistyped a URL.
  */
-export async function getDrinkOrder(orderId: string): Promise<DrinkOrder | null> {
+export async function getBeverageOrder(orderId: string): Promise<BeverageOrder | null> {
   if (!orderId) return null
   const { data, error } = await createServiceClient()
-    .from("drink_orders")
+    .from("beverage_orders")
     .select(COLUMNS)
     .eq("id", orderId)
     .maybeSingle()
@@ -127,18 +127,18 @@ export async function getDrinkOrder(orderId: string): Promise<DrinkOrder | null>
 /**
  * One order, read under the caller's own session.
  *
- * The same row getDrinkOrder returns, fetched the other way round: this is an
- * admin looking at their own counter, so RLS is what permits it rather than
+ * The same row getBeverageOrder returns, fetched the other way round: this is
+ * an admin looking at their own counter, so RLS is what permits it rather than
  * the service key. Kept separate so the elevated read stays confined to the
  * one page that genuinely has no session behind it.
  */
-export async function getDrinkOrderAs(
+export async function getBeverageOrderAs(
   supabase: SupabaseClient,
   orderId: string,
-): Promise<DrinkOrder | null> {
+): Promise<BeverageOrder | null> {
   if (!orderId) return null
   const { data, error } = await supabase
-    .from("drink_orders")
+    .from("beverage_orders")
     .select(COLUMNS)
     .eq("id", orderId)
     .maybeSingle()
@@ -155,12 +155,12 @@ export async function getDrinkOrderAs(
  * how the second attempt finds out it lost. Reported rather than thrown,
  * because losing that race is not an error — the money is already ours.
  */
-export async function markDrinkOrderPaid(
+export async function markBeverageOrderPaid(
   orderId: string,
   paypal: { orderId: string; captureId: string },
 ): Promise<{ claimed: boolean }> {
   const { data, error } = await createServiceClient()
-    .from("drink_orders")
+    .from("beverage_orders")
     .update({
       status: "paid",
       paypal_order_id: paypal.orderId,
@@ -183,13 +183,13 @@ export async function markDrinkOrderPaid(
  * refunding after would leave a row claiming money went back that never did,
  * which is the one direction of that mistake nobody catches.
  */
-export async function markDrinkOrderRefunded(
+export async function markBeverageOrderRefunded(
   supabase: SupabaseClient,
   orderId: string,
   refundId: string,
 ): Promise<void> {
   const { error } = await supabase
-    .from("drink_orders")
+    .from("beverage_orders")
     .update({
       status: "refunded",
       paypal_refund_id: refundId,
@@ -206,24 +206,24 @@ export async function markDrinkOrderRefunded(
  *
  * Pending orders are left out. Ringing one up is not a sale — it is a QR going
  * on a screen, and it becomes a row here when someone actually pays. Listing
- * them would fill the counter with drinks nobody bought: every mistyped name,
- * every customer who changed their mind, every QR that was never scanned.
+ * them would fill the counter with beverages nobody bought: every mistyped
+ * name, every customer who changed their mind, every QR never scanned.
  *
  * It also makes the list mean one thing. What is here is money taken, so it is
- * both the queue of drinks to make and the place a refund is found — and a
+ * both the queue of beverages to make and the place a refund is found — and a
  * '대기' row is neither.
  *
  * Read under the admin's own session, so RLS is what permits it. Capped
  * because this is a working screen for the last few minutes of a shift, not a
  * sales report — a nickname search is what finds yesterday.
  */
-export async function listDrinkOrders(
+export async function listBeverageOrders(
   supabase: SupabaseClient,
   options: { search?: string; limit?: number } = {},
-): Promise<DrinkOrder[]> {
+): Promise<BeverageOrder[]> {
   const search = options.search?.trim()
   let query = supabase
-    .from("drink_orders")
+    .from("beverage_orders")
     .select(COLUMNS)
     .neq("status", "pending")
     .order("created_at", { ascending: false })

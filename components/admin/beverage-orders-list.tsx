@@ -5,45 +5,45 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Search } from "lucide-react"
 import { FIELD } from "@/lib/ui/field"
-import { DrinkOrderStatusBadge } from "@/components/admin/drink-order-status"
+import { BeverageOrderStatusBadge } from "@/components/admin/beverage-order-status"
 import {
-  refundDrinkOrder,
+  refundBeverageOrder,
   type RefundState,
-} from "@/app/a/(dashboard)/drinks/actions"
+} from "@/app/a/(dashboard)/beverages/actions"
 import { formatMoney } from "@/lib/payments/money"
 import { formatKstDateTime } from "@/lib/time/kst"
-import { drinkOrderLabels } from "@/lib/drinks/labels"
-import type { DrinkOrder } from "@/lib/drinks/orders"
+import { beverageOrderLabels } from "@/lib/beverages/labels"
+import type { BeverageOrder } from "@/lib/beverages/orders"
 
 /**
  * The day's counter sales, and the way back to one of them.
  *
  * Sales only: an order that was rung up and never paid for is not on here.
- * What is on here is the queue of drinks to make and the place a refund is
+ * What is on here is the queue of beverages to make and the place a refund is
  * found, and both of those are about money that moved.
  *
  * Searched by nickname because that is the only thing a customer asking for a
  * refund can tell us. They will not have an order number and they will not
  * know the time — they know the name they gave, and roughly when.
  */
-export function DrinkOrdersList({
+export function BeverageOrdersList({
   orders,
   initialSearch,
 }: {
-  orders: DrinkOrder[]
+  orders: BeverageOrder[]
   initialSearch: string
 }) {
   const router = useRouter()
   const [search, setSearch] = useState(initialSearch)
   // Two 태연s on one screen are two people. The clock goes on only the names
   // that clash, so the rest stay readable.
-  const labels = drinkOrderLabels(
+  const labels = beverageOrderLabels(
     orders.map((o) => ({ id: o.id, nickname: o.nickname, createdAt: o.createdAt })),
   )
 
   const submit = () => {
     const q = search.trim()
-    router.push(q ? `/a/drinks?q=${encodeURIComponent(q)}` : "/a/drinks")
+    router.push(q ? `/a/beverages?q=${encodeURIComponent(q)}` : "/a/beverages")
   }
 
   return (
@@ -76,12 +76,12 @@ export function DrinkOrdersList({
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <Link
-                    href={`/a/drinks?order=${order.id}`}
+                    href={`/a/beverages?order=${order.id}`}
                     className="truncate font-medium text-foreground hover:underline"
                   >
                     {labels[order.id]}
                   </Link>
-                  <DrinkOrderStatusBadge status={order.status} />
+                  <BeverageOrderStatusBadge status={order.status} />
                 </div>
                 <p className="mt-0.5 text-xs text-muted-foreground">
                   {order.itemName} · {formatMoney(order.price)} ·{" "}
@@ -99,9 +99,9 @@ export function DrinkOrdersList({
   )
 }
 
-function RefundButton({ order, label }: { order: DrinkOrder; label: string }) {
+function RefundButton({ order, label }: { order: BeverageOrder; label: string }) {
   const [state, action, pending] = useActionState<RefundState, FormData>(
-    refundDrinkOrder,
+    refundBeverageOrder,
     {},
   )
 

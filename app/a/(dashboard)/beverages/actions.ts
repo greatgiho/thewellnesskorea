@@ -3,25 +3,25 @@
 import { revalidatePath } from "next/cache"
 import { requireAdminSession } from "@/lib/auth/require-session"
 import { refundCapture } from "@/lib/payments/paypal"
-import { DEFAULT_DRINK_ID, findDrink } from "@/lib/drinks/menu"
+import { DEFAULT_BEVERAGE_ID, findBeverage } from "@/lib/beverages/menu"
 import {
-  createDrinkOrder,
-  drinkOrderUrl,
-  getDrinkOrderAs,
-  markDrinkOrderRefunded,
-  type DrinkOrderStatus,
-} from "@/lib/drinks/orders"
+  createBeverageOrder,
+  beverageOrderUrl,
+  getBeverageOrderAs,
+  markBeverageOrderRefunded,
+  type BeverageOrderStatus,
+} from "@/lib/beverages/orders"
 import { referralQrSvg } from "@/lib/referrals/queries"
 import { formatMoney } from "@/lib/payments/money"
-import type { CounterOrder } from "@/components/admin/drink-order-card"
+import type { CounterOrder } from "@/components/admin/beverage-order-card"
 
 export type RingUpState = { error?: string; order?: CounterOrder }
 
 /**
- * Ring up a drink under a name and hand back everything the screen needs.
+ * Ring up a beverage under a name and hand back everything the screen needs.
  *
- * It used to redirect to /a/drinks?order=<id>, which was addressable and slow:
- * showing a QR cost a whole second page render — two auth round trips and two
+ * It used to redirect to /a/beverages?order=<id>, which was addressable and
+ * slow: showing a QR cost a second page render — two auth round trips and two
  * queries — to display something this call already had. Drawing the QR is a
  * millisecond of CPU, so it is done here and returned, and the counter puts it
  * on screen without going anywhere.
@@ -30,28 +30,28 @@ export type RingUpState = { error?: string; order?: CounterOrder }
  * reload or a second screen gets the same QR. The client just updates the URL
  * without navigating.
  */
-export async function ringUpDrink(
+export async function ringUpBeverage(
   _prev: RingUpState,
   formData: FormData,
 ): Promise<RingUpState> {
   try {
     const { supabase, userId } = await requireAdminSession()
     const nickname = String(formData.get("nickname") ?? "")
-    const drink = findDrink(String(formData.get("itemId") ?? DEFAULT_DRINK_ID))
-    if (!drink) return { error: "판매하지 않는 품목입니다." }
+    const beverage = findBeverage(String(formData.get("itemId") ?? DEFAULT_BEVERAGE_ID))
+    if (!beverage) return { error: "판매하지 않는 품목입니다." }
 
-    const order = await createDrinkOrder(supabase, {
+    const order = await createBeverageOrder(supabase, {
       nickname,
-      drink,
+      beverage,
       createdBy: userId,
     })
 
-    const url = drinkOrderUrl(order.id)
+    const url = beverageOrderUrl(order.id)
     // Deliberately not revalidatePath. Marking this page dirty makes Next
     // re-render it and ship the payload back with this response — the very
     // page render this was meant to avoid, reintroduced by a one-line habit.
-    // The list below is one row stale until the drink is paid for, and that is
-    // exactly when the poll refreshes it.
+    // The list below is one row stale until the beverage is paid for, and
+    // that is exactly when the poll refreshes it.
 
     return {
       order: {
@@ -81,11 +81,11 @@ export async function ringUpDrink(
  * single row read, and the page is only refreshed once, when the answer
  * changes and the list below is genuinely stale.
  */
-export async function drinkOrderStatus(
+export async function beverageOrderStatus(
   orderId: string,
-): Promise<DrinkOrderStatus | null> {
+): Promise<BeverageOrderStatus | null> {
   const { supabase } = await requireAdminSession()
-  const order = await getDrinkOrderAs(supabase, orderId)
+  const order = await getBeverageOrderAs(supabase, orderId)
   return order?.status ?? null
 }
 
@@ -99,7 +99,7 @@ export type RefundState = { error?: string; done?: boolean }
  * mistake nobody catches, because the customer who was not refunded is the
  * only person who would notice and they have already been told it was done.
  */
-export async function refundDrinkOrder(
+export async function refundBeverageOrder(
   _prev: RefundState,
   formData: FormData,
 ): Promise<RefundState> {
@@ -107,7 +107,7 @@ export async function refundDrinkOrder(
     const { supabase } = await requireAdminSession()
     const orderId = String(formData.get("orderId") ?? "")
 
-    const order = await getDrinkOrderAs(supabase, orderId)
+    const order = await getBeverageOrderAs(supabase, orderId)
     if (!order) return { error: "주문을 찾을 수 없습니다." }
     if (order.status === "refunded") return { error: "이미 환불된 주문입니다." }
     if (order.status !== "paid" || !order.paypalCaptureId) {
@@ -115,9 +115,9 @@ export async function refundDrinkOrder(
     }
 
     const refund = await refundCapture(order.paypalCaptureId)
-    await markDrinkOrderRefunded(supabase, order.id, refund.refundId)
+    await markBeverageOrderRefunded(supabase, order.id, refund.refundId)
 
-    revalidatePath("/a/drinks")
+    revalidatePath("/a/beverages")
     return { done: true }
   } catch (error) {
     return {

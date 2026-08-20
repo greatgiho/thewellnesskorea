@@ -1,16 +1,16 @@
 "use server"
 
 import { createOrder, captureOrder } from "@/lib/payments/paypal"
-import { receiptCode } from "@/lib/drinks/menu"
+import { receiptCode } from "@/lib/beverages/menu"
 import {
-  getDrinkOrder,
-  markDrinkOrderPaid,
-  type DrinkOrder,
-} from "@/lib/drinks/orders"
+  getBeverageOrder,
+  markBeverageOrderPaid,
+  type BeverageOrder,
+} from "@/lib/beverages/orders"
 import { formatMoney, money, toPaypalAmount } from "@/lib/payments/money"
 
 /**
- * Paying for a drink someone already rang up.
+ * Paying for a beverage someone already rang up.
  *
  * Every amount comes off the order row, never off the request. The browser
  * sends an order id and nothing else, so there is no price on the page for a
@@ -18,30 +18,30 @@ import { formatMoney, money, toPaypalAmount } from "@/lib/payments/money"
  * reason.
  */
 
-async function pendingOrder(orderId: string): Promise<DrinkOrder> {
-  const order = await getDrinkOrder(orderId)
+async function pendingOrder(orderId: string): Promise<BeverageOrder> {
+  const order = await getBeverageOrder(orderId)
   if (!order) throw new Error("주문을 찾을 수 없습니다.")
   if (order.status === "paid") throw new Error("This order is already paid.")
   if (order.status === "refunded") throw new Error("This order was refunded.")
   return order
 }
 
-export async function createDrinkPaypalOrder(orderId: string): Promise<string> {
+export async function createBeveragePaypalOrder(orderId: string): Promise<string> {
   const order = await pendingOrder(orderId)
   const paypal = await createOrder({
     amount: toPaypalAmount(order.price),
     currency: order.price.currency,
     // The row is the ledger now, so this only has to lead back to it.
-    reference: `drink:${order.id}`,
+    reference: `beverage:${order.id}`,
     // Carries the name because PayPal's own screen is the last thing the
-    // customer reads before they commit, and it should say whose drink it is.
+    // customer reads before committing, and it should say whose beverage it is.
     description: `${order.itemName} · ${order.nickname}`,
   })
   return paypal.id
 }
 
 /** What the customer holds up, and what the counter list is about to show. */
-export type DrinkReceipt = {
+export type BeverageReceipt = {
   code: string
   nickname: string
   name: string
@@ -49,8 +49,8 @@ export type DrinkReceipt = {
   paidAt: string
 }
 
-export type DrinkPaymentResult =
-  | { ok: true; receipt: DrinkReceipt }
+export type BeveragePaymentResult =
+  | { ok: true; receipt: BeverageReceipt }
   | { ok: false; pending: true }
   | { ok: false; pending?: false; status: string }
 
@@ -62,14 +62,14 @@ export type DrinkPaymentResult =
  *
  * PENDING is money taken and held for review, which can take days. For a class
  * that is survivable — the seat stays held and a webhook settles it. For a
- * drink it is not, so the row stays pending and the screen says so: the one
+ * beverage it is not, so the row stays pending and the screen says so: the one
  * thing that must not happen is a receipt printed over a payment that might
  * still be refused.
  */
-export async function captureDrinkPayment(
+export async function captureBeveragePayment(
   orderId: string,
   paypalOrderId: string,
-): Promise<DrinkPaymentResult> {
+): Promise<BeveragePaymentResult> {
   const order = await pendingOrder(orderId)
   const result = await captureOrder(paypalOrderId)
 
@@ -96,7 +96,7 @@ export async function captureDrinkPayment(
   // Not checked: a QR left on screen can be scanned twice, and the loser of
   // that race is still looking at a paid order. Reporting it as a failure
   // would tell someone their money did not go through when it did.
-  await markDrinkOrderPaid(order.id, { orderId: paypalOrderId, captureId })
+  await markBeverageOrderPaid(order.id, { orderId: paypalOrderId, captureId })
 
   return {
     ok: true,

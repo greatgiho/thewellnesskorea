@@ -17,7 +17,7 @@ describe("shouldBypassSiteAccess", () => {
   it("lets a counter order through", () => {
     // Shown as a QR on the counter screen. The person scanning it is standing
     // in the shop with money out; there is no password for them to have.
-    expect(bypasses("/drinks/6f1b0b1e-0000-4000-8000-000000000000")).toBe(true)
+    expect(bypasses("/beverages/6f1b0b1e-0000-4000-8000-000000000000")).toBe(true)
   })
 
   it("still gates the rest of the site", () => {
@@ -26,16 +26,16 @@ describe("shouldBypassSiteAccess", () => {
     expect(bypasses("/partners/someone")).toBe(false)
   })
 
-  it("does not open the drinks path with no order on it", () => {
-    // /drinks is not a page. Exempting it would open a route that does not
+  it("does not open the beverages path with no order on it", () => {
+    // /beverages is not a page. Exempting it would open a route that does not
     // exist today and would inherit the exemption on the day someone adds one.
-    expect(bypasses("/drinks")).toBe(false)
+    expect(bypasses("/beverages")).toBe(false)
   })
 
   it("never opens the admin screen that rings orders up", () => {
     // Naming customers and refunding money is not something a printed QR gets
     // to reach. Different prefix, and this is the assertion that keeps it so.
-    expect(bypasses("/a/drinks")).toBe(false)
+    expect(bypasses("/a/beverages")).toBe(false)
   })
 
   it("lets the unlock screen and auth callbacks through", () => {

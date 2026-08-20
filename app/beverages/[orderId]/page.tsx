@@ -1,19 +1,19 @@
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { PublicShell, PageHeader } from "@/components/redesign/public-shell"
-import { DrinkCheckout, DrinkReceiptCard } from "../drink-checkout"
-import { getDrinkOrder } from "@/lib/drinks/orders"
-import { receiptCode } from "@/lib/drinks/menu"
+import { BeverageCheckout, BeverageReceiptCard } from "../beverage-checkout"
+import { getBeverageOrder } from "@/lib/beverages/orders"
+import { receiptCode } from "@/lib/beverages/menu"
 import { formatMoney } from "@/lib/payments/money"
 
 export const metadata: Metadata = {
-  title: "Drinks — The Wellness Korea",
-  description: "Pay for your drink at the counter.",
+  title: "Beverages — The Wellness Korea",
+  description: "Pay for your beverage at the counter.",
 }
 
 // An order changes underneath this page — it is pending when the QR goes up
-// and paid a moment later. Cached, a reload would show a paid drink as unpaid
-// and invite paying for it twice.
+// and paid a moment later. Cached, a reload would show a paid beverage as
+// unpaid and invite paying for it twice.
 export const dynamic = "force-dynamic"
 
 /**
@@ -26,13 +26,13 @@ export const dynamic = "force-dynamic"
  * Inside PublicShell rather than bare, because this takes money and 전자상거래법
  * requires the trader details the shell's footer carries.
  */
-export default async function DrinkOrderPage({
+export default async function BeverageOrderPage({
   params,
 }: {
   params: Promise<{ orderId: string }>
 }) {
   const { orderId } = await params
-  const order = await getDrinkOrder(orderId)
+  const order = await getBeverageOrder(orderId)
   if (!order) notFound()
 
   const clientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID
@@ -42,7 +42,7 @@ export default async function DrinkOrderPage({
       <PageHeader eyebrow="Counter" title={order.nickname} />
       <main className="mx-auto max-w-md px-6 pb-20 pt-10 lg:pb-28">
         {order.status === "paid" ? (
-          <DrinkReceiptCard
+          <BeverageReceiptCard
             nickname={order.nickname}
             name={order.itemName}
             amount={formatMoney(order.price)}
@@ -63,7 +63,7 @@ export default async function DrinkOrderPage({
             </p>
 
             {clientId ? (
-              <DrinkCheckout
+              <BeverageCheckout
                 orderId={order.id}
                 clientId={clientId}
                 currency={order.price.currency}
