@@ -64,7 +64,7 @@ export async function captureBookingPaypalOrder(
   const captureId = result.captureId ?? orderId
 
   if (result.captureStatus === "COMPLETED") {
-    await finalizePaidBooking(bookingId, captureId)
+    await finalizePaidBooking(bookingId, captureId, "paypal", result.payer)
     revalidatePath("/")
     return { ok: true, status: "COMPLETED" }
   }

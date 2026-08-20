@@ -5,6 +5,7 @@ import { confirmBookingPaymentRpc } from "@/lib/bookings/hold-rpc"
 import { cancelBookingByTokenRpc } from "@/lib/bookings/rpc"
 import { getBookingSummaryById } from "@/lib/bookings/queries"
 import { sendBookingConfirmationEmail } from "@/lib/notifications/booking-email"
+import type { Payer } from "@/lib/payments/payer"
 
 type BookingPaymentRow = {
   cancel_token: string
@@ -33,16 +34,35 @@ async function loadBookingPayment(
 /**
  * A capture COMPLETED — confirm the booking (idempotent) and send the
  * confirmation email. Used by both the capture action and the webhook.
+ *
+ * `payer` is what PayPal returned about the buyer. Optional because the
+ * webhook path does not have it — that event carries the capture, not the
+ * checkout — so a booking finalised by webhook simply records nothing, which
+ * is the same as before.
  */
 export async function finalizePaidBooking(
   bookingId: string,
   captureId: string,
   provider: string = "paypal",
+  payer?: Payer,
 ): Promise<boolean> {
   const info = await loadBookingPayment(bookingId)
   if (!info) return false
 
   await confirmBookingPaymentRpc(info.merchantUid, captureId, provider, info.amount)
+
+  // Who paid, as far as PayPal would say — written after the RPC rather than
+  // through it, because confirm_booking_payment is the one that decides
+  // whether the money counts and it should not also be deciding what we know
+  // about the buyer. Best-effort for the same reason: a booking that is paid
+  // and confirmed must not come apart because a name could not be recorded.
+  if (payer && Object.keys(payer).length > 0) {
+    const { error } = await createServiceClient()
+      .from("payments")
+      .update({ metadata: { payer } })
+      .eq("merchant_uid", info.merchantUid)
+    if (error) console.error("[booking] recording the payer failed:", error.message)
+  }
 
   const summary = await getBookingSummaryById(bookingId)
   if (summary) {

@@ -11,6 +11,7 @@ import { formatBookingDateTime } from "@/lib/bookings/format"
 import { money, formatMoney, isPaid } from "@/lib/payments/money"
 import { sessionStatusLabel } from "@/lib/schedule/session-status"
 import { SessionBookingDetail } from "@/components/admin/session-booking-detail"
+import { SessionBookingQr } from "@/components/admin/session-booking-qr"
 
 type Props = {
   params: Promise<{ sessionId: string }>
@@ -118,6 +119,19 @@ export default async function AdminSessionBookingsPage({ params }: Props) {
           </div>
         </div>
       </section>
+
+      {/* ── The QR to hold up at the door ── */}
+      <SessionBookingQr
+        session={{
+          id: session.id,
+          title: session.title,
+          status: session.status,
+          isPublished: session.is_published,
+          startsAt: session.starts_at,
+          currency: price.currency,
+          amount: price.amount,
+        }}
+      />
 
       {/* ── Bookings + Waitlist ── */}
       <SessionBookingDetail
