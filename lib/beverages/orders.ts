@@ -4,7 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js"
 import { createServiceClient } from "@/lib/supabase/service"
 import { siteOrigin } from "@/lib/site-origin"
 import { money, type Money } from "@/lib/payments/money"
-import type { Beverage } from "@/lib/beverages/menu"
+import { formatListPrice, type Beverage } from "@/lib/beverages/menu"
 
 /**
  * Counter sales: writing them down, finding them again, and settling them.
@@ -93,7 +93,9 @@ export async function createBeverageOrder(
     .insert({
       nickname,
       item_id: input.beverage.id,
-      item_name: input.beverage.name,
+      // The sign price is the item's name. Snapshotted like the amount is, so
+      // a receipt still says ₩5,000 after the menu has moved on.
+      item_name: formatListPrice(input.beverage),
       amount: input.beverage.price.amount,
       currency: input.beverage.price.currency,
       created_by: input.createdBy,

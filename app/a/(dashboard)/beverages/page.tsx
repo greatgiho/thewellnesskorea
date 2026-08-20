@@ -1,7 +1,7 @@
 import type { Metadata } from "next"
 import { requireAdminSession } from "@/lib/auth/require-session"
 import { BeverageCounter } from "@/components/admin/beverage-counter"
-import { DEFAULT_BEVERAGE_ID, findBeverage } from "@/lib/beverages/menu"
+import { BEVERAGES, formatListPrice } from "@/lib/beverages/menu"
 import { listBeverageOrders } from "@/lib/beverages/orders"
 import { formatMoney } from "@/lib/payments/money"
 
@@ -26,10 +26,18 @@ export default async function AdminBeveragesPage({ searchParams }: Props) {
   const { supabase } = await requireAdminSession()
   const { q } = await searchParams
 
-  const beverage = findBeverage(DEFAULT_BEVERAGE_ID)
   const orders = await listBeverageOrders(supabase, { search: q })
 
-  if (!beverage) {
+  // Both prices go to the browser, never an amount. The button sends an id and
+  // the server prices it from this same menu, so there is nothing on the page
+  // that decides what anybody is charged.
+  const menu = BEVERAGES.map((beverage) => ({
+    id: beverage.id,
+    listPrice: formatListPrice(beverage),
+    charged: formatMoney(beverage.price),
+  }))
+
+  if (menu.length === 0) {
     return (
       <div className="space-y-6">
         <h1 className="font-serif text-3xl text-foreground">음료</h1>
@@ -41,11 +49,7 @@ export default async function AdminBeveragesPage({ searchParams }: Props) {
   return (
     <div className="space-y-6">
       <h1 className="font-serif text-3xl text-foreground">음료</h1>
-      <BeverageCounter
-        price={formatMoney(beverage.price)}
-        orders={orders}
-        initialSearch={q ?? ""}
-      />
+      <BeverageCounter menu={menu} orders={orders} initialSearch={q ?? ""} />
     </div>
   )
 }

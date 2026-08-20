@@ -34,12 +34,21 @@ import {
  * again — the abandoned row is not a sale, so it is not in the list and not in
  * anyone's way.
  */
+/** One item as the counter needs it: an id to send, and two prices to read. */
+export type MenuButton = {
+  id: string
+  /** What the sign says, and what the barista picks by. */
+  listPrice: string
+  /** What the customer is actually charged, since PayPal cannot take won. */
+  charged: string
+}
+
 export function BeverageCounter({
-  price,
+  menu,
   orders,
   initialSearch,
 }: {
-  price: string
+  menu: MenuButton[]
   orders: BeverageOrder[]
   initialSearch: string
 }) {
@@ -101,7 +110,9 @@ export function BeverageCounter({
             placeholder="닉네임"
             className={`${FIELD} max-w-[220px] flex-1`}
           />
-          <RingUpButton price={price} />
+          {menu.map((item) => (
+            <RingUpButton key={item.id} item={item} />
+          ))}
         </div>
         {state.error ? (
           <p className="text-sm text-destructive">{state.error}</p>
@@ -121,15 +132,30 @@ export function BeverageCounter({
   )
 }
 
-function RingUpButton({ price }: { price: string }) {
+/**
+ * One price, one button.
+ *
+ * A submit button carries its own name and value, so which item was rung up is
+ * whichever button was pressed — no separate selector to get out of step with
+ * the press, and nothing to reset between customers.
+ *
+ * The won is the large half because that is the price on the sign and the one
+ * a barista is told out loud. The dollars are underneath because that is what
+ * the customer's card is charged, and the two being different is a fact about
+ * PayPal that the person taking the order should not have to remember.
+ */
+function RingUpButton({ item }: { item: MenuButton }) {
   const { pending } = useFormStatus()
   return (
     <button
       type="submit"
+      name="itemId"
+      value={item.id}
       disabled={pending}
-      className="rounded-full bg-primary px-5 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
+      className="rounded-full bg-primary px-5 py-1.5 text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
     >
-      {pending ? "…" : `${price} QR 만들기`}
+      <span className="block text-sm font-medium">{item.listPrice}</span>
+      <span className="block text-[11px] opacity-80">{item.charged}</span>
     </button>
   )
 }
