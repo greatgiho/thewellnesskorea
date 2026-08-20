@@ -8,7 +8,9 @@ import type { CounterOrder } from "@/lib/beverages/counter"
  * One rung-up beverage, as the counter sees it.
  *
  * The name is the largest thing here because it is what the barista is about
- * to call out, and what tells two QRs apart when the queue is three deep.
+ * to call out. It is empty while the QR is still on screen — a nickname is
+ * optional and PayPal's name arrives with the money — so until then the price
+ * stands in, which is what distinguishes one waiting QR from another anyway.
  *
  * The QR arrives as an SVG string rather than being drawn here. Both ways of
  * putting an order on this card — ringing one up, picking one out of the list
@@ -24,7 +26,9 @@ export function BeverageOrderCard({ order }: { order: CounterOrder }) {
   return (
     <section className="rounded-3xl border border-border bg-card p-6 sm:p-8">
       <div className="flex flex-wrap items-baseline gap-3">
-        <h2 className="font-serif text-2xl text-foreground">{order.nickname}</h2>
+        <h2 className="font-serif text-2xl text-foreground">
+          {order.name ?? order.itemName}
+        </h2>
         <BeverageOrderStatusBadge status={order.status} />
       </div>
       <p className="mt-1 text-sm text-muted-foreground">

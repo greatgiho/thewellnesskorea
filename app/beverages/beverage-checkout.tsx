@@ -82,8 +82,8 @@ export function BeverageCheckout({
 function PaidReceipt({ receipt }: { receipt: BeverageReceipt }) {
   return (
     <BeverageReceiptCard
-      nickname={receipt.nickname}
       name={receipt.name}
+      item={receipt.item}
       amount={receipt.amount}
       code={receipt.code}
       paidAt={receipt.paidAt}
@@ -95,21 +95,26 @@ function PaidReceipt({ receipt }: { receipt: BeverageReceipt }) {
  * What staff look at.
  *
  * The name is the largest thing on it, because that is what gets called out
- * and what a refund is found by. The time is there because it is the only
- * thing separating a sale from a screenshot of one.
+ * and what a refund is found by — and it is usually PayPal's, since a
+ * nickname is optional. When nothing named the buyer at all, the amount takes
+ * the top line: it is the one fact the person holding the phone can check.
+ *
+ * The time is there because it is the only thing separating a sale from a
+ * screenshot of one.
  *
  * Exported so the page can render the same card for an order that was already
  * paid before this visit — one receipt, not two that drift apart.
  */
 export function BeverageReceiptCard({
-  nickname,
   name,
+  item,
   amount,
   code,
   paidAt,
 }: {
-  nickname: string
-  name: string
+  /** Null when nobody typed a nickname and PayPal returned no name. */
+  name: string | null
+  item: string
   amount: string
   code: string
   paidAt: string | null
@@ -120,10 +125,10 @@ export function BeverageReceiptCard({
         Paid
       </p>
       <p className="mt-3 font-serif text-4xl font-light text-foreground">
-        {nickname}
+        {name ?? amount}
       </p>
       <p className="mt-2 text-sm text-muted-foreground">
-        {name} · {amount}
+        {name ? `${item} · ${amount}` : item}
       </p>
       <p className="mt-6 font-mono text-2xl tracking-[0.2em] text-foreground">
         {code}

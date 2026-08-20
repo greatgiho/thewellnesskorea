@@ -28,7 +28,7 @@ export async function ringUpBeverage(
 ): Promise<RingUpState> {
   try {
     const { supabase, userId } = await requireAdminSession()
-    const nickname = String(formData.get("nickname") ?? "")
+    const nickname = String(formData.get("nickname") ?? "").trim() || undefined
     const beverage = findBeverage(
       String(formData.get("itemId") ?? DEFAULT_BEVERAGE_ID),
     )

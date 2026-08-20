@@ -3,6 +3,7 @@ import "server-only"
 import { referralQrSvg } from "@/lib/referrals/queries"
 import { formatMoney } from "@/lib/payments/money"
 import { beverageOrderUrl, type BeverageOrder } from "@/lib/beverages/orders"
+import { beverageOrderName } from "@/lib/beverages/labels"
 
 /**
  * An order as the counter screen needs it: formatted, with its QR drawn.
@@ -14,7 +15,10 @@ import { beverageOrderUrl, type BeverageOrder } from "@/lib/beverages/orders"
 
 export type CounterOrder = {
   id: string
-  nickname: string
+  /** What to call them: their nickname, else PayPal's name, else null. */
+  name: string | null
+  /** How to find this sale in PayPal later. Empty until it is paid. */
+  payer: { name?: string; email?: string; accountId?: string; card?: string }
   itemName: string
   price: string
   status: BeverageOrder["status"]
@@ -28,7 +32,8 @@ export async function toCounterOrder(order: BeverageOrder): Promise<CounterOrder
   const url = beverageOrderUrl(order.id)
   return {
     id: order.id,
-    nickname: order.nickname,
+    name: beverageOrderName(order),
+    payer: order.payer,
     itemName: order.itemName,
     price: formatMoney(order.price),
     status: order.status,

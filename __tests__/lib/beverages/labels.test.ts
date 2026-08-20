@@ -14,9 +14,16 @@ import { beverageOrderLabels } from "@/lib/beverages/labels"
 // purpose: they must not collapse.
 const at = (clock: string) => `2026-08-20T${clock}+09:00`
 
-const order = (id: string, nickname: string, clock: string) => ({
+const order = (
+  id: string,
+  nickname: string | null,
+  clock: string,
+  extra: { payer?: { name?: string }; paypalCaptureId?: string } = {},
+) => ({
   id,
   nickname,
+  payer: extra.payer ?? {},
+  paypalCaptureId: extra.paypalCaptureId ?? null,
   createdAt: at(clock),
 })
 
@@ -72,7 +79,9 @@ describe("beverageOrderLabels", () => {
       order("2", "mia ", "09:31:05"),
     ])
     expect(labels["1"]).toBe("09:06:12 Mia")
-    expect(labels["2"]).toBe("09:31:05 mia ")
+    // Trimmed on the way out too: the stray space was a typing accident, not
+    // part of what anybody wants shouted across a counter.
+    expect(labels["2"]).toBe("09:31:05 mia")
   })
 
   it("reads the clock in KST, not the machine's zone", () => {
@@ -88,5 +97,48 @@ describe("beverageOrderLabels", () => {
 
   it("is empty for no orders", () => {
     expect(beverageOrderLabels([])).toEqual({})
+  })
+})
+
+describe("falling back when nobody typed a nickname", () => {
+  it("uses the name PayPal returned", () => {
+    // The usual case now: the barista taps a price, and the account that pays
+    // names itself.
+    const labels = beverageOrderLabels([
+      order("1", null, "09:06:12", { payer: { name: "Jiho Lee" } }),
+    ])
+    expect(labels["1"]).toBe("Jiho Lee")
+  })
+
+  it("prefers a typed nickname over PayPal's name", () => {
+    // Somebody asked to be called this. That beats what the account says.
+    const labels = beverageOrderLabels([
+      order("1", "지호", "09:06:12", { payer: { name: "Jiho Lee" } }),
+    ])
+    expect(labels["1"]).toBe("지호")
+  })
+
+  it("falls back to the receipt code for a guest card payment", () => {
+    // No account, no name typed. Eight characters is still something to call.
+    const labels = beverageOrderLabels([
+      order("1", null, "09:06:12", { paypalCaptureId: "5A7B9CDE1234FGHJ" }),
+    ])
+    expect(labels["1"]).toBe("1234FGHJ")
+  })
+
+  it("still has something to show before anything has been paid", () => {
+    // A pending order has no capture and may have no name at all. It must not
+    // render as a blank row.
+    expect(beverageOrderLabels([order("1", null, "09:06:12")])["1"]).toBe("—")
+  })
+
+  it("clocks a clash between a nickname and a PayPal name", () => {
+    // Two 지호s, one typed and one from an account, are still two people.
+    const labels = beverageOrderLabels([
+      order("1", "지호", "09:06:12"),
+      order("2", null, "09:31:05", { payer: { name: "지호" } }),
+    ])
+    expect(labels["1"]).toBe("09:06:12 지호")
+    expect(labels["2"]).toBe("09:31:05 지호")
   })
 })

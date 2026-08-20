@@ -46,10 +46,16 @@ export function BeverageOrdersList({
 }) {
   const router = useRouter()
   const [search, setSearch] = useState(initialSearch)
-  // Two 태연s on one screen are two people. The clock goes on only the names
-  // that clash, so the rest stay readable.
+  // Whatever named them — their nickname, PayPal's name, or the receipt code
+  // — with a clock added only where two come out the same.
   const labels = beverageOrderLabels(
-    orders.map((o) => ({ id: o.id, nickname: o.nickname, createdAt: o.createdAt })),
+    orders.map((o) => ({
+      id: o.id,
+      nickname: o.nickname,
+      payer: o.payer,
+      paypalCaptureId: o.paypalCaptureId,
+      createdAt: o.createdAt,
+    })),
   )
 
   const submit = () => {

@@ -1,5 +1,7 @@
 import "server-only"
 
+import { readPayer, type Payer } from "@/lib/payments/payer"
+
 // PayPal Orders API v2. Sandbox by default; set PAYPAL_ENV=live for production.
 const BASE =
   process.env.PAYPAL_ENV === "live"
@@ -74,6 +76,8 @@ export async function createOrder(input: {
   return { id: data.id, status: data.status }
 }
 
+export type { Payer } from "@/lib/payments/payer"
+
 export type CaptureResult = {
   orderId: string
   status: string // order-level status
@@ -81,6 +85,7 @@ export type CaptureResult = {
   captureId?: string
   amount?: string
   currency?: string
+  payer: Payer
 }
 
 export async function captureOrder(orderId: string): Promise<CaptureResult> {
@@ -105,6 +110,7 @@ export async function captureOrder(orderId: string): Promise<CaptureResult> {
     captureId: capture?.id,
     amount: capture?.amount?.value,
     currency: capture?.amount?.currency_code,
+    payer: readPayer(data),
   }
 }
 
