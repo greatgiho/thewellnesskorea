@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react"
 import Link from "next/link"
 import { submitGuestBooking, type GuestBookingState } from "@/app/book/actions"
+import { refundSummary, WITHDRAWAL_NOTICE } from "@/lib/legal/refund"
 import type { SessionWithRelations } from "@/lib/schedule/types"
 import { FIELD_PUBLIC } from "@/lib/ui/field"
 import {
@@ -200,6 +201,22 @@ export function GuestBookingForm({
 
           {state.error ? (
             <p className="mt-4 text-sm text-destructive">{state.error}</p>
+          ) : null}
+
+          {/* 전자상거래법 requires the withdrawal period and the refund basis
+              where somebody is about to commit — not only on a page they could
+              go and find. Built from the same table /refunds renders, so the
+              two cannot drift. */}
+          {mode !== "free" ? (
+            <div className="mt-6 rounded-2xl border border-border bg-muted/30 px-4 py-3 text-xs leading-relaxed text-muted-foreground">
+              <p>{WITHDRAWAL_NOTICE}</p>
+              <p className="mt-1">
+                {refundSummary()}.{" "}
+                <Link href="/refunds" className="underline underline-offset-2">
+                  취소·환불규정
+                </Link>
+              </p>
+            </div>
           ) : null}
 
           <button

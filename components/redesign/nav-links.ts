@@ -53,6 +53,9 @@ export const PAGE_LINKS: { href: string; label: BilingualText }[] = [
   { href: "/journal", label: { en: "Journal", ko: "저널" } },
   { href: "/privacy", label: { en: "Privacy", ko: "개인정보" } },
   { href: "/terms", label: { en: "Terms", ko: "이용약관" } },
+  // 전자상거래법 requires the refund basis to be findable, not only shown at
+  // the moment of payment. It sits beside the terms it takes precedence over.
+  { href: "/refunds", label: { en: "Refunds", ko: "취소·환불" } },
 ]
 
 /**
