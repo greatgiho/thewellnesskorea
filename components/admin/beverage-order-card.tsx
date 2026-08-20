@@ -1,7 +1,7 @@
 "use client"
 
 import { BeverageOrderStatusBadge } from "@/components/admin/beverage-order-status"
-import { formatKstDateTime } from "@/lib/time/kst"
+import { formatClockInKst } from "@/lib/time/kst"
 import type { CounterOrder } from "@/lib/beverages/counter"
 
 /**
@@ -32,7 +32,11 @@ export function BeverageOrderCard({ order }: { order: CounterOrder }) {
         <BeverageOrderStatusBadge status={order.status} />
       </div>
       <p className="mt-1 text-sm text-muted-foreground">
-        {order.itemName} · {order.price} · {formatKstDateTime(order.createdAt)}
+        <span className="font-mono text-foreground">{order.code}</span> ·{" "}
+        {order.itemName} · {order.price} ·{" "}
+        {/* To the second. Two ring-ups a few seconds apart are otherwise
+            stamped the same minute, which is no help in telling them apart. */}
+        {formatClockInKst(order.createdAt)}
       </p>
 
       {order.status === "pending" && order.qrSvg ? (

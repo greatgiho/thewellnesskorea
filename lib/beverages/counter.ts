@@ -15,6 +15,16 @@ import { beverageOrderName } from "@/lib/beverages/labels"
 
 export type CounterOrder = {
   id: string
+  /**
+   * Six characters off the order id, shown on the card.
+   *
+   * Not decoration. With the nickname optional, two ring-ups of the same price
+   * produce cards that read identically — same heading, same price, same
+   * minute — and only the QR's pixels differ, which no one can see. Pressing
+   * the button then looks like nothing happened, so it gets pressed again.
+   * This is the part that changes.
+   */
+  code: string
   /** What to call them: their nickname, else PayPal's name, else null. */
   name: string | null
   /** How to find this sale in PayPal later. Empty until it is paid. */
@@ -32,6 +42,7 @@ export async function toCounterOrder(order: BeverageOrder): Promise<CounterOrder
   const url = beverageOrderUrl(order.id)
   return {
     id: order.id,
+    code: order.id.slice(0, 6).toUpperCase(),
     name: beverageOrderName(order),
     payer: order.payer,
     itemName: order.itemName,
