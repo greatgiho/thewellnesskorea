@@ -1,5 +1,5 @@
 import type { ReactNode } from "react"
-import { isBusinessInfoEmpty } from "@/lib/site/settings"
+import { hasBankInfo, isBusinessInfoEmpty } from "@/lib/site/settings"
 import {
   mustBlockPublicSite,
   resolveSiteSettings,
@@ -64,6 +64,7 @@ export async function PublicShell({
           business={
             isBusinessInfoEmpty(settings.business) ? null : settings.business
           }
+          bank={hasBankInfo(settings.bank) ? settings.bank : null}
         />
       </div>
     </LanguageProvider>
