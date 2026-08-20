@@ -16,6 +16,10 @@ export const ADMIN_NAV: PortalNavGroup[] = [
     title: "결제 · 정산",
     items: [
       { label: "결제", href: "/a/bookings" },
+      // Two counter screens, next to each other: one sells beverages, the
+      // other puts a class's QR in front of a walk-in. Whoever is on the door
+      // opens them at the start of a shift and leaves them open.
+      { label: "현장 결제", href: "/a/onsite" },
       { label: "음료", href: "/a/beverages" },
       { label: "쿠폰", href: "/a/coupons" },
       // Under 결제·정산 rather than 운영: what it is for is working out who

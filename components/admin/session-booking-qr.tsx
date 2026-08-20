@@ -46,31 +46,46 @@ export function sessionQrBlocker(session: SessionQrSubject): string | null {
   return null
 }
 
-export function SessionBookingQr({ session }: { session: SessionQrSubject }) {
+/**
+ * The QR itself, or the reason there is not one.
+ *
+ * Apart from the panel below so the counter screen can show the same thing
+ * without its heading — a screen listing eight classes does not want the words
+ * "결제 QR" eight times.
+ */
+export async function SessionQrFigure({
+  session,
+  size = "lg",
+}: {
+  session: SessionQrSubject
+  size?: "sm" | "lg"
+}) {
   const blocker = sessionQrBlocker(session)
-  const link = new URL(sessionPath(session.id), siteOrigin()).toString()
+  if (blocker) {
+    return <p className="text-sm text-muted-foreground">{blocker}</p>
+  }
 
+  const link = new URL(sessionPath(session.id), siteOrigin()).toString()
+  return (
+    <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
+      <QrBlock link={link} filename={qrFilename("수업", session.title)} size={size} />
+      <div className="min-w-0">
+        <p className="break-all font-mono text-sm text-foreground">{link}</p>
+        <div className="mt-3">
+          <CopyLinkButton link={link} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export function SessionBookingQr({ session }: { session: SessionQrSubject }) {
   return (
     <section className="rounded-2xl border border-border bg-card p-6">
       <h2 className="font-serif text-lg text-foreground">결제 QR</h2>
-
-      {blocker ? (
-        <p className="mt-2 text-sm text-muted-foreground">{blocker}</p>
-      ) : (
-        <div className="mt-4 flex flex-col gap-6 sm:flex-row sm:items-start">
-          <QrBlock
-            link={link}
-            filename={qrFilename("수업", session.title)}
-            size="lg"
-          />
-          <div className="min-w-0">
-            <p className="break-all font-mono text-sm text-foreground">{link}</p>
-            <div className="mt-3">
-              <CopyLinkButton link={link} />
-            </div>
-          </div>
-        </div>
-      )}
+      <div className="mt-4">
+        <SessionQrFigure session={session} />
+      </div>
     </section>
   )
 }
