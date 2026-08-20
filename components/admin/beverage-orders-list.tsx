@@ -74,7 +74,7 @@ export function BeverageOrdersList({
             if (e.key === "Enter") submit()
           }}
           onBlur={submit}
-          placeholder="닉네임으로 찾기"
+          placeholder="이름 · 이메일 · 영수증 코드"
           className={`${FIELD} pl-9`}
         />
       </div>
@@ -107,6 +107,15 @@ export function BeverageOrdersList({
                   {order.itemName} · {formatMoney(order.price)} ·{" "}
                   {formatKstDateTime(order.createdAt)}
                 </p>
+                {/* What a refund is checked against before the money goes
+                    back. The account id is not here on purpose: it identifies
+                    a returning customer to us, and reads as noise to the
+                    person holding the phone. */}
+                {order.payer.email ?? order.payer.card ? (
+                  <p className="mt-0.5 truncate text-xs text-muted-foreground/70">
+                    {order.payer.email ?? order.payer.card}
+                  </p>
+                ) : null}
               </div>
               {order.status === "paid" ? (
                 <RefundButton order={order} label={labels[order.id]} />

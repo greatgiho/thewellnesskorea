@@ -6,6 +6,7 @@ import { siteOrigin } from "@/lib/site-origin"
 import { money, type Money } from "@/lib/payments/money"
 import type { Payer } from "@/lib/payments/payer"
 import { formatListPrice, type Beverage } from "@/lib/beverages/menu"
+import { searchFilter } from "@/lib/beverages/search"
 
 /**
  * Counter sales: writing them down, finding them again, and settling them.
@@ -242,7 +243,7 @@ export async function markBeverageOrderRefunded(
  *
  * Read under the admin's own session, so RLS is what permits it. Capped
  * because this is a working screen for the last few minutes of a shift, not a
- * sales report — a nickname search is what finds yesterday.
+ * sales report — the search is what finds yesterday.
  */
 export async function listBeverageOrders(
   supabase: SupabaseClient,
@@ -256,9 +257,11 @@ export async function listBeverageOrders(
     .order("created_at", { ascending: false })
     .limit(options.limit ?? 30)
 
-  // Case-insensitive contains: people type their own name back in whatever
-  // case they feel like, and half-remembering it is the normal case.
-  if (search) query = query.ilike("nickname", `%${search}%`)
+  // Across every column a customer could name themselves by — see search.ts.
+  // Searching the nickname alone stopped working the day nicknames became
+  // optional: most rows have none, and the name on them came from PayPal.
+  const filter = search ? searchFilter(search) : null
+  if (filter) query = query.or(filter)
 
   const { data, error } = await query
   if (error) throw new Error(error.message)
