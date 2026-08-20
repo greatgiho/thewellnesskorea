@@ -27,18 +27,23 @@ import type { Money } from "@/lib/payments/money"
 export type Beverage = {
   /** Recorded on the order as item_id, so a sale can name what it was for. */
   id: string
-  name: string
   /** What is actually charged. The order row is written from this. */
   price: Money
   /**
    * What the counter sells it for — the number on the sign, in the currency
-   * the shop thinks in.
+   * the shop thinks in. Also the item's whole identity: what is actually in
+   * the cup is settled at the counter, out loud, and the price is the only
+   * part of it this ever needs to know.
    *
    * Not derived from `price`, and `price` is not derived from it. A rate that
    * moved between quoting and charging would make the two disagree by a few
    * won every day, and the amount charged has to be a number somebody chose.
    * So the won is the intent, the dollars are the charge, and bringing them
    * back together when the rate has drifted is a deliberate edit here.
+   *
+   * There is deliberately no name field. Two prices is what distinguishes the
+   * two things on sale; a name alongside would be the same fact written twice,
+   * and the copy that went stale would be the one on a customer's receipt.
    */
   listPriceKrw: number
 }
@@ -54,18 +59,8 @@ export type Beverage = {
  * roughly twice as hard, because it is the same $0.30 either way.
  */
 export const BEVERAGES: Beverage[] = [
-  {
-    id: "beverage-5000",
-    name: "Beverage (₩5,000)",
-    price: { currency: "USD", amount: 3.6 },
-    listPriceKrw: 5000,
-  },
-  {
-    id: "beverage-8000",
-    name: "Beverage (₩8,000)",
-    price: { currency: "USD", amount: 5.75 },
-    listPriceKrw: 8000,
-  },
+  { id: "beverage-5000", price: { currency: "USD", amount: 3.6 }, listPriceKrw: 5000 },
+  { id: "beverage-8000", price: { currency: "USD", amount: 5.75 }, listPriceKrw: 8000 },
 ]
 
 /** What the counter rings up when nothing else is chosen. */
@@ -82,7 +77,13 @@ export function findBeverage(id: string): Beverage | null {
   return BEVERAGES.find((beverage) => beverage.id === id) ?? null
 }
 
-/** The sign price: "₩5,000". The counter picks by this, not by the dollars. */
+/**
+ * The sign price: "₩5,000".
+ *
+ * Both what the counter picks by and what the item is called — on the button,
+ * on the card, on the row, and on PayPal's own screen. One string, so there is
+ * no second spelling of the same item to drift.
+ */
 export function formatListPrice(beverage: Beverage): string {
   return new Intl.NumberFormat("ko-KR", {
     style: "currency",
