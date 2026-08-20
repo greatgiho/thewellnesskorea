@@ -75,6 +75,23 @@ export function formatTimeInKst(iso: string): string {
   }).format(new Date(iso))
 }
 
+/**
+ * 24-hour clock time in Seoul, to the second: "20:00:07".
+ *
+ * Seconds because this is used to tell two things that happened close together
+ * apart — two people who gave the same name a minute apart are still two
+ * people, and to the minute they would read as one.
+ */
+export function formatClockInKst(iso: string): string {
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone: KST_TIMEZONE,
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).format(new Date(iso))
+}
+
 /** A date key spelled out in Korean: "2026년 8월 25일 화". */
 export function formatDisplayDate(dateKey: string): string {
   return new Intl.DateTimeFormat(LOCALE.ko, {
