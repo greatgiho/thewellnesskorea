@@ -3,6 +3,7 @@ import { notFound } from "next/navigation"
 import { PublicShell, PageHeader } from "@/components/redesign/public-shell"
 import { BeverageCheckout, BeverageReceiptCard } from "../beverage-checkout"
 import { getBeverageOrder } from "@/lib/beverages/orders"
+import { beverageOrderName } from "@/lib/beverages/labels"
 import { receiptCode } from "@/lib/beverages/menu"
 import { formatMoney } from "@/lib/payments/money"
 
@@ -39,12 +40,12 @@ export default async function BeverageOrderPage({
 
   return (
     <PublicShell>
-      <PageHeader eyebrow="Counter" title={order.nickname} />
+      <PageHeader eyebrow="Counter" title={order.nickname ?? order.itemName} />
       <main className="mx-auto max-w-md px-6 pb-20 pt-10 lg:pb-28">
         {order.status === "paid" ? (
           <BeverageReceiptCard
-            nickname={order.nickname}
-            name={order.itemName}
+            name={beverageOrderName(order)}
+            item={order.itemName}
             amount={formatMoney(order.price)}
             code={order.paypalCaptureId ? receiptCode(order.paypalCaptureId) : "—"}
             paidAt={order.paidAt}

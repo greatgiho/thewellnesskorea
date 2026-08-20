@@ -35,7 +35,9 @@ export async function createBeveragePaypalOrder(orderId: string): Promise<string
     reference: `beverage:${order.id}`,
     // Carries the name because PayPal's own screen is the last thing the
     // customer reads before committing, and it should say whose beverage it is.
-    description: `${order.itemName} · ${order.nickname}`,
+    description: order.nickname
+      ? `${order.itemName} · ${order.nickname}`
+      : order.itemName,
   })
   return paypal.id
 }
@@ -43,8 +45,9 @@ export async function createBeveragePaypalOrder(orderId: string): Promise<string
 /** What the customer holds up, and what the counter list is about to show. */
 export type BeverageReceipt = {
   code: string
-  nickname: string
-  name: string
+  /** Whoever ends up named on it: the nickname, else the PayPal account. */
+  name: string | null
+  item: string
   amount: string
   paidAt: string
 }
@@ -96,14 +99,18 @@ export async function captureBeveragePayment(
   // Not checked: a QR left on screen can be scanned twice, and the loser of
   // that race is still looking at a paid order. Reporting it as a failure
   // would tell someone their money did not go through when it did.
-  await markBeverageOrderPaid(order.id, { orderId: paypalOrderId, captureId })
+  await markBeverageOrderPaid(order.id, {
+    orderId: paypalOrderId,
+    captureId,
+    payer: result.payer,
+  })
 
   return {
     ok: true,
     receipt: {
       code: receiptCode(captureId),
-      nickname: order.nickname,
-      name: order.itemName,
+      name: order.nickname ?? result.payer.name ?? null,
+      item: order.itemName,
       amount: formatMoney(paid ?? order.price),
       paidAt: new Date().toISOString(),
     },

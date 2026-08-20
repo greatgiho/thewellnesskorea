@@ -4,7 +4,9 @@ import type { SupabaseClient } from "@supabase/supabase-js"
 import { createServiceClient } from "@/lib/supabase/service"
 import { siteOrigin } from "@/lib/site-origin"
 import { money, type Money } from "@/lib/payments/money"
+import type { Payer } from "@/lib/payments/payer"
 import { formatListPrice, type Beverage } from "@/lib/beverages/menu"
+import { searchFilter } from "@/lib/beverages/search"
 
 /**
  * Counter sales: writing them down, finding them again, and settling them.
@@ -23,7 +25,10 @@ export type BeverageOrderStatus = "pending" | "paid" | "refunded"
 
 export type BeverageOrder = {
   id: string
-  nickname: string
+  /** What the customer said to call them. Optional — most never type one. */
+  nickname: string | null
+  /** Who PayPal says paid. Empty until the money arrives, and sometimes after. */
+  payer: Payer
   itemId: string
   itemName: string
   price: Money
@@ -35,11 +40,15 @@ export type BeverageOrder = {
 }
 
 const COLUMNS =
-  "id, nickname, item_id, item_name, amount, currency, status, paypal_capture_id, paid_at, refunded_at, created_at"
+  "id, nickname, item_id, item_name, amount, currency, status, paypal_capture_id, payer_name, payer_email, payer_account_id, payer_card, paid_at, refunded_at, created_at"
 
 type Row = {
   id: string
-  nickname: string
+  nickname: string | null
+  payer_name: string | null
+  payer_email: string | null
+  payer_account_id: string | null
+  payer_card: string | null
   item_id: string
   item_name: string
   amount: number | string
@@ -55,6 +64,12 @@ function toOrder(row: Row): BeverageOrder {
   return {
     id: row.id,
     nickname: row.nickname,
+    payer: {
+      ...(row.payer_name ? { name: row.payer_name } : {}),
+      ...(row.payer_email ? { email: row.payer_email } : {}),
+      ...(row.payer_account_id ? { accountId: row.payer_account_id } : {}),
+      ...(row.payer_card ? { card: row.payer_card } : {}),
+    },
     itemId: row.item_id,
     itemName: row.item_name,
     // numeric comes back from PostgREST as a string; money() coerces it, and
@@ -74,19 +89,23 @@ export function beverageOrderUrl(orderId: string): string {
 }
 
 /**
- * Ring up one beverage under a name.
+ * Ring up one beverage.
  *
  * The price is copied off the menu here and never read from it again, so
  * editing lib/beverages/menu.ts cannot change what an order already on a screen
  * is asking for.
+ *
+ * The name is optional, and usually absent: PayPal returns one with the money,
+ * and it is a better name than a typed one — it is the account holder's own.
+ * A nickname is for the case PayPal cannot answer, which is a guest paying by
+ * card, and for whenever a barista would rather type than wait.
  */
 export async function createBeverageOrder(
   supabase: SupabaseClient,
-  input: { nickname: string; beverage: Beverage; createdBy: string },
+  input: { nickname?: string; beverage: Beverage; createdBy: string },
 ): Promise<BeverageOrder> {
-  const nickname = input.nickname.trim()
-  if (!nickname) throw new Error("닉네임을 입력하세요.")
-  if (nickname.length > 40) throw new Error("닉네임이 너무 깁니다.")
+  const nickname = input.nickname?.trim() || null
+  if (nickname && nickname.length > 40) throw new Error("닉네임이 너무 깁니다.")
 
   const { data, error } = await supabase
     .from("beverage_orders")
@@ -159,7 +178,7 @@ export async function getBeverageOrderAs(
  */
 export async function markBeverageOrderPaid(
   orderId: string,
-  paypal: { orderId: string; captureId: string },
+  paypal: { orderId: string; captureId: string; payer: Payer },
 ): Promise<{ claimed: boolean }> {
   const { data, error } = await createServiceClient()
     .from("beverage_orders")
@@ -167,6 +186,13 @@ export async function markBeverageOrderPaid(
       status: "paid",
       paypal_order_id: paypal.orderId,
       paypal_capture_id: paypal.captureId,
+      // Whatever PayPal was willing to say. Written as null rather than left
+      // out, so a row that recorded nothing is distinguishable from one this
+      // never ran against — and never as "", which would read as a name.
+      payer_name: paypal.payer.name ?? null,
+      payer_email: paypal.payer.email ?? null,
+      payer_account_id: paypal.payer.accountId ?? null,
+      payer_card: paypal.payer.card ?? null,
       paid_at: new Date().toISOString(),
     })
     .eq("id", orderId)
@@ -217,7 +243,7 @@ export async function markBeverageOrderRefunded(
  *
  * Read under the admin's own session, so RLS is what permits it. Capped
  * because this is a working screen for the last few minutes of a shift, not a
- * sales report — a nickname search is what finds yesterday.
+ * sales report — the search is what finds yesterday.
  */
 export async function listBeverageOrders(
   supabase: SupabaseClient,
@@ -231,9 +257,11 @@ export async function listBeverageOrders(
     .order("created_at", { ascending: false })
     .limit(options.limit ?? 30)
 
-  // Case-insensitive contains: people type their own name back in whatever
-  // case they feel like, and half-remembering it is the normal case.
-  if (search) query = query.ilike("nickname", `%${search}%`)
+  // Across every column a customer could name themselves by — see search.ts.
+  // Searching the nickname alone stopped working the day nicknames became
+  // optional: most rows have none, and the name on them came from PayPal.
+  const filter = search ? searchFilter(search) : null
+  if (filter) query = query.or(filter)
 
   const { data, error } = await query
   if (error) throw new Error(error.message)

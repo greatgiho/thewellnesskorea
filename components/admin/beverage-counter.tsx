@@ -72,7 +72,14 @@ export function BeverageCounter({
     const timer = setInterval(async () => {
       const status = await beverageOrderStatus(id)
       if (!status || status === "pending") return
-      setOrder((prev) => (prev && prev.id === id ? { ...prev, status } : prev))
+      // Read the whole row now rather than merging the status in. Paying is
+      // what tells us who the customer is — PayPal returns their name with the
+      // money — and a card that only learned the status would keep standing
+      // there saying ₩5,000 next to a sale that now has a name on it.
+      const settled = await loadCounterOrder(id)
+      setOrder((prev) =>
+        prev && prev.id === id ? (settled ?? { ...prev, status }) : prev,
+      )
       router.refresh()
     }, 3000)
     return () => clearInterval(timer)
@@ -103,11 +110,13 @@ export function BeverageCounter({
           <input
             ref={input}
             name="nickname"
-            required
             maxLength={40}
             autoComplete="off"
             autoFocus
-            placeholder="닉네임"
+            // Optional: PayPal returns the payer's own name with the money,
+            // which is a better name than a typed one. Worth having anyway for
+            // a guest paying by card, who has no PayPal account to be named by.
+            placeholder="닉네임 (선택)"
             className={`${FIELD} max-w-[220px] flex-1`}
           />
           {menu.map((item) => (
