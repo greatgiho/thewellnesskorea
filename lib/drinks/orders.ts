@@ -202,7 +202,16 @@ export async function markDrinkOrderRefunded(
 }
 
 /**
- * The counter list: most recent first.
+ * The counter list: sales, most recent first.
+ *
+ * Pending orders are left out. Ringing one up is not a sale — it is a QR going
+ * on a screen, and it becomes a row here when someone actually pays. Listing
+ * them would fill the counter with drinks nobody bought: every mistyped name,
+ * every customer who changed their mind, every QR that was never scanned.
+ *
+ * It also makes the list mean one thing. What is here is money taken, so it is
+ * both the queue of drinks to make and the place a refund is found — and a
+ * '대기' row is neither.
  *
  * Read under the admin's own session, so RLS is what permits it. Capped
  * because this is a working screen for the last few minutes of a shift, not a
@@ -216,6 +225,7 @@ export async function listDrinkOrders(
   let query = supabase
     .from("drink_orders")
     .select(COLUMNS)
+    .neq("status", "pending")
     .order("created_at", { ascending: false })
     .limit(options.limit ?? 30)
 

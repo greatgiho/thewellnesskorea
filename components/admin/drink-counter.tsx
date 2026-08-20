@@ -48,15 +48,12 @@ export function DrinkCounter({
   const order =
     rungUp && (!wanted || wanted === rungUp.id) ? rungUp : initialOrder
 
+  // Nothing else needs telling. The list below is sales, and ringing one up is
+  // not a sale yet — it joins the list when it is paid for, which is what the
+  // poll below is waiting to find out.
   useEffect(() => {
-    if (!state.order) return
-    setRungUp(state.order)
-    // The list below was rendered before this order existed. Catching it up is
-    // a page render, so it happens once, late, and after the QR is already on
-    // screen — off the path anyone is waiting on.
-    const timer = setTimeout(() => router.refresh(), 1200)
-    return () => clearTimeout(timer)
-  }, [state.order, router])
+    if (state.order) setRungUp(state.order)
+  }, [state.order])
 
   // Poll while there is something to wait for, and stop the moment there is
   // not. Unmounting the interval is what stops it, so a paid counter at rest
