@@ -46,9 +46,25 @@ export type BusinessInfo = {
   privacyOfficer: string
 }
 
+/**
+ * Where a bank transfer goes.
+ *
+ * Its own block rather than part of BusinessInfo, because the two are shown in
+ * different places for different reasons: the trader details are a legal
+ * notice in the footer, and this is a payment instruction that belongs where
+ * somebody is trying to pay. Blank means we do not take transfers, and nothing
+ * about them renders.
+ */
+export type BankInfo = {
+  bankName: string
+  accountNumber: string
+  accountHolder: string
+}
+
 export type SiteSettings = {
   site: SiteInfo
   business: BusinessInfo
+  bank: BankInfo
 }
 
 export const EMPTY_SITE_INFO: SiteInfo = {
@@ -70,9 +86,29 @@ export const EMPTY_BUSINESS_INFO: BusinessInfo = {
   privacyOfficer: "",
 }
 
+export const EMPTY_BANK_INFO: BankInfo = {
+  bankName: "",
+  accountNumber: "",
+  accountHolder: "",
+}
+
 export const EMPTY_SITE_SETTINGS: SiteSettings = {
   site: EMPTY_SITE_INFO,
   business: EMPTY_BUSINESS_INFO,
+  bank: EMPTY_BANK_INFO,
+}
+
+/**
+ * Transfers are only offered when all three are filled.
+ *
+ * A bank with no number, or a number with no holder, is worse than showing
+ * nothing: somebody would try to act on it and either fail or send money to
+ * the wrong name.
+ */
+export function hasBankInfo(bank: BankInfo): boolean {
+  return Boolean(
+    bank.bankName.trim() && bank.accountNumber.trim() && bank.accountHolder.trim(),
+  )
 }
 
 /**
@@ -91,6 +127,12 @@ export const SITE_INFO_COLUMNS: Record<keyof SiteInfo, string> = {
   contactEmail: "contact_email",
 }
 
+export const BANK_INFO_COLUMNS: Record<keyof BankInfo, string> = {
+  bankName: "bank_name",
+  accountNumber: "bank_account_number",
+  accountHolder: "bank_account_holder",
+}
+
 export const BUSINESS_INFO_COLUMNS: Record<keyof BusinessInfo, string> = {
   businessName: "business_name",
   representativeName: "representative_name",
@@ -106,6 +148,7 @@ export const BUSINESS_INFO_COLUMNS: Record<keyof BusinessInfo, string> = {
 export const EDITABLE_COLUMNS: string[] = [
   ...Object.values(SITE_INFO_COLUMNS),
   ...Object.values(BUSINESS_INFO_COLUMNS),
+  ...Object.values(BANK_INFO_COLUMNS),
 ]
 
 /**
@@ -119,6 +162,9 @@ export function toColumnValues(settings: SiteSettings): Record<string, string> {
   }
   for (const [field, column] of Object.entries(BUSINESS_INFO_COLUMNS)) {
     out[column] = settings.business[field as keyof BusinessInfo]
+  }
+  for (const [field, column] of Object.entries(BANK_INFO_COLUMNS)) {
+    out[column] = settings.bank[field as keyof BankInfo]
   }
   return out
 }
@@ -189,5 +235,6 @@ export const getSiteSettings = cache(async (): Promise<SiteSettings> => {
   return {
     site: group<SiteInfo>(row, SITE_INFO_COLUMNS),
     business: group<BusinessInfo>(row, BUSINESS_INFO_COLUMNS),
+    bank: group<BankInfo>(row, BANK_INFO_COLUMNS),
   }
 })

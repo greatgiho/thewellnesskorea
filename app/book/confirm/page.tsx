@@ -4,6 +4,7 @@ import { notFound } from "next/navigation"
 import { BookingPageLayout } from "@/components/booking/booking-page-layout"
 import { BookingSessionSummary } from "@/components/booking/booking-session-summary"
 import { TicketQr } from "@/components/booking/ticket-qr"
+import { BankTransferNotice } from "@/components/booking/bank-transfer-notice"
 import { PartyAdmits } from "@/components/booking/party-admits"
 import { getBookingSummaryById } from "@/lib/bookings/queries"
 import { getCheckinTokenForBookingId } from "@/lib/bookings/checkin"
@@ -41,11 +42,12 @@ export default async function BookConfirmPage({
 
   // Same three-way split as the booking form and /book/pay, so a free class
   // never reads as "pay on-site".
+  const mode = paymentMode(summary.price.final, summary.paymentMethod)
   const paymentNote = {
     free: "This class is free — nothing to pay.",
     online: "Your online payment is confirmed.",
     onsite: "Payment is on-site.",
-  }[paymentMode(summary.price.final, summary.paymentMethod)]
+  }[mode]
 
   const signupParams = new URLSearchParams({
     email: summary.guestEmail,
@@ -59,6 +61,17 @@ export default async function BookConfirmPage({
       description="We've sent a confirmation email with your class details and a link to cancel if needed."
     >
       <div className="space-y-8">
+        {/* Nothing could charge this booking — a won price with Toss
+            suspended, or a class set to pay in person. Saying "payment is
+            on-site" and stopping there leaves somebody holding a reservation
+            with no way to act on it until they arrive. */}
+        {mode === "onsite" ? (
+          <BankTransferNotice
+            amount={summary.price.final}
+            reference={summary.guestName}
+          />
+        ) : null}
+
         {checkinToken ? (
           <div className="rounded-3xl border border-border bg-card p-6 sm:p-8">
             <TicketQr token={checkinToken} />

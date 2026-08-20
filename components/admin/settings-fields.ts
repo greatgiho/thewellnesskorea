@@ -50,3 +50,20 @@ export const BUSINESS_INFO_FIELDS: SettingsField[] = [
   { column: "email", label: "이메일" },
   { column: "privacy_officer", label: "개인정보관리책임자" },
 ]
+
+/**
+ * Bank transfer details.
+ *
+ * The account number carries a warning the others do not need: this is the one
+ * field on the page where a typo sends somebody else's money somewhere it
+ * cannot be recalled.
+ */
+export const BANK_INFO_FIELDS: SettingsField[] = [
+  { column: "bank_name", label: "은행", hint: "예: 우리은행" },
+  {
+    column: "bank_account_number",
+    label: "계좌번호",
+    hint: "저장 전에 한 자씩 확인하세요. 틀리면 남의 계좌로 갑니다.",
+  },
+  { column: "bank_account_holder", label: "예금주" },
+]
