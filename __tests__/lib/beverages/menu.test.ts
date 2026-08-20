@@ -3,6 +3,7 @@ import {
   DEFAULT_BEVERAGE_ID,
   BEVERAGES,
   findBeverage,
+  formatListPrice,
   receiptCode,
 } from "@/lib/beverages/menu"
 import { toPaypalAmount } from "@/lib/payments/money"
@@ -49,6 +50,41 @@ describe("the menu", () => {
   it("is nothing for an item that is not for sale", () => {
     expect(findBeverage("no-such-beverage")).toBe(null)
     expect(findBeverage("")).toBe(null)
+  })
+
+  it("has a sign price for everything", () => {
+    // The counter picks by the won price. An item without one is an item a
+    // barista cannot find on the sign in front of them.
+    for (const beverage of BEVERAGES) {
+      expect(beverage.listPriceKrw).toBeGreaterThan(0)
+    }
+  })
+
+  it("charges within a few percent of the sign price", () => {
+    // The dollars and the won are set by hand from a rate on a day, and drift
+    // apart as the rate moves. This is the width at which someone should go
+    // and reset them — not a conversion, a staleness alarm. Deliberately loose:
+    // it must not fail because the market moved a little overnight.
+    const RATE = 1391 // ₩/USD, 2026-08-20
+    for (const beverage of BEVERAGES) {
+      const impliedKrw = beverage.price.amount * RATE
+      const drift = Math.abs(impliedKrw - beverage.listPriceKrw) / beverage.listPriceKrw
+      expect(drift).toBeLessThan(0.05)
+    }
+  })
+
+  it("gives every item its own sign price", () => {
+    // Two buttons reading ₩5,000 is a barista guessing which one is which.
+    expect(new Set(BEVERAGES.map((b) => b.listPriceKrw)).size).toBe(
+      BEVERAGES.length,
+    )
+  })
+})
+
+describe("formatListPrice", () => {
+  it("is the won price, no decimals", () => {
+    expect(formatListPrice(BEVERAGES[0])).toBe("₩5,000")
+    expect(formatListPrice(BEVERAGES[1])).toBe("₩8,000")
   })
 })
 
