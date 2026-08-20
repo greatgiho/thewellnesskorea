@@ -1,9 +1,11 @@
 import { cache } from "react"
 import {
   BUSINESS_INFO_COLUMNS,
+  EMPTY_BANK_INFO,
   EMPTY_BUSINESS_INFO,
   SITE_INFO_COLUMNS,
   getSiteSettings,
+  type BankInfo,
   type BusinessInfo,
   type SiteInfo,
 } from "@/lib/site/settings"
@@ -80,6 +82,15 @@ export const PLACEHOLDER_SITE_INFO: SiteInfo = {
 export type ResolvedSettings = {
   site: SiteInfo
   business: BusinessInfo
+  /**
+   * Straight from the database, with no fallback behind it.
+   *
+   * The other two blocks fall back to an env copy and then to placeholders, so
+   * a database blip cannot take the site down. An account number has no such
+   * chain: a stale or invented one sends money to a stranger, so the only safe
+   * answer when it cannot be read is none.
+   */
+  bank: BankInfo
   siteSource: SettingsSource
   businessSource: SettingsSource
   /** Required fields the database is still missing — what the admin must fill. */
@@ -195,6 +206,7 @@ export const resolveSiteSettings = cache(
     return {
       site,
       business,
+      bank: db.bank ?? EMPTY_BANK_INFO,
       siteSource,
       businessSource,
       // Against the database specifically: the admin fills the database, so

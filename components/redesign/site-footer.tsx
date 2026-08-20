@@ -4,7 +4,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useLang } from "@/components/redesign/language-provider"
-import type { BusinessInfo, SiteInfo } from "@/lib/site/settings"
+import type { BankInfo, BusinessInfo, SiteInfo } from "@/lib/site/settings"
 import {
   FOOTER_ONLY_LINKS,
   FOOTER_SECTION_LINKS,
@@ -22,11 +22,13 @@ const T = {
   en: {
     explore: "Explore",
     visit: "Visit",
+    bank: "Bank transfer",
     rights: (year: number) => `© ${year} The Wellness Korea. Made with stillness.`,
   },
   ko: {
     explore: "둘러보기",
     visit: "찾아오기",
+    bank: "무통장입금",
     rights: (year: number) => `© ${year} 더 웰니스 코리아. 고요함으로 만듭니다.`,
   },
 }
@@ -54,9 +56,15 @@ const BUSINESS_FIELDS: {
 export function SiteFooter({
   site,
   business,
+  bank,
 }: {
   site: SiteInfo
   business: BusinessInfo | null
+  /**
+   * Where a transfer goes. Null when any part of it is unset — a bank with no
+   * number is worse than nothing, because somebody would try to use it.
+   */
+  bank: BankInfo | null
 }) {
   const { lang } = useLang()
   const pathname = usePathname()
@@ -155,6 +163,16 @@ export function SiteFooter({
               </li>
             ))}
           </ul>
+        ) : null}
+        {/* Beside the trader details, which is where a Korean site is looked
+            at for one. The confirmation page still carries it with the amount
+            and the memo — this is for somebody who closed that page, or who
+            was told about us over the phone. */}
+        {bank ? (
+          <p className="mb-3 text-xs leading-relaxed text-muted-foreground">
+            <span className="text-muted-foreground/60">{t.bank}</span>{" "}
+            {bank.bankName} {bank.accountNumber} ({bank.accountHolder})
+          </p>
         ) : null}
         <p className="text-xs text-muted-foreground">{t.rights(new Date().getFullYear())}</p>
       </div>
