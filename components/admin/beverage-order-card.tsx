@@ -1,8 +1,6 @@
 "use client"
 
-import { QrFigure } from "@/components/referrals/qr-figure"
 import { BeverageOrderStatusBadge } from "@/components/admin/beverage-order-status"
-import { qrFilename } from "@/lib/referrals/links"
 import { formatKstDateTime } from "@/lib/time/kst"
 import type { CounterOrder } from "@/lib/beverages/counter"
 
@@ -15,6 +13,11 @@ import type { CounterOrder } from "@/lib/beverages/counter"
  * The QR arrives as an SVG string rather than being drawn here. Both ways of
  * putting an order on this card — ringing one up, picking one out of the list
  * — go through toCounterOrder, so there is one shape and one place it is made.
+ *
+ * No download under it, unlike the referral QRs. Those get printed and stuck
+ * to walls; this one is turned round for the person standing there and is
+ * worthless a minute later. White background all the same — a dark-mode QR is
+ * a QR some phone cameras will not read.
  */
 
 export function BeverageOrderCard({ order }: { order: CounterOrder }) {
@@ -30,9 +33,9 @@ export function BeverageOrderCard({ order }: { order: CounterOrder }) {
 
       {order.status === "pending" && order.qrSvg ? (
         <div className="mt-6 flex flex-col gap-6 sm:flex-row sm:items-start">
-          <QrFigure filename={qrFilename("음료", order.nickname)} size="lg">
+          <div className="w-[220px] shrink-0 rounded-xl bg-white p-2 [&>div]:contents [&_svg]:h-auto [&_svg]:w-full">
             <div dangerouslySetInnerHTML={{ __html: order.qrSvg }} />
-          </QrFigure>
+          </div>
           <p className="min-w-0 break-all font-mono text-xs text-muted-foreground">
             {order.url}
           </p>
