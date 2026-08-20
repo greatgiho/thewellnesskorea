@@ -1,3 +1,4 @@
+import type { SupabaseClient } from "@supabase/supabase-js"
 import { createClient } from "@/lib/supabase/server"
 import { normalizeRelation } from "@/lib/supabase/normalize-relation"
 import { normalizeDescriptionBlocks } from "./images"
@@ -140,6 +141,41 @@ export async function getUpcomingSessions(
     toSessionWithRelations(
       row as unknown as SessionRelationRow,
     ),
+  )
+}
+
+/**
+ * The classes a counter could sell right now.
+ *
+ * Confirmed, published and still to come — the same three the booking page
+ * requires, so nothing on this list leads anywhere that refuses to take money.
+ *
+ * Unlisted classes are included on purpose. Off the public schedule (060)
+ * means sold by link only, which is exactly the class whose QR somebody needs
+ * at a door.
+ *
+ * Read with the caller's client so RLS decides, and ordered soonest first:
+ * whoever is looking at this has somebody standing in front of them, and the
+ * class about to start is the one being asked about.
+ */
+export async function getSellableSessions(
+  supabase: SupabaseClient,
+  limit = 12,
+): Promise<SessionWithRelations[]> {
+  const { data, error } = await supabase
+    .from("sessions")
+    .select(SESSION_WITH_RELATIONS)
+    .eq("status", "confirmed")
+    .eq("is_published", true)
+    .gte("starts_at", new Date().toISOString())
+    .order("starts_at", { ascending: true })
+    .limit(limit)
+
+  if (error) throw new Error(error.message)
+  if (!data) return []
+
+  return data.map((row) =>
+    toSessionWithRelations(row as unknown as SessionRelationRow),
   )
 }
 
