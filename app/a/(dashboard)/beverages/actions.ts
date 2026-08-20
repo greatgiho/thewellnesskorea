@@ -6,29 +6,21 @@ import { refundCapture } from "@/lib/payments/paypal"
 import { DEFAULT_BEVERAGE_ID, findBeverage } from "@/lib/beverages/menu"
 import {
   createBeverageOrder,
-  beverageOrderUrl,
   getBeverageOrderAs,
   markBeverageOrderRefunded,
   type BeverageOrderStatus,
 } from "@/lib/beverages/orders"
-import { referralQrSvg } from "@/lib/referrals/queries"
-import { formatMoney } from "@/lib/payments/money"
-import type { CounterOrder } from "@/components/admin/beverage-order-card"
+import { toCounterOrder, type CounterOrder } from "@/lib/beverages/counter"
 
 export type RingUpState = { error?: string; order?: CounterOrder }
 
 /**
  * Ring up a beverage under a name and hand back everything the screen needs.
  *
- * It used to redirect to /a/beverages?order=<id>, which was addressable and
- * slow: showing a QR cost a second page render — two auth round trips and two
- * queries — to display something this call already had. Drawing the QR is a
- * millisecond of CPU, so it is done here and returned, and the counter puts it
- * on screen without going anywhere.
- *
- * The address is not lost: the page still renders ?order= on its own, so a
- * reload or a second screen gets the same QR. The client just updates the URL
- * without navigating.
+ * It used to redirect, which was slow: showing a QR cost a whole second page
+ * render — two auth round trips and two queries — to display something this
+ * call already had. Drawing the QR is a millisecond of CPU, so it is done here
+ * and returned, and the counter puts it on screen without going anywhere.
  */
 export async function ringUpBeverage(
   _prev: RingUpState,
@@ -37,7 +29,9 @@ export async function ringUpBeverage(
   try {
     const { supabase, userId } = await requireAdminSession()
     const nickname = String(formData.get("nickname") ?? "")
-    const beverage = findBeverage(String(formData.get("itemId") ?? DEFAULT_BEVERAGE_ID))
+    const beverage = findBeverage(
+      String(formData.get("itemId") ?? DEFAULT_BEVERAGE_ID),
+    )
     if (!beverage) return { error: "판매하지 않는 품목입니다." }
 
     const order = await createBeverageOrder(supabase, {
@@ -46,25 +40,11 @@ export async function ringUpBeverage(
       createdBy: userId,
     })
 
-    const url = beverageOrderUrl(order.id)
     // Deliberately not revalidatePath. Marking this page dirty makes Next
     // re-render it and ship the payload back with this response — the very
-    // page render this was meant to avoid, reintroduced by a one-line habit.
-    // The list below is one row stale until the beverage is paid for, and
-    // that is exactly when the poll refreshes it.
-
-    return {
-      order: {
-        id: order.id,
-        nickname: order.nickname,
-        itemName: order.itemName,
-        price: formatMoney(order.price),
-        status: order.status,
-        createdAt: order.createdAt,
-        url,
-        qrSvg: await referralQrSvg(url),
-      },
-    }
+    // page render this was meant to avoid. Nothing below needs telling either:
+    // the list is sales, and this is not one until somebody pays.
+    return { order: await toCounterOrder(order) }
   } catch (error) {
     return {
       error: error instanceof Error ? error.message : "주문을 만들지 못했습니다.",
@@ -73,13 +53,26 @@ export async function ringUpBeverage(
 }
 
 /**
+ * One order, ready for the card.
+ *
+ * What a click in the list calls. It returns the same shape ringUpBeverage
+ * does, so the card has one source and the screen has one way to change what
+ * it is showing — which is the whole point of it not being in the address.
+ */
+export async function loadCounterOrder(
+  orderId: string,
+): Promise<CounterOrder | null> {
+  const { supabase } = await requireAdminSession()
+  const order = await getBeverageOrderAs(supabase, orderId)
+  return order ? await toCounterOrder(order) : null
+}
+
+/**
  * Just the status of one order.
  *
- * What the counter is actually waiting for. Refreshing the whole page to find
- * it out cost two auth round trips and two queries every few seconds, to learn
- * one word — and re-rendered the screen under whoever was using it. This is a
- * single row read, and the page is only refreshed once, when the answer
- * changes and the list below is genuinely stale.
+ * What the counter is waiting for. Refreshing the whole page to find it out
+ * cost two auth round trips and two queries every few seconds, to learn one
+ * word — and re-rendered the screen under whoever was using it.
  */
 export async function beverageOrderStatus(
   orderId: string,

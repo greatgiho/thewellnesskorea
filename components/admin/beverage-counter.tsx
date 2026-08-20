@@ -1,79 +1,62 @@
 "use client"
 
-import { useActionState, useEffect, useRef, useState } from "react"
+import { useActionState, useEffect, useRef, useState, useTransition } from "react"
 import { useFormStatus } from "react-dom"
 import { useRouter } from "next/navigation"
 import { FIELD } from "@/lib/ui/field"
-import {
-  BeverageOrderCard,
-  type CounterOrder,
-} from "@/components/admin/beverage-order-card"
+import { BeverageOrderCard } from "@/components/admin/beverage-order-card"
+import { BeverageOrdersList } from "@/components/admin/beverage-orders-list"
+import type { CounterOrder } from "@/lib/beverages/counter"
+import type { BeverageOrder } from "@/lib/beverages/orders"
 import {
   beverageOrderStatus,
+  loadCounterOrder,
   ringUpBeverage,
   type RingUpState,
 } from "@/app/a/(dashboard)/beverages/actions"
 
 /**
- * The counter: ring one up, watch for it to be paid.
+ * The counter: ring one up, watch for it to be paid, look one up to refund.
  *
- * Ringing up is one round trip. It used to be two — the action, then a
- * redirect that re-rendered the whole page to display a QR the action already
- * had in hand. On production that second render is two auth calls and two
- * queries, which is most of the wait for something that costs 3ms to draw.
+ * One piece of state says what the card is showing, and three things write it:
+ * ringing up, clicking a name in the list, and the poll noticing a payment.
+ * Nothing reads it back from anywhere else.
  *
- * Waiting is one row read rather than a page refresh, and the page is only
- * refreshed when the answer actually changes.
+ * It was briefly split between this state and ?order= in the address, with a
+ * rule for which one counted. That rule was the bug in #239: the address does
+ * not clear itself, so once a click in the list had put an order there, every
+ * ring-up after it was ignored and the counter showed the same QR for good. A
+ * screen with two sources of truth needs a tie-break, and a tie-break is a
+ * thing that can be wrong. So there is one source, and no address to keep in
+ * step with it.
+ *
+ * The cost is that a reload does not bring a pending QR back. Ring it up
+ * again — the abandoned row is not a sale, so it is not in the list and not in
+ * anyone's way.
  */
 export function BeverageCounter({
   price,
-  initialOrder,
+  orders,
+  initialSearch,
 }: {
   price: string
-  initialOrder: CounterOrder | null
+  orders: BeverageOrder[]
+  initialSearch: string
 }) {
   const router = useRouter()
   const [state, action] = useActionState<RingUpState, FormData>(ringUpBeverage, {})
-  const [order, setOrder] = useState<CounterOrder | null>(initialOrder)
+  const [order, setOrder] = useState<CounterOrder | null>(null)
+  const [selecting, startSelecting] = useTransition()
   const input = useRef<HTMLInputElement>(null)
 
-  // Which order the card is about: whichever source spoke last.
-  //
-  // Two can name one — a ring-up here, and ?order= in the address, which is
-  // how a reload, a second screen or a click in the list arrives at one.
-  //
-  // Deciding by reading the address was wrong, and wrong in a way that got
-  // worse the longer the screen was open: ?order= does not clear itself, so
-  // once a click in the list had put one there, every ring-up after it was
-  // ignored and the counter showed the same QR forever. Which source is
-  // *newer* is the actual question, and the address cannot answer it.
-  const seenFromAddress = useRef(initialOrder?.id ?? null)
-
   useEffect(() => {
-    // Only when the address moved to a different order. A re-render for any
-    // other reason — the poll's refresh, the list updating — hands back the
-    // same one, and adopting it would undo a ring-up that happened since.
-    const id = initialOrder?.id ?? null
-    if (id === seenFromAddress.current) return
-    seenFromAddress.current = id
-    setOrder(initialOrder)
-  }, [initialOrder])
-
-  useEffect(() => {
-    if (!state.order) return
-    setOrder(state.order)
-    // Put the new one in the address as well, so a reload or a second screen
-    // finds the QR that is on this one. replaceState rather than a navigation:
-    // this is the same page showing the same thing, and a router round trip
-    // here is the render this screen was rebuilt to avoid. Nothing reads the
-    // address to decide what to show any more, so it cannot fight anything.
-    seenFromAddress.current = state.order.id
-    window.history.replaceState(null, "", `/a/beverages?order=${state.order.id}`)
+    if (state.order) setOrder(state.order)
   }, [state.order])
 
   // Poll while there is something to wait for, and stop the moment there is
   // not. Unmounting the interval is what stops it, so a paid counter at rest
-  // makes no requests at all.
+  // makes no requests at all. The refresh is for the list, which gains a row
+  // exactly when this answer changes.
   useEffect(() => {
     if (!order || order.status !== "pending") return
     const id = order.id
@@ -85,6 +68,13 @@ export function BeverageCounter({
     }, 3000)
     return () => clearInterval(timer)
   }, [order, router])
+
+  const select = (id: string) => {
+    startSelecting(async () => {
+      const picked = await loadCounterOrder(id)
+      if (picked) setOrder(picked)
+    })
+  }
 
   return (
     <div className="space-y-6">
@@ -119,6 +109,14 @@ export function BeverageCounter({
       </form>
 
       {order ? <BeverageOrderCard order={order} /> : null}
+
+      <BeverageOrdersList
+        orders={orders}
+        initialSearch={initialSearch}
+        selectedId={order?.id ?? null}
+        busy={selecting}
+        onSelect={select}
+      />
     </div>
   )
 }
