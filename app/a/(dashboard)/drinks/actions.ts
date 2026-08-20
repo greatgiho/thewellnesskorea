@@ -1,25 +1,34 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import { redirect } from "next/navigation"
-import { isRedirectError } from "next/dist/client/components/redirect-error"
 import { requireAdminSession } from "@/lib/auth/require-session"
 import { refundCapture } from "@/lib/payments/paypal"
 import { DEFAULT_DRINK_ID, findDrink } from "@/lib/drinks/menu"
 import {
   createDrinkOrder,
+  drinkOrderUrl,
   getDrinkOrderAs,
   markDrinkOrderRefunded,
+  type DrinkOrderStatus,
 } from "@/lib/drinks/orders"
+import { referralQrSvg } from "@/lib/referrals/queries"
+import { formatMoney } from "@/lib/payments/money"
+import type { CounterOrder } from "@/components/admin/drink-order-card"
 
-export type RingUpState = { error?: string }
+export type RingUpState = { error?: string; order?: CounterOrder }
 
 /**
- * Ring up a drink under a name and put its QR on screen.
+ * Ring up a drink under a name and hand back everything the screen needs.
  *
- * Redirects rather than returning the order, so the QR lives at an address.
- * A barista who loses the tab, or wants it on the second screen, can get back
- * to the same QR — and reloading does not ring up a second drink.
+ * It used to redirect to /a/drinks?order=<id>, which was addressable and slow:
+ * showing a QR cost a whole second page render — two auth round trips and two
+ * queries — to display something this call already had. Drawing the QR is a
+ * millisecond of CPU, so it is done here and returned, and the counter puts it
+ * on screen without going anywhere.
+ *
+ * The address is not lost: the page still renders ?order= on its own, so a
+ * reload or a second screen gets the same QR. The client just updates the URL
+ * without navigating.
  */
 export async function ringUpDrink(
   _prev: RingUpState,
@@ -37,14 +46,47 @@ export async function ringUpDrink(
       createdBy: userId,
     })
 
-    revalidatePath("/a/drinks")
-    redirect(`/a/drinks?order=${order.id}`)
+    const url = drinkOrderUrl(order.id)
+    // Deliberately not revalidatePath. Marking this page dirty makes Next
+    // re-render it and ship the payload back with this response — the very
+    // page render this was meant to avoid, reintroduced by a one-line habit.
+    // The list below is one row stale until the drink is paid for, and that is
+    // exactly when the poll refreshes it.
+
+    return {
+      order: {
+        id: order.id,
+        nickname: order.nickname,
+        itemName: order.itemName,
+        price: formatMoney(order.price),
+        status: order.status,
+        createdAt: order.createdAt,
+        url,
+        qrSvg: await referralQrSvg(url),
+      },
+    }
   } catch (error) {
-    if (isRedirectError(error)) throw error
     return {
       error: error instanceof Error ? error.message : "주문을 만들지 못했습니다.",
     }
   }
+}
+
+/**
+ * Just the status of one order.
+ *
+ * What the counter is actually waiting for. Refreshing the whole page to find
+ * it out cost two auth round trips and two queries every few seconds, to learn
+ * one word — and re-rendered the screen under whoever was using it. This is a
+ * single row read, and the page is only refreshed once, when the answer
+ * changes and the list below is genuinely stale.
+ */
+export async function drinkOrderStatus(
+  orderId: string,
+): Promise<DrinkOrderStatus | null> {
+  const { supabase } = await requireAdminSession()
+  const order = await getDrinkOrderAs(supabase, orderId)
+  return order?.status ?? null
 }
 
 export type RefundState = { error?: string; done?: boolean }
