@@ -1,153 +1,500 @@
 import type { Metadata } from "next"
+import Link from "next/link"
 import { LegalPageLayout, LegalSection } from "@/components/legal/legal-page-layout"
 import {
   PLACEHOLDER_SITE_INFO,
   resolveSiteSettings,
 } from "@/lib/site/settings-source"
+import { LEGAL_EFFECTIVE_DATE, LEGAL_UPDATED_EN } from "@/lib/legal/refund"
 
 export const metadata: Metadata = {
-  title: "Terms of Use — The Wellness Korea",
-  description: "Terms and conditions for using The Wellness Korea website and services.",
+  title: "이용약관 — The Wellness Korea",
+  description: "더 웰니스코리아 홈페이지 및 서비스 이용약관입니다.",
 }
 
+/**
+ * The terms, in Korean and in full.
+ *
+ * What was here before was an English summary that deferred cancellation and
+ * refunds to a policy which did not exist — in the future tense, on a site
+ * already taking money. That is the gap the payment application was refused
+ * over.
+ *
+ * Trader details come from site_settings so this page and the footer cannot
+ * disagree, and so a registration number corrected in the admin is corrected
+ * everywhere at once.
+ */
 export default async function TermsPage() {
-  // Edited in the admin, so a change of address does not need a deploy —
-  // and does not leave these two pages naming an inbox nobody reads.
-  const { site } = await resolveSiteSettings()
-  // Cleared on purpose is still a cleared field, and "contact us at ." is
-  // not a sentence — so these two pages, unlike the footer, need the
-  // built-in default even when the rest of the block resolved fine.
-  const contactEmail =
-    site.contactEmail || PLACEHOLDER_SITE_INFO.contactEmail
+  const { site, business } = await resolveSiteSettings()
+  const contactEmail = site.contactEmail || PLACEHOLDER_SITE_INFO.contactEmail
 
   return (
-    <LegalPageLayout title="Terms of Use" updated="June 16, 2026">
-      <LegalSection title="1. Agreement">
+    <LegalPageLayout title="이용약관" updated={LEGAL_UPDATED_EN}>
+      <p className="text-muted-foreground">
+        브릭웰 서촌 팝업 등 개별 프로그램의 취소·환불에는{" "}
+        <Link href="/refunds" className="underline underline-offset-4">
+          「취소·환불규정」
+        </Link>
+        이 이 약관에 우선하여 적용됩니다.
+      </p>
+
+      <LegalSection title="제1조 (목적)">
         <p>
-          By accessing or using thewellnesskorea.com and related services operated by
-          The Wellness Korea (&quot;we,&quot; &quot;us,&quot; or &quot;our&quot;), you
-          agree to these Terms of Use. If you do not agree, please do not use our
-          website or services.
+          이 약관은 더 웰니스코리아(이하 &ldquo;회사&rdquo;)가 운영하는 웹사이트 및
+          모바일 서비스(이하 통칭하여 &ldquo;서비스&rdquo;)의 이용과 관련하여
+          회사와 이용자 간의 권리, 의무 및 책임사항, 기타 필요한 사항을 규정함을
+          목적으로 합니다.
         </p>
       </LegalSection>
 
-      <LegalSection title="2. Services">
+      <LegalSection title="제2조 (용어의 정의)">
         <p>
-          We provide information about K-Wellness programs, schedules, instructors,
-          and cultural experiences at Brickwell in Seochon, Seoul. Program
-          availability, pricing, and schedules may change without notice. Participation
-          in any in-person program is subject to separate booking terms communicated
-          at the time of reservation.
+          1. &ldquo;서비스&rdquo;란 접속 기기와 관계없이 회사가 제공하는 웹사이트,
+          모바일 웹, 애플리케이션 및 이에 부수하는 일체의 온라인 서비스를 말합니다.
+        </p>
+        <p>
+          2. &ldquo;이용자&rdquo;란 서비스에 접속하여 이 약관에 따라 서비스를
+          이용하는 회원 및 비회원을 말합니다.
+        </p>
+        <p>
+          3. &ldquo;회원&rdquo;이란 회사에 개인정보를 제공하여 회원등록을 한 자로서,
+          회사의 정보를 지속적으로 제공받으며 서비스를 계속 이용할 수 있는 자를
+          말합니다.
+        </p>
+        <p>
+          4. &ldquo;비회원&rdquo;이란 회원가입 없이 회사가 제공하는 서비스를
+          이용하는 자를 말합니다.
+        </p>
+        <p>
+          5. &ldquo;아이디(ID)&rdquo;란 회원의 식별과 서비스 이용을 위하여 회원이
+          정하고 회사가 승인하는 문자와 숫자의 조합 또는 회원의 전자우편주소를
+          말합니다.
+        </p>
+        <p>
+          6. &ldquo;판매자&rdquo;(통신판매중개의뢰자)란 회사의 중개를 통하여 상품
+          또는 용역을 이용자에게 직접 제공·판매하는 자를 말합니다.
+        </p>
+        <p>
+          7. &ldquo;중개 상품&rdquo;이란 판매자가 판매 주체가 되고 회사는
+          통신판매중개만을 수행하는 상품을 말합니다.
+        </p>
+        <p>
+          8. &ldquo;회사 직접판매 상품&rdquo;이란 회사가 통신판매업자로서 직접
+          판매 주체가 되는 상품을 말합니다.
+        </p>
+        <p>
+          9. &ldquo;게시물&rdquo;이란 이용자가 서비스에 게시한 부호, 문자, 음성,
+          이미지, 영상 등 일체의 정보를 말하며 후기 및 리뷰를 포함합니다.
         </p>
       </LegalSection>
 
-      <LegalSection title="3. Accounts and eligibility">
+      <LegalSection title="제3조 (약관의 명시와 개정)">
         <p>
-          Certain features, including instructor and administrator portals, require an
-          account. You are responsible for maintaining the confidentiality of your
-          login credentials and for all activity under your account. You must provide
-          accurate information and promptly update it if it changes.
+          ① 회사는 이 약관의 내용과 상호, 대표자 성명, 영업소 소재지,
+          사업자등록번호, 통신판매업 신고번호, 연락처 등을 이용자가 쉽게 알 수
+          있도록 서비스 초기화면에 게시합니다.
+        </p>
+        <p>
+          ② 회사는 「약관의 규제에 관한 법률」, 「전자상거래 등에서의 소비자보호에
+          관한 법률」(이하 &ldquo;전자상거래법&rdquo;), 「정보통신망 이용촉진 및
+          정보보호 등에 관한 법률」(이하 &ldquo;정보통신망법&rdquo;), 「개인정보
+          보호법」 등 관련 법령에 위배되지 않는 범위에서 이 약관을 개정할 수
+          있습니다.
+        </p>
+        <p>
+          ③ 회사가 약관을 개정하는 경우 적용일자 및 개정사유를 명시하여 현행 약관과
+          함께 적용일자 7일 전부터 공지합니다. 다만 이용자에게 불리하게 개정하는
+          경우에는 적용일자 30일 전부터 공지하고, 회원에게는 전자우편 등의 방법으로
+          개별 통지합니다.
+        </p>
+        <p>
+          ④ 회사가 제3항에 따라 개정약관을 공지 또는 통지하면서 적용일자까지
+          거부의사를 표시하지 아니하면 동의한 것으로 본다는 뜻을 명확하게
+          고지하였음에도 이용자가 명시적으로 거부의사를 표시하지 아니한 경우,
+          이용자가 개정약관에 동의한 것으로 봅니다.
+        </p>
+        <p>
+          ⑤ 이용자가 개정약관에 동의하지 아니하는 경우 회사는 개정약관을 적용할 수
+          없으며, 이 경우 이용자는 이용계약을 해지할 수 있습니다.
         </p>
       </LegalSection>
 
-      <LegalSection title="4. Acceptable use">
-        <p>You agree not to:</p>
-        <ul className="list-disc space-y-2 pl-5">
-          <li>Use the website for unlawful, harmful, or fraudulent purposes</li>
-          <li>Attempt to gain unauthorized access to our systems or other users&apos; accounts</li>
-          <li>Interfere with the proper functioning or security of the website</li>
-          <li>Copy, scrape, or redistribute content without our prior written consent</li>
-          <li>Misrepresent your identity or affiliation with The Wellness Korea</li>
-        </ul>
-      </LegalSection>
-
-      <LegalSection title="5. Intellectual property">
+      <LegalSection title="제4조 (약관 외 준칙)">
         <p>
-          All content on this website — including text, images, branding, design, and
-          program materials — is owned by or licensed to The Wellness Korea and is
-          protected by applicable intellectual property laws. You may view content for
-          personal, non-commercial use only unless we grant written permission
-          otherwise.
+          이 약관에 명시되지 아니한 사항은 관련 법령, 회사가 정한 개별 서비스의
+          이용조건 및 운영정책, 상관례에 따릅니다. 개별 상품의 취소 및 환불에
+          관하여는 회사가 별도로 정한{" "}
+          <Link href="/refunds" className="underline underline-offset-4">
+            「취소·환불규정」
+          </Link>
+          이 이 약관에 우선하여 적용됩니다.
         </p>
       </LegalSection>
 
-      <LegalSection title="6. Wellness disclaimer">
+      <LegalSection title="제5조 (이용계약의 체결)">
         <p>
-          Our programs are designed for general wellness, cultural education, and
-          restorative experiences. They are not medical treatment, psychotherapy, or a
-          substitute for professional healthcare. Consult a qualified healthcare
-          provider before participating if you have medical conditions, injuries, or
-          pregnancy-related concerns.
+          ① 이용계약은 이용자가 이 약관의 내용에 동의하고 회원가입을 신청한 후
+          회사가 이를 승낙함으로써 체결됩니다.
         </p>
         <p>
-          Participation is at your own risk. You are responsible for disclosing relevant
-          health information to instructors when requested.
+          ② 회사는 다음 각 호에 해당하는 신청에 대하여는 승낙을 하지 아니하거나
+          사후에 이용계약을 해지할 수 있습니다.
+        </p>
+        <p>1. 타인의 명의를 도용하여 신청한 경우</p>
+        <p>2. 신청 내용에 허위 기재, 기재 누락 또는 오기가 있는 경우</p>
+        <p>3. 만 14세 미만의 아동이 법정대리인의 동의 없이 신청한 경우</p>
+        <p>
+          4. 이전에 회원자격을 상실한 자가 회사의 재가입 승낙을 얻지 아니하고
+          신청한 경우
+        </p>
+        <p>5. 부정한 용도 또는 영리를 목적으로 서비스를 이용하고자 하는 경우</p>
+        <p>6. 회사의 설비에 여유가 없거나 기술상 또는 업무상 지장이 있는 경우</p>
+        <p>③ 회사는 회원가입 시 실명확인 또는 본인인증을 요청할 수 있습니다.</p>
+      </LegalSection>
+
+      <LegalSection title="제6조 (아이디 및 비밀번호의 관리)">
+        <p>
+          ① 아이디와 비밀번호에 관한 관리책임은 회원에게 있으며, 회원은 이를
+          제3자에게 이용하게 하여서는 안 됩니다.
+        </p>
+        <p>
+          ② 회원은 아이디 및 비밀번호가 도용되거나 제3자가 사용하고 있음을 인지한
+          경우 즉시 회사에 통지하고 회사의 안내에 따라야 합니다.
+        </p>
+        <p>
+          ③ 제2항의 경우 회원이 회사에 통지하지 아니하거나 통지 후 회사의 안내에
+          따르지 아니하여 발생한 불이익에 대하여 회사는 책임지지 않습니다.
         </p>
       </LegalSection>
 
-      <LegalSection title="7. Bookings and cancellations">
+      <LegalSection title="제7조 (회원정보의 변경)">
         <p>
-          When booking becomes available, specific cancellation, refund, and
-          rescheduling policies will be presented at checkout or in your confirmation
-          email. Until then, inquiries about visits may be handled on a case-by-case
-          basis through our contact channels.
+          ① 회원은 서비스 내 개인정보 관리화면을 통하여 자신의 정보를 열람하고
+          수정할 수 있습니다. 다만 서비스 관리를 위하여 필요한 아이디 등은 수정이
+          제한될 수 있습니다.
+        </p>
+        <p>
+          ② 회원은 가입 시 기재한 사항이 변경된 경우 이를 수정하거나 회사에
+          통지하여야 하며, 이를 이행하지 아니하여 발생한 불이익에 대하여 회사는
+          책임지지 않습니다.
         </p>
       </LegalSection>
 
-      <LegalSection title="8. Third-party links">
+      <LegalSection title="제8조 (회원의 탈퇴 및 자격의 상실)">
         <p>
-          Our website may contain links to third-party websites or services. We are not
-          responsible for the content, policies, or practices of those third parties.
+          ① 회원은 언제든지 서비스 내 탈퇴 기능 또는 고객센터를 통하여 이용계약의
+          해지를 신청할 수 있으며, 회사는 관련 법령이 정하는 바에 따라 이를 즉시
+          처리합니다.
+        </p>
+        <p>
+          ② 회원 탈퇴 시 회사는 관련 법령 및 개인정보처리방침에 따라 보유하여야
+          하는 정보를 제외한 회원의 개인정보를 지체 없이 파기합니다.
+        </p>
+        <p>
+          ③ 탈퇴 시점에 진행 중인 예약 또는 결제 건이 있는 경우, 해당 거래의 처리가
+          완료된 후 탈퇴가 처리됩니다.
+        </p>
+        <p>
+          ④ 회사는 회원이 다음 각 호에 해당하는 경우 사전 통지 후 회원자격을 제한
+          또는 정지시킬 수 있으며, 시정되지 아니하거나 위반이 중대한 경우
+          회원자격을 상실시킬 수 있습니다.
+        </p>
+        <p>1. 가입 신청 시 허위의 내용을 등록한 경우</p>
+        <p>
+          2. 서비스를 이용하여 구입한 상품 등의 대금, 기타 서비스 이용과 관련하여
+          회원이 부담하는 채무를 기일에 이행하지 아니한 경우
+        </p>
+        <p>
+          3. 다른 이용자의 서비스 이용을 방해하거나 그 정보를 도용하는 등
+          전자거래질서를 위협하는 경우
+        </p>
+        <p>
+          4. 서비스를 이용하여 법령 또는 이 약관이 금지하거나 공서양속에 반하는
+          행위를 하는 경우
+        </p>
+        <p>5. 영리 목적의 재판매를 위하여 반복적으로 예약 및 취소를 하는 경우</p>
+        <p>
+          ⑤ 회사가 회원자격을 상실시키는 경우 회원등록을 말소합니다. 이 경우 회사는
+          회원에게 이를 통지하고, 회원등록 말소 전에 최소 30일 이상의 기간을 정하여
+          소명할 기회를 부여합니다.
         </p>
       </LegalSection>
 
-      <LegalSection title="9. Disclaimer of warranties">
+      <LegalSection title="제9조 (회원에 대한 통지)">
         <p>
-          The website and services are provided on an &quot;as is&quot; and &quot;as
-          available&quot; basis. To the fullest extent permitted by law, we disclaim all
-          warranties, express or implied, including merchantability, fitness for a
-          particular purpose, and non-infringement.
+          ① 회사가 회원에 대한 통지를 하는 경우 회원이 등록한 전자우편주소,
+          휴대전화번호 또는 서비스 내 알림으로 할 수 있습니다.
+        </p>
+        <p>
+          ② 회사는 불특정다수 회원에 대한 통지의 경우 서비스 게시판에 7일 이상
+          게시함으로써 개별 통지에 갈음할 수 있습니다. 다만 회원 본인의 거래와
+          관련하여 중대한 영향을 미치는 사항에 대하여는 개별 통지합니다.
         </p>
       </LegalSection>
 
-      <LegalSection title="10. Limitation of liability">
+      <LegalSection title="제10조 (서비스의 내용)">
+        <p>회사는 다음 각 호의 서비스를 제공합니다.</p>
+        <p>1. 회사 및 브랜드, 공간, 프로그램에 관한 정보의 제공</p>
+        <p>2. 프로그램, 클래스, 리트릿, 전시 등의 온라인 예약 및 결제</p>
+        <p>3. 상품 및 용역의 판매 또는 통신판매중개</p>
+        <p>4. 뉴스레터 및 콘텐츠의 발송</p>
+        <p>5. 후기, 문의 등 게시판 서비스</p>
+        <p>6. 기타 회사가 정하는 서비스</p>
+      </LegalSection>
+
+      <LegalSection title="제11조 (서비스의 제공 및 중단)">
+        <p>① 서비스는 연중무휴 1일 24시간 제공함을 원칙으로 합니다.</p>
         <p>
-          To the fullest extent permitted by law, The Wellness Korea and its directors,
-          employees, partners, and instructors shall not be liable for any indirect,
-          incidental, special, consequential, or punitive damages arising from your use
-          of the website or participation in our programs. Our total liability for any
-          claim shall not exceed the amount you paid us for the relevant service in the
-          twelve months preceding the claim, or KRW 100,000 if no payment was made.
+          ② 회사는 시스템 점검, 증설 및 교체, 설비의 보수, 통신두절 등의 사유가
+          발생한 경우 서비스의 전부 또는 일부를 일시적으로 중단할 수 있으며, 이 경우
+          사전에 공지합니다. 다만 사전 공지가 불가능한 부득이한 사유가 있는 경우에는
+          사후에 공지할 수 있습니다.
+        </p>
+        <p>
+          ③ 회사는 서비스의 내용을 변경하거나 종료할 수 있으며, 이 경우 변경 또는
+          종료일 30일 전까지 공지합니다.
         </p>
       </LegalSection>
 
-      <LegalSection title="11. Governing law">
+      <LegalSection title="제12조 (통신판매중개자 지위의 고지)">
         <p>
-          These Terms are governed by the laws of the Republic of Korea, without regard
-          to conflict-of-law principles. Disputes shall be subject to the exclusive
-          jurisdiction of the courts located in Seoul, South Korea, unless mandatory
-          consumer protection laws in your country provide otherwise.
+          ① 회사는 「전자상거래법」 제20조에 따른 통신판매중개자로서, 중개 상품에
+          관하여 통신판매의 당사자가 아닙니다.
+        </p>
+        <p>
+          ② 중개 상품의 계약 당사자는 이용자와 판매자이며, 상품 및 용역의 내용,
+          품질, 이행, 청약철회 및 환불 등 거래에 관한 책임은 판매자에게 있습니다.
+        </p>
+        <p>
+          ③ 회사는 각 상품 페이지에 해당 상품이 중개 상품인지 회사 직접판매
+          상품인지를 표시하고, 중개 상품의 경우 판매자의 상호, 대표자 성명,
+          사업자등록번호, 주소, 연락처 등 「전자상거래법」 제20조 제2항 및 같은 법
+          시행령이 정한 사항을 청약이 이루어지기 전까지 이용자에게 제공합니다.
+        </p>
+        <p>
+          ④ 회사가 제1항의 고지 또는 제3항의 정보제공 의무를 이행하지
+          아니하였거나 제공한 정보가 사실과 달라 이용자에게 재산상 손해가 발생한
+          경우, 회사는 「전자상거래법」 제20조의2에 따라 판매자와 연대하여 배상할
+          책임을 부담합니다.
+        </p>
+        <p>
+          ⑤ 상품 페이지에 회사가 판매자로 표시된 회사 직접판매 상품에 대하여는
+          회사가 통신판매업자로서 직접 책임을 부담합니다.
+        </p>
+        <p>
+          ⑥ 회사는 서비스 이용과 관련한 이용자의 불만 및 분쟁의 해결을 위하여 그
+          원인 및 피해의 파악 등 필요한 조치를 신속히 시행합니다.
         </p>
       </LegalSection>
 
-      <LegalSection title="12. Changes">
+      <LegalSection title="제13조 (예약 및 결제)">
         <p>
-          We may revise these Terms at any time by posting an updated version on this
-          page. Continued use of the website after changes become effective constitutes
-          acceptance of the revised Terms.
+          ① 이용자는 서비스가 제공하는 절차에 따라 상품을 선택하고 결제함으로써
+          청약을 신청하며, 회사의 수신확인 통지가 도달하고 결제가 완료된 시점에
+          계약이 성립합니다.
+        </p>
+        <p>
+          ② 결제는 신용카드, 체크카드, 계좌이체, 간편결제, 해외 발행 카드 등 회사가
+          제공하는 수단으로 할 수 있으며, 회사는 전자지급결제대행업자(PG)를 통하여
+          결제를 처리합니다.
+        </p>
+        <p>③ 상품 페이지에 표시된 가격은 부가가치세가 포함된 금액입니다.</p>
+      </LegalSection>
+
+      <LegalSection title="제14조 (청약철회, 취소 및 환불)">
+        <p>
+          ① 이용자는 「전자상거래법」 제17조에 따라 계약 내용에 관한 서면을 받은
+          날부터 7일 이내에 청약을 철회할 수 있습니다. 다만 같은 조 제2항 각 호의
+          사유에 해당하는 경우에는 청약철회가 제한됩니다.
+        </p>
+        <p>
+          ② 프로그램 및 티켓 등 개별 상품의 취소 및 환불에 관하여는 회사가 별도로
+          공개한{" "}
+          <Link href="/refunds" className="underline underline-offset-4">
+            「취소·환불규정」
+          </Link>
+          을 따릅니다. 해당 규정은 공정거래위원회 고시 「소비자분쟁해결기준」을
+          준수합니다.
+        </p>
+        <p>
+          ③ 중개 상품의 환불 의무는 판매자에게 있으며, 회사는 결제대금을 대신
+          수령한 범위에서 판매자를 대신하여 환불 절차를 이행할 수 있습니다.
         </p>
       </LegalSection>
 
-      <LegalSection title="13. Contact">
+      <LegalSection title="제15조 (뉴스레터 및 광고성 정보의 전송)">
         <p>
-          Questions about these Terms:{" "}
-          <a
-            href={`mailto:${contactEmail}`}
-            className="text-primary underline-offset-4 hover:underline"
-          >
-            {contactEmail}
-          </a>
+          ① 회사는 이용자가 「정보통신망법」에 따라 사전에 수신에 동의한 경우에
+          한하여 뉴스레터, 이벤트 안내 등 영리목적의 광고성 정보를 전송합니다.
         </p>
+        <p>
+          ② 회사는 광고성 정보를 전송하는 경우 제목란에 광고임을 표시하고 본문에
+          수신거부 방법을 명시합니다.
+        </p>
+        <p>
+          ③ 이용자는 언제든지 수신거부 링크, 서비스 내 설정 또는 고객센터를 통하여
+          수신동의를 철회할 수 있으며, 회사는 지체 없이 이를 처리하고 그 결과를
+          통지합니다.
+        </p>
+        <p>
+          ④ 예약 확인, 일정 변경, 결제 및 환불 안내 등 거래관계의 이행을 위한
+          정보는 수신동의 여부와 관계없이 발송됩니다.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="제16조 (회사의 의무)">
+        <p>
+          ① 회사는 관련 법령과 이 약관을 준수하며, 계속적이고 안정적으로 서비스를
+          제공하기 위하여 노력합니다.
+        </p>
+        <p>
+          ② 회사는 이용자의 개인정보를 보호하기 위하여 안전성 확보에 필요한
+          기술적·관리적 조치를 취하고,{" "}
+          <Link href="/privacy" className="underline underline-offset-4">
+            개인정보처리방침
+          </Link>
+          을 공시하고 준수합니다.
+        </p>
+        <p>
+          ③ 회사는 이용자가 제기한 의견이나 불만이 정당하다고 인정할 경우 이를
+          처리하며, 처리 결과를 이용자에게 통지합니다.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="제17조 (이용자의 의무)">
+        <p>이용자는 다음 각 호의 행위를 하여서는 안 됩니다.</p>
+        <p>1. 신청 또는 변경 시 허위 내용을 등록하는 행위</p>
+        <p>2. 타인의 정보를 도용하는 행위</p>
+        <p>3. 회사가 게시한 정보를 변경하는 행위</p>
+        <p>4. 회사 및 제3자의 저작권 등 지식재산권을 침해하는 행위</p>
+        <p>5. 회사 및 제3자의 명예를 손상시키거나 업무를 방해하는 행위</p>
+        <p>
+          6. 외설, 폭력적이거나 공서양속에 반하는 정보를 서비스에 공개 또는 게시하는
+          행위
+        </p>
+        <p>7. 자동화된 수단을 이용하여 서비스에 접속하거나 정보를 수집하는 행위</p>
+        <p>8. 영리를 목적으로 예약을 재판매하거나 이를 시도하는 행위</p>
+        <p>9. 기타 관련 법령에 위배되는 행위</p>
+      </LegalSection>
+
+      <LegalSection title="제18조 (게시물의 관리)">
+        <p>
+          ① 회사는 이용자의 게시물이 다음 각 호에 해당하는 경우 사전 통지 없이
+          삭제, 이동 또는 등록을 거부할 수 있습니다.
+        </p>
+        <p>1. 타인을 비방하거나 명예를 손상시키는 내용인 경우</p>
+        <p>2. 공서양속에 위반되는 내용인 경우</p>
+        <p>3. 범죄적 행위에 결부된다고 인정되는 경우</p>
+        <p>4. 제3자의 저작권 등 권리를 침해하는 내용인 경우</p>
+        <p>5. 광고 또는 상업성 홍보물인 경우</p>
+        <p>6. 기타 관련 법령 및 회사의 운영정책에 위반되는 경우</p>
+        <p>
+          ② 제3자의 권리를 침해하는 게시물에 대하여 권리자가 「정보통신망법」에
+          따라 삭제 또는 반박내용의 게재를 요청하는 경우, 회사는 지체 없이 임시조치
+          등 필요한 조치를 취합니다.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="제19조 (게시물의 저작권)">
+        <p>
+          ① 이용자가 서비스 내에 게시한 게시물의 저작권은 해당 이용자에게
+          귀속됩니다.
+        </p>
+        <p>
+          ② 이용자는 회사가 서비스의 운영, 전시, 홍보 및 개선을 위하여 필요한 범위
+          내에서 게시물을 무상으로 사용(복제, 수정, 편집, 전시, 배포)하는 것을
+          허락합니다. 다만 회사가 게시물을 본래의 목적과 다르게 상업적으로
+          이용하고자 하는 경우에는 사전에 이용자의 동의를 받습니다.
+        </p>
+        <p>
+          ③ 이용자가 회원에서 탈퇴한 경우에도 이미 게시된 게시물은 서비스 내에
+          유지될 수 있으며, 삭제를 원하는 경우 탈퇴 전에 직접 삭제하거나 고객센터에
+          요청하여야 합니다.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="제20조 (지식재산권)">
+        <p>
+          ① 회사가 작성한 저작물, 회사의 브랜드·상표·로고·디자인 및 프로그램 구성에
+          대한 저작권 및 기타 지식재산권은 회사에 귀속됩니다.
+        </p>
+        <p>
+          ② 이용자는 회사의 사전 서면 승낙 없이 제1항의 대상을 복제, 송신, 출판,
+          배포, 방송, 2차적 저작물 작성 기타 방법으로 영리목적으로 이용하거나
+          제3자에게 이용하게 하여서는 안 됩니다.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="제21조 (개인정보의 보호)">
+        <p>
+          ① 회사는 「개인정보 보호법」 등 관련 법령이 정하는 바에 따라 이용자의
+          개인정보를 보호하기 위하여 노력합니다.
+        </p>
+        <p>
+          ② 개인정보의 처리 목적, 항목, 보유기간, 제3자 제공, 처리위탁, 국외이전 및
+          이용자의 권리 행사 방법 등 구체적인 사항은 회사가 별도로 공개하는{" "}
+          <Link href="/privacy" className="underline underline-offset-4">
+            개인정보처리방침
+          </Link>
+          에서 정합니다.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="제22조 (면책조항)">
+        <p>
+          ① 회사는 천재지변, 감염병 확산에 따른 정부 조치, 정전, 통신두절 등 회사의
+          합리적 지배범위를 벗어난 사유로 서비스를 제공할 수 없는 경우 그에 관한
+          책임을 지지 않습니다.
+        </p>
+        <p>
+          ② 회사는 이용자의 귀책사유로 인한 서비스 이용의 장애에 대하여 책임을 지지
+          않습니다.
+        </p>
+        <p>
+          ③ 회사는 이용자가 서비스에 게재한 정보, 자료, 사실의 신뢰도 및 정확성에
+          대하여 책임을 지지 않습니다.
+        </p>
+        <p>
+          ④ 회사는 이용자 상호 간 또는 이용자와 제3자 간에 서비스를 매개로 발생한
+          분쟁에 대하여 개입할 의무가 없으며 이로 인한 손해를 배상할 책임이
+          없습니다. 다만 제12조에 따른 회사의 책임은 그러하지 아니합니다.
+        </p>
+        <p>
+          ⑤ 회사가 제공하는 웰니스 프로그램 및 콘텐츠는 의료행위 또는 치료를
+          목적으로 하지 아니하며, 회사는 질병의 진단·치료·예방 효과나 이용자가
+          기대하는 개인적 효과를 보장하지 않습니다.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="제23조 (손해배상)">
+        <p>
+          ① 회사 또는 이용자가 이 약관을 위반하여 상대방에게 손해를 입힌 경우 그
+          손해를 배상할 책임이 있습니다.
+        </p>
+        <p>
+          ② 회사의 손해배상 책임은 회사의 고의 또는 중대한 과실이 없는 한 통상손해에
+          한합니다.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="제24조 (분쟁의 해결 및 준거법)">
+        <p>
+          ① 회사는 이용자가 제기하는 정당한 의견이나 불만을 반영하고 그 피해를
+          보상하기 위하여 고객상담 창구를 운영합니다. 문의는 {contactEmail}
+          {business.phone ? ` 또는 ${business.phone}` : null}로 접수할 수 있습니다.
+        </p>
+        <p>
+          ② 회사와 이용자 간에 발생한 분쟁에 관하여는 「소비자기본법」에 따라
+          한국소비자원 또는 소비자분쟁조정위원회에 분쟁조정을 신청할 수 있습니다.
+        </p>
+        <p>
+          ③ 이 약관 및 회사와 이용자 간의 이용계약에는 대한민국 법을 적용하며,
+          소송의 관할법원은 「민사소송법」에 따릅니다.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="부칙">
+        <p>이 약관은 {LEGAL_EFFECTIVE_DATE}부터 시행합니다.</p>
       </LegalSection>
     </LegalPageLayout>
   )
