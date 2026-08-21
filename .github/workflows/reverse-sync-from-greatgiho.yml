@@ -19,6 +19,11 @@ on:
   # near-real-time: the always-on zotac box pushes a fresh commit to this
   # branch (SSH, no token needed) whenever greatgiho/main changes, giving
   # ~60s detection instead of waiting for the cron.
+  #
+  # That push is a doorbell, not a change: the commit is a throwaway
+  # commit-tree over dev's own tree, force-pushed each time. vercel.json's
+  # ignoreCommand names this branch so the two Vercel projects do not both
+  # rebuild a tree they have already built.
   push:
     branches: [ops/reverse-sync-poke]
   workflow_dispatch: {}

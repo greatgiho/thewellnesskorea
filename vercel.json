@@ -1,6 +1,7 @@
 {
   "installCommand": "npm install",
   "buildCommand": "npm run build",
+  "ignoreCommand": "[ \"$VERCEL_GIT_COMMIT_REF\" = \"ops/reverse-sync-poke\" ]",
   "crons": [
     {
       "path": "/api/cron/expire-bookings",
