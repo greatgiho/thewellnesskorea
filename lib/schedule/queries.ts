@@ -157,19 +157,31 @@ export async function getUpcomingSessions(
  * Read with the caller's client so RLS decides, and ordered soonest first:
  * whoever is looking at this has somebody standing in front of them, and the
  * class about to start is the one being asked about.
+ *
+ * `limit = 0` means all of them, the same way getUpcomingSessions above reads
+ * it. It used to default to 12 and the counter screen took the default, so
+ * with 21 classes on the books everything from the thirteenth onwards — nine
+ * classes, two whole days — was missing, with nothing on the page to say so.
+ * A list that quietly stops is worse here than a long one: the screen exists
+ * to answer "can I sell this", and it was answering no by omission.
  */
 export async function getSellableSessions(
   supabase: SupabaseClient,
-  limit = 12,
+  limit = 0,
 ): Promise<SessionWithRelations[]> {
-  const { data, error } = await supabase
+  let query = supabase
     .from("sessions")
     .select(SESSION_WITH_RELATIONS)
     .eq("status", "confirmed")
     .eq("is_published", true)
     .gte("starts_at", new Date().toISOString())
     .order("starts_at", { ascending: true })
-    .limit(limit)
+
+  if (limit > 0) {
+    query = query.limit(limit)
+  }
+
+  const { data, error } = await query
 
   if (error) throw new Error(error.message)
   if (!data) return []
