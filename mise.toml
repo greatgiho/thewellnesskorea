@@ -1,3 +1,24 @@
 [tools]
 node = "24.18.0"
 vercel = { version = "58.4.4", allow_builds = ["esbuild"], trust_policy_excludes = ["undici"] }
+
+# The Vercel CLI keeps exactly one login per machine user, in
+# ~/.local/share/com.vercel.cli/auth.json. It is not per-directory and mise's
+# tool pinning does not isolate it: pinning the binary says which vercel runs,
+# not who it runs as. So `vercel login` in any other repo silently signs this
+# one out — which is what happened on 2026-08-21, when a login for another
+# account left this project pointed at officiatingresources-5007.
+#
+# -Q is the only thing that isolates it. This task pins the credential store to
+# a directory of this project's own, kept outside the repo so a token is never
+# one `git add -A` away from being published.
+#
+#   mise run vercel -- whoami
+#   mise run vercel -- project ls
+#
+# Plain `vercel` still works and still uses the machine-wide login. That is
+# deliberate: a shim on PATH that quietly swaps your identity is worse than a
+# command you have to type.
+[tasks.vercel]
+description = "Vercel CLI signed in as ikim-1702s-projects, independent of the machine-wide login"
+run = 'vercel -Q "$HOME/.config/vercel-cli/thewellnesskorea"'
