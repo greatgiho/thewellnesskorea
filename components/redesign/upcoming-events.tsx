@@ -68,7 +68,7 @@ export function UpcomingEvents({ items }: { items: ReservationItem[] }) {
   const shown = items.slice(0, MAX_ITEMS)
 
   return (
-    <Section id="upcoming">
+    <Section id="upcoming" tone="muted">
       <SectionHeader eyebrow={t.eyebrow} heading={t.heading} lead={t.lead} />
 
       {shown.length === 0 ? (

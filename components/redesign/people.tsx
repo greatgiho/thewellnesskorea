@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { useLang } from "@/components/redesign/language-provider"
-import { PeekRow } from "@/components/redesign/peek-row"
 import { Section, SectionHeader } from "@/components/redesign/primitives"
 import { InstagramIcon } from "@/components/icons/social-icons"
 import { instagramHandle } from "@/lib/partners/utils"
@@ -12,26 +11,24 @@ import type { PartnerCardData } from "@/lib/partners/types"
 import { cn } from "@/lib/utils"
 
 /**
- * The guides and artists, carried over from the pre-redesign homepage.
+ * The guides and artists — the body of /partners.
  *
- * This is not decoration. The old Guides and Artists sections were the only way
- * into /partners/[slug] from anywhere on the public site — drop them and every
- * partner profile becomes an orphan page, reachable only if a journal post
- * happens to tag that person.
+ * This used to be a homepage section, and it was the only way into
+ * /partners/[slug] from anywhere on the public site. Taking it off the
+ * homepage to let the classes come forward would have made every profile an
+ * orphan, so it moved to a page of its own rather than being deleted. The
+ * footer's People link now points at that page.
  *
- * Both groups live in one section, with #guides and #arts as anchor targets
- * inside it, so links written against the old homepage still land in the right
- * place.
+ * Both groups stay in one view, with #guides and #arts as anchor targets, so
+ * links written against the old homepage still land in the right place.
  *
- * The layout went grid -> sideways-on-mobile -> here. The grid was chosen
- * because the old carousel hid most of the roster behind a gesture with nothing
- * on screen to suggest the gesture. That objection was right, and it is what
- * PeekRow answers: the next card's edge stays visible, so the rest of the list
- * announces itself. On a phone eleven guides stacked vertically is its own kind
- * of hiding — nobody reaches the eleventh either.
+ * A plain grid, and no cap. Both of those were homepage compromises: PeekRow's
+ * sideways scroll existed because a roster stacked vertically ate the sections
+ * below it, and the cap of eight kept a long list from taking over a page that
+ * was mostly about something else. Neither applies here. Scrolling through
+ * everyone is what someone who opened /partners came to do, and a page that
+ * exists to list people must not quietly stop at the ninth.
  */
-const MAX_PER_GROUP = 8
-
 const T = {
   en: {
     eyebrow: "함께하는 사람들 · People",
@@ -205,11 +202,11 @@ function PersonGrid({
         {title}
       </h3>
 
-      <PeekRow cols="sm:grid-cols-2 lg:grid-cols-4" className="mt-6">
-        {people.slice(0, MAX_PER_GROUP).map((person) => (
+      <ul className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        {people.map((person) => (
           <PersonCard key={person.id} person={person} t={t} />
         ))}
-      </PeekRow>
+      </ul>
     </div>
   )
 }
@@ -225,12 +222,15 @@ export function People({
   const t = T[lang]
   const empty = guides.length === 0 && artists.length === 0
 
-  // The section stays on the page when nothing is published, the same way
-  // Upcoming and Past do. Sections that vanish on empty data break the
-  // plain/muted banding of the ones around them, which is how a page with no
-  // content yet ends up looking broken rather than merely empty.
+  // Says so when nothing is published, rather than rendering a heading over
+  // nothing. This is the whole page now, so an empty one has to read as empty
+  // on purpose.
+  //
+  // Plain rather than muted: the muted tone was this section's half of the
+  // homepage's alternating bands, and on a page of its own there is nothing to
+  // alternate with — a single tinted band just looks like a mis-set background.
   return (
-    <Section id="people" tone="muted">
+    <Section id="people">
       <SectionHeader eyebrow={t.eyebrow} heading={t.heading} lead={t.lead} />
 
       {empty ? (

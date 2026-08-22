@@ -35,7 +35,7 @@ export function Paths() {
   const t = T[lang]
 
   return (
-    <Section id="paths" tone="muted">
+    <Section id="paths">
       <SectionHeader eyebrow={t.eyebrow} heading={t.heading} lead={t.lead} />
 
       <PeekRow cols="sm:grid-cols-2 lg:grid-cols-5" className="mt-14">

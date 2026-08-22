@@ -2,12 +2,10 @@ import { PublicShell } from "@/components/redesign/public-shell"
 import { HeroCanvas } from "@/components/redesign/hero-canvas"
 import { Philosophy } from "@/components/redesign/philosophy"
 import { Paths } from "@/components/redesign/paths"
-import { People } from "@/components/redesign/people"
 import { Brickwell } from "@/components/redesign/brickwell"
 import { UpcomingEvents } from "@/components/redesign/upcoming-events"
 import { PastEvents } from "@/components/redesign/past-events"
 import { getPublishedExperienceBySlug } from "@/lib/experiences/queries"
-import { getPublishedPartners } from "@/lib/partners/queries"
 import {
   getPastSessions,
   getUpcomingBookableSessions,
@@ -36,11 +34,7 @@ import {
  * rather than a crash.
  */
 export async function RedesignHome() {
-  const [brickwell, guides, artists] = await Promise.all([
-    getPublishedExperienceBySlug("brickwell"),
-    getPublishedPartners("guide"),
-    getPublishedPartners("artist"),
-  ])
+  const brickwell = await getPublishedExperienceBySlug("brickwell")
 
   const [categorizedSessions, bookableSessions, pastSessions] = brickwell
     ? await Promise.all([
@@ -50,17 +44,26 @@ export async function RedesignHome() {
       ])
     : [[], [], []]
 
+  // Upcoming sits directly under Philosophy: a reader who has just been told
+  // what this place is should meet a class they can book before being asked to
+  // read four more sections. It used to be sixth of six.
+  //
+  // People is no longer here at all — it is /partners now. It was a roster of
+  // eleven photographs between the reader and the only bookable thing on the
+  // page.
+  //
   // Sections alternate plain / muted backgrounds; that banding is what keeps
-  // them from reading as one long page. Reordering means re-checking the tones.
+  // them from reading as one long page. Both changes above shift the parity of
+  // everything after Philosophy, which is why each tone below is the opposite
+  // of what it was.
   return (
     <PublicShell>
       <main>
         <HeroCanvas />
         <Philosophy />
+        <UpcomingEvents items={toReservationItems(bookableSessions)} />
         <Paths />
         <Brickwell itemsByCategory={groupByContentCategory(categorizedSessions)} />
-        <People guides={guides} artists={artists} />
-        <UpcomingEvents items={toReservationItems(bookableSessions)} />
         <PastEvents events={toPastEvents(pastSessions)} />
       </main>
     </PublicShell>

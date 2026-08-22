@@ -27,7 +27,7 @@ export function PastEvents({ events }: { events: PastEventItem[] }) {
   const shown = events.slice(0, MAX_ITEMS)
 
   return (
-    <Section id="past" tone="muted">
+    <Section id="past">
       <SectionHeader
         eyebrow="지난 기록 · Past Events"
         heading="Moments we've held together"
