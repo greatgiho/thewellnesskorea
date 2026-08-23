@@ -26,11 +26,15 @@ export const SECTION_LINKS: { id: string; label: BilingualText }[] = [
  * was reachable by name. The nav stays as the design drew it (three rhythms,
  * one reserve); the sections that would otherwise have no named entry point
  * live here.
+ *
+ * People used to be in this list, back when it was a homepage section. It is a
+ * page now, so it moved to PAGE_LINKS below — a fragment pointing at a section
+ * the homepage no longer renders is exactly the dead anchor this file exists to
+ * prevent.
  */
 export const FOOTER_SECTION_LINKS: { id: string; label: BilingualText }[] = [
   { id: "philosophy", label: { en: "Philosophy", ko: "철학" } },
   { id: "paths", label: { en: "Five Paths", ko: "다섯 갈래" } },
-  { id: "people", label: { en: "People", ko: "함께하는 사람들" } },
   { id: "day", label: { en: "Day", ko: "낮" } },
   { id: "night", label: { en: "Night", ko: "밤" } },
   { id: "exhibition", label: { en: "Exhibition", ko: "전시" } },
@@ -50,6 +54,9 @@ export function sectionHref(pathname: string, id: string): string {
 
 /** Pages outside the homepage that the chrome links to directly. */
 export const PAGE_LINKS: { href: string; label: BilingualText }[] = [
+  // The only route into /partners/[slug] from the public site. It has to stay
+  // in a list that renders on every page, or the profiles are orphans again.
+  { href: "/partners", label: { en: "People", ko: "함께하는 사람들" } },
   { href: "/journal", label: { en: "Journal", ko: "저널" } },
   { href: "/privacy", label: { en: "Privacy", ko: "개인정보" } },
   { href: "/terms", label: { en: "Terms", ko: "이용약관" } },
