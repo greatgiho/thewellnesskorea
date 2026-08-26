@@ -37,7 +37,7 @@ export function Hero() {
         width={900}
         height={1016}
         priority
-        className="h-auto w-52 sm:w-64"
+        className="h-auto w-64 sm:w-80"
       />
 
       {/* Both lines at the same size. They are one lockup, and a large Korean
