@@ -1,5 +1,5 @@
 import { PublicShell } from "@/components/redesign/public-shell"
-import { HeroCanvas } from "@/components/redesign/hero-canvas"
+import { Hero } from "@/components/redesign/hero"
 import { Philosophy } from "@/components/redesign/philosophy"
 import { Paths } from "@/components/redesign/paths"
 import { Brickwell } from "@/components/redesign/brickwell"
@@ -59,7 +59,7 @@ export async function RedesignHome() {
   return (
     <PublicShell>
       <main>
-        <HeroCanvas />
+        <Hero />
         <Philosophy />
         <UpcomingEvents items={toReservationItems(bookableSessions)} />
         <Paths />
