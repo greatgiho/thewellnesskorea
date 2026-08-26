@@ -40,10 +40,14 @@ export function Hero() {
         className="h-auto w-52 sm:w-64"
       />
 
-      <p className="mt-10 font-serif text-3xl leading-tight text-foreground text-balance sm:mt-12 sm:text-5xl">
+      {/* Both lines at the same size. They are one lockup, and a large Korean
+          line over a small English one reads as a headline with a caption
+          under it — which puts the mark, the headline and the caption in three
+          different weights on a screen that should have two things on it. */}
+      <p className="mt-10 font-serif text-lg leading-tight text-foreground text-balance sm:mt-12 sm:text-2xl">
         한국인의 삶에서 웰니스를 만나다
       </p>
-      <p className="mt-4 font-serif text-lg italic text-muted-foreground sm:text-2xl">
+      <p className="mt-2 font-serif text-lg italic text-muted-foreground sm:text-2xl">
         Wellness, The Korean Way
       </p>
 
