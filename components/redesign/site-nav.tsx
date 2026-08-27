@@ -145,12 +145,18 @@ export function SiteNav() {
           className="flex shrink-0 items-center gap-2"
           aria-label="The Wellness Korea, back to top"
         >
+          {/* The mark only — the mountains and the sun. The full logo carries
+              its own THE WELLNESS KOREA underneath, which beside the wordmark
+              in the span next to it would be the name printed twice.
+              Cropped from the same artwork the hero uses, so they cannot drift.
+
+              Width is explicit, height follows. Not w-auto: see above. */}
           <Image
-            src="/images/wellness-korea-logo.png"
-            alt="The Wellness Korea"
-            width={40}
-            height={40}
-            className="h-9 w-6 shrink-0 object-contain"
+            src="/brand/mark-brush.png"
+            alt=""
+            width={900}
+            height={344}
+            className="h-auto w-12 shrink-0"
           />
           <span className="hidden font-serif text-lg tracking-wide text-foreground sm:inline">
             {lang === "ko" ? "더 웰니스 코리아" : "The Wellness Korea"}
