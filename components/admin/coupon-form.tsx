@@ -5,11 +5,7 @@ import { useRouter } from "next/navigation"
 import { saveCoupon, type CouponInput } from "@/app/a/coupons/actions"
 import { FIELD } from "@/lib/ui/field"
 import type { CouponRow } from "@/lib/coupons/admin-queries"
-
-/** `datetime-local` needs "YYYY-MM-DDTHH:mm"; the DB gives a full ISO string. */
-function toLocalInput(iso: string | null): string {
-  return iso ? iso.slice(0, 16) : ""
-}
+import { fromLocalInput, toLocalInput } from "@/lib/coupons/local-datetime"
 
 const emptyInput: CouponInput = {
   code: "",
@@ -52,7 +48,17 @@ export function CouponForm({ coupon }: { coupon?: CouponRow }) {
     e.preventDefault()
     setError(null)
     setPending(true)
-    const result = await saveCoupon(input, coupon?.id)
+    // The two datetime fields hold the admin's own wall clock. Converted here
+    // rather than in the action, because only the browser knows which clock
+    // that is — see lib/coupons/local-datetime.
+    const result = await saveCoupon(
+      {
+        ...input,
+        startsAt: fromLocalInput(input.startsAt),
+        endsAt: fromLocalInput(input.endsAt),
+      },
+      coupon?.id,
+    )
     setPending(false)
     if (!result.ok) {
       setError(result.error)
