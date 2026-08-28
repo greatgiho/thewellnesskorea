@@ -43,6 +43,7 @@ export function defaultInput(
     tiers: [],
     discount_type: null,
     discount_value: null,
+    coupon: null,
     is_published: false,
     is_listed: true,
     status: "processing",
@@ -101,6 +102,8 @@ export function inputFromSession(
     discount_type: session.discount_type ?? null,
     discount_value:
       session.discount_value != null ? Number(session.discount_value) : null,
+    // Not on the session row — the dialog loads it separately once open.
+    coupon: null,
     is_published: session.is_published,
     is_listed: session.is_listed ?? true,
     status: session.status ?? "confirmed",

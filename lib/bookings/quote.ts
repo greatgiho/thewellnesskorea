@@ -59,7 +59,7 @@ const COUPON_MESSAGES: Record<CouponReason, string> = {
   currency_mismatch: "This code can't be used with this session's payment currency.",
   limit_reached: "This code has reached its usage limit.",
   user_limit_reached: "You've already used this code.",
-  not_better: "The discount already applied is a better deal.",
+  not_better: "This code takes nothing off this booking.",
   session_not_found: "Session not found.",
 }
 

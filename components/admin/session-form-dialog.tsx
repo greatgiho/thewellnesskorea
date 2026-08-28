@@ -13,6 +13,7 @@ import { WhenWhereFields } from "@/components/admin/session-form/when-where-fiel
 import { WhoWhatFields } from "@/components/admin/session-form/who-what-fields"
 import { PricingFields } from "@/components/admin/session-form/pricing-fields"
 import { VisibilityFields } from "@/components/admin/session-form/visibility-fields"
+import { SessionCouponField } from "@/components/admin/session-form/coupon-field"
 import { SessionLinkField } from "@/components/admin/session-form/link-field"
 import { formatTimeInKst } from "@/lib/schedule/utils"
 import { FIELD } from "@/lib/ui/field"
@@ -191,6 +192,8 @@ export function SessionFormDialog({
                 discountPreview={discountPreview}
                 childPreview={childPreview}
               />
+
+              <SessionCouponField {...fields} sessionId={session?.id ?? null} />
 
               <SessionTiersField
                 tiers={input.tiers}

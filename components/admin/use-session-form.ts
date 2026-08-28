@@ -1,7 +1,8 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useBodyScrollLock } from "@/lib/ui/use-body-scroll-lock"
+import { getSessionCoupon } from "@/app/a/schedule/coupon-actions"
 import type { PartnerWithPrograms } from "@/lib/partners/types"
 import { filterSessionInstructors } from "@/lib/partners/utils"
 import type {
@@ -93,6 +94,9 @@ export function useSessionForm({
     onClose,
   })
 
+  /** Which class the dialog is currently showing, for late arrivals. */
+  const openFor = useRef<string | null>(null)
+
   useEffect(() => {
     if (!open) {
       setPending(false)
@@ -107,7 +111,18 @@ export function useSessionForm({
     if (session) {
       setInput(inputFromSession(session, dateKey))
       setImageSlots(slotsFromPaths(session.image_paths ?? []))
+      // The code is not on the session row, so it arrives after the rest of
+      // the form. Guarded on which class is open: closing this one and opening
+      // another while the request is in flight would otherwise stamp one
+      // class's code onto another.
+      openFor.current = session.id
+      const openedFor = session.id
+      getSessionCoupon(session.id).then((coupon) => {
+        if (openFor.current !== openedFor) return
+        setInput((v) => ({ ...v, coupon }))
+      })
     } else {
+      openFor.current = null
       setInput(
         defaultInput(
           dateKey,

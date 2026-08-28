@@ -167,6 +167,9 @@ async function confirmSessionCore(
     discount_type: session.discount_type ?? null,
     discount_value: session.discount_value ?? null,
     is_published: session.is_published,
+    // Not carried: a code is attached from the dialog, and a duplicated
+    // class must not silently inherit another class's code (they are unique).
+    coupon: null,
     is_listed: session.is_listed ?? true,
     status: "confirmed",
     image_paths: session.image_paths ?? [],
@@ -250,6 +253,9 @@ async function unconfirmSessionCore(
   }
 
   const input: SessionFormInput = {
+    // Not carried: a code is attached from the dialog, and a duplicated
+    // class must not silently inherit another class's code (they are unique).
+    coupon: null,
     is_listed: session.is_listed ?? true,
     floor_id: session.floor_id,
     is_all_floors: session.is_all_floors,
@@ -344,6 +350,7 @@ async function duplicateSessionCore(
   const input: SessionFormInput = {
     // A copy of an unlisted class is unlisted too — duplicating a private
     // session onto the public homepage is not what "duplicate" means.
+    coupon: null,
     is_listed: source.is_listed ?? true,
     floor_id: target.floor_id,
     is_all_floors: source.is_all_floors,
