@@ -137,3 +137,62 @@ export async function saveSessionCoupon(
   revalidatePath(`/book/${sessionId}`)
   return { ok: true }
 }
+
+/**
+ * Codes that already work on this class but are not its own.
+ *
+ * The panel above asks for a code "for this class", and when there is none it
+ * says so — which reads as "this class has no discount code", even when a
+ * site-wide code is live and working on it right now. The person setting the
+ * price then makes a second code nobody needed, or worse, believes the one
+ * they made yesterday is gone.
+ *
+ * Read-only here. These belong to other scopes and are edited where they were
+ * created; showing them is about answering "is there already one?", not about
+ * moving their home.
+ */
+export type ApplicableCoupon = {
+  id: string
+  code: string
+  discountType: "fixed" | "percent"
+  discountValue: number
+  /** A fixed coupon's own currency; null for a percentage. */
+  currency: string | null
+  /** Whether it covers every class or one experience. */
+  scope: "all" | "experience"
+  startsAt: string | null
+  endsAt: string | null
+  isActive: boolean
+}
+
+export async function getApplicableCoupons(
+  experienceId: string | null,
+): Promise<ApplicableCoupon[]> {
+  const { supabase } = await requireAdminSession()
+
+  let query = supabase
+    .from("coupons")
+    .select("id, code, discount_type, discount_value, currency, experience_id, starts_at, ends_at, is_active")
+    // Session-scoped rows are the panel's own field, or another class's — a
+    // coupon tied to a different session does not apply here at all.
+    .is("session_id", null)
+
+  query = experienceId
+    ? query.or(`experience_id.is.null,experience_id.eq.${experienceId}`)
+    : query.is("experience_id", null)
+
+  const { data, error } = await query.order("code")
+  if (error || !data) return []
+
+  return data.map((row) => ({
+    id: row.id as string,
+    code: row.code as string,
+    discountType: row.discount_type as "fixed" | "percent",
+    discountValue: Number(row.discount_value ?? 0),
+    currency: (row.currency as string | null) ?? null,
+    scope: row.experience_id ? ("experience" as const) : ("all" as const),
+    startsAt: (row.starts_at as string | null) ?? null,
+    endsAt: (row.ends_at as string | null) ?? null,
+    isActive: Boolean(row.is_active),
+  }))
+}
