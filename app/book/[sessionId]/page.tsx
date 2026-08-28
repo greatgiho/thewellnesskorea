@@ -12,6 +12,7 @@ import { socialMetadata } from "@/lib/seo/metadata"
 import { getMemberProfileForUser } from "@/lib/bookings/member-queries"
 import { mapSessionToClassItem } from "@/lib/schedule/map-public-class"
 import { COUPON_PARAM, couponFromParam } from "@/lib/coupons/link"
+import { getSiteSettings, hasBankInfo } from "@/lib/site/settings"
 
 type BookSessionPageProps = {
   params: Promise<{ sessionId: string }>
@@ -62,6 +63,11 @@ export default async function BookSessionPage({
   const classItem = mapSessionToClassItem(session)
   const isFull = classItem.spots === 0
 
+  // Only when we actually take transfers. hasBankInfo is all-or-nothing on
+  // purpose: half an account number is worse than none.
+  const { bank: bankSettings } = await getSiteSettings()
+  const bank = hasBankInfo(bankSettings) ? bankSettings : null
+
   const memberSession = await getOptionalMemberSession()
   const memberRole = memberSession?.user.app_metadata?.role
   const isMember =
@@ -107,6 +113,7 @@ export default async function BookSessionPage({
         session={session}
         memberPrefill={memberPrefill}
         initialCoupon={initialCoupon}
+        bank={bank}
       />
     </BookingPageLayout>
   )
