@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useTransition } from "react"
+import { useEffect, useRef, useState, useTransition } from "react"
 import { previewCoupon, type CouponPreview } from "@/app/book/actions"
 import type { OrderLine } from "@/lib/payments/money"
 import { FIELD_PUBLIC } from "@/lib/ui/field"
@@ -19,13 +19,16 @@ export function CouponField({
   email,
   lines,
   disabled,
+  initialCode,
 }: {
   sessionId: string
   email: string
   lines: OrderLine[]
   disabled?: boolean
+  /** From `?coupon=CODE`. Filled in and checked once, on arrival. */
+  initialCode?: string | null
 }) {
-  const [code, setCode] = useState("")
+  const [code, setCode] = useState(initialCode ?? "")
   const [result, setResult] = useState<CouponPreview | null>(null)
   const [pending, startTransition] = useTransition()
 
@@ -35,8 +38,8 @@ export function CouponField({
   const signature = JSON.stringify(lines)
   useEffect(() => setResult(null), [signature])
 
-  const check = () => {
-    const trimmed = code.trim()
+  const check = (value = code) => {
+    const trimmed = value.trim()
     if (!trimmed) {
       setResult(null)
       return
@@ -45,6 +48,24 @@ export function CouponField({
       setResult(await previewCoupon(sessionId, trimmed, email, lines))
     })
   }
+
+  // Someone who followed a coupon link has already been told there is a
+  // discount. Landing on a filled box with an unpressed 적용 button beside it
+  // asks them to confirm their own invitation, and a wrong code should say so
+  // here rather than at the end of the form.
+  //
+  // Once, on arrival. Not on every change to `lines`: the effect above clears
+  // the verdict when the party changes, and re-checking there would fire a
+  // request per tap of the passenger stepper.
+  const autoChecked = useRef(false)
+  useEffect(() => {
+    if (autoChecked.current) return
+    const seeded = initialCode?.trim()
+    if (!seeded) return
+    autoChecked.current = true
+    check(seeded)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialCode])
 
   return (
     <div className="mt-4">
@@ -80,7 +101,7 @@ export function CouponField({
           />
           <button
             type="button"
-            onClick={check}
+            onClick={() => check()}
             disabled={disabled || pending || !code.trim()}
             className="h-11 shrink-0 rounded-full border border-border px-5 text-sm font-medium text-foreground transition-colors hover:bg-secondary disabled:opacity-50"
           >

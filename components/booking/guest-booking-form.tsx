@@ -33,11 +33,15 @@ type MemberPrefill = {
 type GuestBookingFormProps = {
   session: SessionWithRelations
   memberPrefill?: MemberPrefill | null
+  /** From `?coupon=CODE` — see lib/coupons/link. Advisory; the booking
+      transaction validates it again regardless. */
+  initialCoupon?: string | null
 }
 
 export function GuestBookingForm({
   session,
   memberPrefill,
+  initialCoupon,
 }: GuestBookingFormProps) {
   const [email, setEmail] = useState(memberPrefill?.email ?? "")
   const rates = ratesForSession(session)
@@ -197,6 +201,7 @@ export function GuestBookingForm({
             email={email}
             lines={orderLines(quote)}
             disabled={pending}
+            initialCode={initialCoupon}
           />
 
           {state.error ? (

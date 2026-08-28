@@ -7,6 +7,8 @@ import { formatMoney, money } from "@/lib/payments/money"
 import { formatDateKeyInKst, formatDisplayDate } from "@/lib/schedule/utils"
 import { CouponForm } from "@/components/admin/coupon-form"
 import { CouponActiveToggle } from "@/components/admin/coupon-active-toggle"
+import { CopyLinkButton } from "@/components/referrals/copy-link-button"
+import { couponLink, couponQuerySuffix } from "@/lib/coupons/link"
 
 export const metadata: Metadata = { title: "쿠폰 상세 — Admin" }
 
@@ -74,6 +76,51 @@ export default async function CouponDetailPage({ params }: Props) {
             </dd>
           </div>
         </dl>
+      </section>
+
+      {/* ── The link to hand over ── */}
+      <section className="rounded-2xl border border-border bg-card p-6">
+        <h2 className="font-mono text-xs uppercase tracking-[0.25em] text-muted-foreground">
+          링크로 건네기
+        </h2>
+        {coupon.sessionId ? (
+          <>
+            <p className="mt-3 break-all font-mono text-sm text-foreground">
+              {couponLink(coupon.sessionId, coupon.code)}
+            </p>
+            <div className="mt-3">
+              <CopyLinkButton link={couponLink(coupon.sessionId, coupon.code)} />
+            </div>
+            <p className="mt-3 text-sm text-muted-foreground">
+              열면 쿠폰이 입력·적용된 상태로 보입니다. 코드를 따로 안내하지
+              않아도 됩니다.
+            </p>
+          </>
+        ) : (
+          <>
+            <p className="mt-3 font-mono text-sm text-foreground">
+              {couponQuerySuffix(coupon.code)}
+            </p>
+            <div className="mt-3">
+              <CopyLinkButton link={couponQuerySuffix(coupon.code)} />
+            </div>
+            {/* A coupon good for more than one class has no single link, and
+                choosing one here would be recommending a class the coupon
+                never named. */}
+            <p className="mt-3 text-sm text-muted-foreground">
+              이 쿠폰은 수업 하나에 묶여 있지 않아 링크가 하나로 정해지지
+              않습니다. 보내려는 예약 주소 뒤에 위 조각을 붙이세요 —
+              <span className="font-mono"> /book/&lt;수업&gt;{couponQuerySuffix(coupon.code)}</span>
+            </p>
+          </>
+        )}
+        <p className="mt-4 text-sm text-muted-foreground">
+          링크는 입력을 대신할 뿐입니다. 금액은 서버가 계산하고 쿠폰은 예약이
+          확정되는 순간 다시 검증되므로, 주소를 고쳐도 없는 할인은 생기지
+          않습니다. 다만 <strong className="text-foreground">코드를 아는
+          사람은 누구나 쓸 수 있습니다</strong> — 한 사람에게만 주려면 총 사용
+          횟수를 1로 두세요.
+        </p>
       </section>
 
       <CouponActiveToggle couponId={coupon.id} isActive={coupon.isActive} />
