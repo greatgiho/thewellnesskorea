@@ -279,7 +279,20 @@ export async function devMockConfirmPayment(bookingId: string): Promise<void> {
 }
 
 export type CouponPreview =
-  | { ok: true; total: string; discount: string; percentOff: number }
+  | {
+      ok: true
+      total: string
+      discount: string
+      percentOff: number
+      /**
+       * The same two figures unformatted, because the caller does more with
+       * them than print them: the bank-transfer panel has to state the amount
+       * to send, and a formatted string cannot be struck through against
+       * another one or rounded again.
+       */
+      totalAmount: number
+      discountAmount: number
+    }
   | { ok: false; message: string }
 
 /**
@@ -311,6 +324,8 @@ export async function previewCoupon(
         money(quote.total.currency, quote.coupon.discountAmount),
       ),
       percentOff,
+      totalAmount: quote.total.amount,
+      discountAmount: quote.coupon.discountAmount,
     }
   } catch {
     return { ok: false, message: "That code could not be checked." }

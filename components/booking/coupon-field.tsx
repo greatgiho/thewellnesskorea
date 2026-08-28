@@ -20,6 +20,7 @@ export function CouponField({
   lines,
   disabled,
   initialCode,
+  onApplied,
 }: {
   sessionId: string
   email: string
@@ -27,16 +28,33 @@ export function CouponField({
   disabled?: boolean
   /** From `?coupon=CODE`. Filled in and checked once, on arrival. */
   initialCode?: string | null
+  /**
+   * The verdict, lifted so the rest of the form can agree with it.
+   *
+   * Without this the page states a discounted total here and an undiscounted
+   * one in the bank-transfer panel below, and the reader is left to guess
+   * which of the two to send. Null whenever there is no live verdict.
+   */
+  onApplied?: (applied: { totalAmount: number; discountAmount: number } | null) => void
 }) {
   const [code, setCode] = useState(initialCode ?? "")
   const [result, setResult] = useState<CouponPreview | null>(null)
   const [pending, startTransition] = useTransition()
 
+  const onAppliedRef = useRef(onApplied)
+  onAppliedRef.current = onApplied
+
   // A verdict is priced against one order. Adding or removing anyone makes the
   // amount on screen wrong, so it is dropped rather than left to be read as
   // the new total.
   const signature = JSON.stringify(lines)
-  useEffect(() => setResult(null), [signature])
+  useEffect(() => {
+    setResult(null)
+    onAppliedRef.current?.(null)
+    // onApplied is called through a ref so a caller that passes an inline
+    // arrow does not re-run this on every render and wipe its own verdict.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [signature])
 
   const check = (value = code) => {
     const trimmed = value.trim()
@@ -45,7 +63,13 @@ export function CouponField({
       return
     }
     startTransition(async () => {
-      setResult(await previewCoupon(sessionId, trimmed, email, lines))
+      const next = await previewCoupon(sessionId, trimmed, email, lines)
+      setResult(next)
+      onAppliedRef.current?.(
+        next.ok
+          ? { totalAmount: next.totalAmount, discountAmount: next.discountAmount }
+          : null,
+      )
     })
   }
 
@@ -132,6 +156,7 @@ export function CouponField({
               setCode(e.target.value)
               // A stale verdict next to an edited code is worse than none.
               setResult(null)
+              onAppliedRef.current?.(null)
             }}
             onKeyDown={(e) => {
               if (e.key === "Enter") {

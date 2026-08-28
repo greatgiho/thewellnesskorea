@@ -9,6 +9,7 @@ import { FIELD_PUBLIC } from "@/lib/ui/field"
 import {
   discountFrom,
   formatMoney,
+  money,
   orderLines,
   paymentMode,
   quoteOrder,
@@ -56,6 +57,19 @@ export function GuestBookingForm({
 }: GuestBookingFormProps) {
   const [email, setEmail] = useState(memberPrefill?.email ?? "")
   const [name, setName] = useState(memberPrefill?.name ?? "")
+  /**
+   * The coupon verdict, held here rather than inside CouponField.
+   *
+   * Three numbers used to sit on this page at once — the class fee, the
+   * coupon's "결제 금액", and the amount beside the account number — and only
+   * the middle one had the coupon in it. Whoever was about to make a transfer
+   * had to pick. They all come from this now.
+   */
+  const [couponApplied, setCouponApplied] = useState<{
+    totalAmount: number
+    discountAmount: number
+  } | null>(null)
+  const currency = session.price_currency
   const rates = ratesForSession(session)
   // Opens on one adult in the first tier that still has seats, which is the
   // booking almost everyone is making.
@@ -193,7 +207,17 @@ export function GuestBookingForm({
               <>
                 {/* A party is quoted as one total; a single booking keeps the
                     struck-through list price, which a sum of one would hide. */}
-                {isParty || !soloPriced ? (
+                {couponApplied ? (
+                  <>
+                    {quote.size} {quote.size === 1 ? "person" : "people"} — total{" "}
+                    <span className="mr-1.5 text-muted-foreground line-through">
+                      {formatMoney(quote.total)}
+                    </span>
+                    <span className="font-medium">
+                      {formatMoney(money(currency, couponApplied.totalAmount))}
+                    </span>
+                  </>
+                ) : isParty || !soloPriced ? (
                   <>
                     {quote.size} {quote.size === 1 ? "person" : "people"} — total{" "}
                     <span className="font-medium">{formatMoney(quote.total)}</span>
@@ -219,6 +243,7 @@ export function GuestBookingForm({
             lines={orderLines(quote)}
             disabled={pending}
             initialCode={initialCoupon}
+            onApplied={setCouponApplied}
           />
 
           {/* Before the button, not after it. Somebody deciding whether to
@@ -234,7 +259,17 @@ export function GuestBookingForm({
             <div className="mt-6">
               <BankTransferDetails
                 bank={bank}
-                amount={quote.total}
+                amount={
+                  couponApplied
+                    ? money(currency, couponApplied.totalAmount)
+                    : quote.total
+                }
+                listAmount={couponApplied ? quote.total : null}
+                discount={
+                  couponApplied
+                    ? money(currency, couponApplied.discountAmount)
+                    : null
+                }
                 reference={name.trim() || undefined}
               />
             </div>
