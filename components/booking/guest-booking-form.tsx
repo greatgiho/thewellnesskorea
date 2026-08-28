@@ -20,6 +20,8 @@ import { formatParty } from "@/lib/bookings/format"
 import { PriceTag } from "@/components/booking/price-tag"
 import { OrderPicker } from "@/components/booking/order-picker"
 import { CouponField } from "@/components/booking/coupon-field"
+import { BankTransferDetails } from "@/components/booking/bank-transfer-details"
+import type { BankInfo } from "@/lib/site/settings"
 import { BookingSessionSummary } from "./booking-session-summary"
 
 const initialState: GuestBookingState = {}
@@ -36,14 +38,24 @@ type GuestBookingFormProps = {
   /** From `?coupon=CODE` — see lib/coupons/link. Advisory; the booking
       transaction validates it again regardless. */
   initialCoupon?: string | null
+  /**
+   * Where a transfer should go, or null when we do not take them.
+   *
+   * Passed down rather than read here: this is a client component and cannot
+   * await site_settings. Null keeps the block off the page entirely, which is
+   * the only safe failure for an account number.
+   */
+  bank?: BankInfo | null
 }
 
 export function GuestBookingForm({
   session,
   memberPrefill,
   initialCoupon,
+  bank,
 }: GuestBookingFormProps) {
   const [email, setEmail] = useState(memberPrefill?.email ?? "")
+  const [name, setName] = useState(memberPrefill?.name ?? "")
   const rates = ratesForSession(session)
   // Opens on one adult in the first tier that still has seats, which is the
   // booking almost everyone is making.
@@ -123,7 +135,10 @@ export function GuestBookingForm({
                 autoComplete="name"
                 className={FIELD_PUBLIC}
                 placeholder="Your name"
-                defaultValue={memberPrefill?.name ?? ""}
+                // Controlled now: the transfer panel below quotes this back as
+                // the name to put on the deposit, so it has to follow typing.
+                value={name}
+                onChange={(e) => setName(e.target.value)}
                 readOnly={isMember}
               />
             </label>
@@ -191,7 +206,9 @@ export function GuestBookingForm({
                 )}
                 {mode === "online"
                   ? " — you'll complete online payment on the next step."
-                  : " — pay on-site at the studio when you arrive."}
+                  : bank
+                    ? " — pay on-site when you arrive, or by bank transfer below."
+                    : " — pay on-site at the studio when you arrive."}
               </>
             )}
           </p>
@@ -203,6 +220,25 @@ export function GuestBookingForm({
             disabled={pending}
             initialCode={initialCoupon}
           />
+
+          {/* Before the button, not after it. Somebody deciding whether to
+              reserve a won class is deciding whether they can pay for it, and
+              the answer to that has been on the next page until now.
+
+              The amount tracks the party picker above, so it is right while it
+              is being read. It is the pre-coupon total: a code entered here is
+              only verified on submit, and printing a discounted figure beside
+              an account number on the strength of an unverified code is how
+              the wrong amount gets transferred. */}
+          {mode === "onsite" && bank && !isEmpty ? (
+            <div className="mt-6">
+              <BankTransferDetails
+                bank={bank}
+                amount={quote.total}
+                reference={name.trim() || undefined}
+              />
+            </div>
+          ) : null}
 
           {state.error ? (
             <p className="mt-4 text-sm text-destructive">{state.error}</p>
