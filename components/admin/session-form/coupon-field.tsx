@@ -1,6 +1,11 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { CopyLinkButton } from "@/components/referrals/copy-link-button"
+import {
+  getApplicableCoupons,
+  type ApplicableCoupon,
+} from "@/app/a/schedule/coupon-actions"
 import { couponLink, normalizeCouponCode } from "@/lib/coupons/link"
 import type { SessionFieldsProps } from "@/components/admin/session-form/fields"
 import { formatMoney, money } from "@/lib/payments/money"
@@ -27,9 +32,28 @@ export function SessionCouponField({
   setInput,
   fieldClass,
   sessionId,
-}: SessionFieldsProps & { sessionId: string | null }) {
+  experienceId,
+}: SessionFieldsProps & {
+  sessionId: string | null
+  experienceId: string | null
+}) {
   const coupon = input.coupon
   const currency = input.price_currency
+
+  // Codes that already work here without being this class's own. Loaded rather
+  // than passed down: they are reference material, not something the form
+  // edits, and threading them through the input would invite someone to save
+  // them by accident.
+  const [others, setOthers] = useState<ApplicableCoupon[]>([])
+  useEffect(() => {
+    let live = true
+    getApplicableCoupons(experienceId).then((rows) => {
+      if (live) setOthers(rows)
+    })
+    return () => {
+      live = false
+    }
+  }, [experienceId])
 
   const set = (patch: Partial<NonNullable<typeof coupon>>) =>
     setInput((v) => ({
@@ -119,6 +143,42 @@ export function SessionCouponField({
             <> (수업 할인 적용가 {formatMoney(money(currency, afterSession))}에서 추가 할인)</>
           ) : null}
         </p>
+      ) : null}
+
+      {others.length > 0 ? (
+        <div className="rounded-xl border border-border bg-secondary/30 p-3">
+          <p className="text-xs font-medium text-foreground">
+            이 수업에 이미 적용되는 코드
+          </p>
+          <ul className="mt-2 space-y-1">
+            {others.map((c) => (
+              <li key={c.id} className="text-xs text-muted-foreground">
+                <span className="font-mono text-foreground">{c.code}</span>{" "}
+                {c.discountType === "percent"
+                  ? `${c.discountValue}%`
+                  : formatMoney(money(c.currency ?? currency, c.discountValue))}{" "}
+                · {c.scope === "all" ? "모든 수업" : "이 체험 전체"}
+                {c.isActive ? "" : " · 사용 중지됨"}
+                {/* A fixed coupon can only be spent in the currency it names,
+                    so on a class priced in the other one it is listed and
+                    refused. Saying so here beats finding out at checkout. */}
+                {c.discountType === "fixed" && c.currency && c.currency !== currency
+                  ? " · 통화가 달라 이 수업엔 적용 안 됨"
+                  : ""}
+                {c.endsAt ? ` · ${new Date(c.endsAt).toLocaleString("ko-KR", {
+                  month: "2-digit",
+                  day: "2-digit",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}까지` : ""}
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-xs text-muted-foreground">
+            여기서 고칠 수 없습니다 — 쿠폰 화면에서 관리합니다. 위 칸은 이
+            수업에서만 쓰는 코드를 따로 만들 때 씁니다.
+          </p>
+        </div>
       ) : null}
 
       {sessionId && coupon?.code ? (

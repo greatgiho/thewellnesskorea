@@ -193,7 +193,11 @@ export function SessionFormDialog({
                 childPreview={childPreview}
               />
 
-              <SessionCouponField {...fields} sessionId={session?.id ?? null} />
+              <SessionCouponField
+                {...fields}
+                sessionId={session?.id ?? null}
+                experienceId={session?.experience_id ?? null}
+              />
 
               <SessionTiersField
                 tiers={input.tiers}
