@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { saveSessionTiers } from "@/app/a/schedule/tier-actions"
+import { saveSessionCoupon } from "@/app/a/schedule/coupon-actions"
 import {
   confirmSession,
   deleteSession,
@@ -81,6 +82,16 @@ export function useSessionPersistence({
     // save at a single price while the form still shows grades.
     const tiersResult = await saveSessionTiers(result.sessionId, input.tiers)
     if (!tiersResult.ok) throw new Error(tiersResult.error)
+
+    // Same reason as tiers: a code hangs off a session id. Worth surfacing
+    // too — a class that saved without its code looks saved, and the code is
+    // the thing somebody was about to send to a person.
+    const couponResult = await saveSessionCoupon(
+      result.sessionId,
+      input.coupon,
+      input.price_currency,
+    )
+    if (!couponResult.ok) throw new Error(couponResult.error)
 
     return result.sessionId
   }

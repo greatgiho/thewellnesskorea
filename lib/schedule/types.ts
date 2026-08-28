@@ -47,6 +47,8 @@ export type SessionRow = {
   payment_method: SessionPaymentMethod
   discount_type: "fixed" | "percent" | null
   discount_value: number | null
+  /** Null when the class has no code of its own. Loaded when the dialog opens. */
+  coupon: SessionCouponInput | null
   is_published: boolean
   /** false = bookable by direct link, kept off every public list. See 060. */
   is_listed: boolean
@@ -121,6 +123,19 @@ export type SessionRelationRow = SessionRow & {
   tiers?: SeatTier[] | null
 }
 
+/**
+ * The one discount code a class may carry, edited from its pricing panel.
+ *
+ * Deliberately fewer knobs than a full coupon: no window, no caps, no
+ * currency of its own. Those exist on /a/coupons, and a code made here can be
+ * opened there to gain them. See app/a/schedule/coupon-actions.
+ */
+export type SessionCouponInput = {
+  code: string
+  discount_type: "fixed" | "percent"
+  discount_value: number
+}
+
 export type SessionFormInput = {
   floor_id: string
   is_all_floors: boolean
@@ -142,6 +157,8 @@ export type SessionFormInput = {
   tiers: SeatTierInput[]
   discount_type: "fixed" | "percent" | null
   discount_value: number | null
+  /** Null when the class has no code of its own. Loaded when the dialog opens. */
+  coupon: SessionCouponInput | null
   is_published: boolean
   is_listed: boolean
   status: SessionStatus
