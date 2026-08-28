@@ -11,9 +11,16 @@ import { getSessionPhotoUrl } from "@/lib/schedule/images"
 import { socialMetadata } from "@/lib/seo/metadata"
 import { getMemberProfileForUser } from "@/lib/bookings/member-queries"
 import { mapSessionToClassItem } from "@/lib/schedule/map-public-class"
+import { COUPON_PARAM, couponFromParam } from "@/lib/coupons/link"
 
 type BookSessionPageProps = {
   params: Promise<{ sessionId: string }>
+  /**
+   * `?coupon=CODE` prefills the coupon box (#268). Reading it here makes the
+   * page dynamic in principle; it already was, because the member lookup below
+   * reads cookies.
+   */
+  searchParams: Promise<Record<string, string | string[] | undefined>>
 }
 
 export async function generateMetadata({
@@ -40,8 +47,12 @@ export async function generateMetadata({
   })
 }
 
-export default async function BookSessionPage({ params }: BookSessionPageProps) {
+export default async function BookSessionPage({
+  params,
+  searchParams,
+}: BookSessionPageProps) {
   const { sessionId } = await params
+  const initialCoupon = couponFromParam((await searchParams)[COUPON_PARAM])
   const session = await getBookableSession(sessionId)
 
   if (!session) {
@@ -92,7 +103,11 @@ export default async function BookSessionPage({ params }: BookSessionPageProps) 
           : "Guest booking — no account required. We'll send a confirmation email with a link to cancel if your plans change."
       }
     >
-      <GuestBookingForm session={session} memberPrefill={memberPrefill} />
+      <GuestBookingForm
+        session={session}
+        memberPrefill={memberPrefill}
+        initialCoupon={initialCoupon}
+      />
     </BookingPageLayout>
   )
 }
