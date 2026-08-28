@@ -22,9 +22,20 @@ import { formatMoney, type Money } from "@/lib/payments/money"
  */
 export async function BankTransferNotice({
   amount,
+  listAmount,
+  discount,
   reference,
 }: {
   amount: Money
+  /**
+   * The total before a coupon, shown struck through beside it.
+   *
+   * Only when there is a discount to explain. A price that dropped with no
+   * reason on screen is a price somebody rings up to ask about, and the answer
+   * has to arrive before they transfer the wrong figure.
+   */
+  listAmount?: Money | null
+  discount?: Money | null
   /** What to put in the transfer memo so a payment can be matched to a booking. */
   reference?: string
 }) {
@@ -45,8 +56,21 @@ export async function BankTransferNotice({
       <dl className="mt-5 space-y-1 text-sm">
         <div className="flex gap-2">
           <dt className="text-muted-foreground">입금액</dt>
-          <dd className="text-foreground">{formatMoney(amount)}</dd>
+          <dd className="text-foreground">
+            {listAmount ? (
+              <span className="mr-2 text-muted-foreground line-through">
+                {formatMoney(listAmount)}
+              </span>
+            ) : null}
+            <span className="font-medium">{formatMoney(amount)}</span>
+          </dd>
         </div>
+        {discount ? (
+          <div className="flex gap-2">
+            <dt className="text-muted-foreground">쿠폰 할인</dt>
+            <dd className="text-foreground">−{formatMoney(discount)}</dd>
+          </div>
+        ) : null}
         {reference ? (
           <div className="flex gap-2">
             <dt className="text-muted-foreground">입금자명</dt>

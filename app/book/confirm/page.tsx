@@ -7,6 +7,7 @@ import { TicketQr } from "@/components/booking/ticket-qr"
 import { BankTransferNotice } from "@/components/booking/bank-transfer-notice"
 import { PartyAdmits } from "@/components/booking/party-admits"
 import { getBookingSummaryById } from "@/lib/bookings/queries"
+import { getBookingAmount } from "@/lib/bookings/amount"
 import { getCheckinTokenForBookingId } from "@/lib/bookings/checkin"
 import { getOptionalMemberSession } from "@/lib/auth/require-session"
 import { paymentMode } from "@/lib/payments/money"
@@ -40,9 +41,21 @@ export default async function BookConfirmPage({
   // a guest can book and never reach their ticket at all.
   const checkinToken = await getCheckinTokenForBookingId(bookingId)
 
+  // What this booking owes, not what the class lists at. Party size, seat
+  // tiers and any coupon all live below the session row — see
+  // lib/bookings/amount. Falls back to the class price only if the derivation
+  // fails outright, which is the old behaviour and still better than a blank
+  // where an amount should be.
+  const amount = await getBookingAmount(bookingId)
+
   // Same three-way split as the booking form and /book/pay, so a free class
-  // never reads as "pay on-site".
-  const mode = paymentMode(summary.price.final, summary.paymentMethod)
+  // never reads as "pay on-site". Against the amount owed rather than the
+  // class price: a coupon covering the whole thing leaves nothing to pay, and
+  // asking that person to transfer ₩0 is worse than saying nothing.
+  const mode = paymentMode(
+    amount?.total ?? summary.price.final,
+    summary.paymentMethod,
+  )
   const paymentNote = {
     free: "This class is free — nothing to pay.",
     online: "Your online payment is confirmed.",
@@ -67,7 +80,9 @@ export default async function BookConfirmPage({
             with no way to act on it until they arrive. */}
         {mode === "onsite" ? (
           <BankTransferNotice
-            amount={summary.price.final}
+            amount={amount?.total ?? summary.price.final}
+            listAmount={amount?.discount ? amount.listTotal : null}
+            discount={amount?.discount ?? null}
             reference={summary.guestName}
           />
         ) : null}
