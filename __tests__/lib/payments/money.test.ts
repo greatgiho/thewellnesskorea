@@ -289,7 +289,8 @@ describe("quoteOrder", () => {
       { tierId: "s", adults: 1, children: 0 },
     ])
     expect(quote.total.amount).toBe(40000)
-    // The coupon competes with that, so it needs the undiscounted figure.
+    // Since 070 a coupon comes off the discounted total instead of competing
+    // with it; this stays the baseline the combined saving is quoted against.
     expect(orderListTotal(quote).amount).toBe(80000)
   })
 

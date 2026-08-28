@@ -416,7 +416,15 @@ export function quoteOrder(
   }
 }
 
-/** The order with no discount at all — what a coupon comes off. */
+/**
+ * The order with no discount at all.
+ *
+ * Not what a coupon comes off any more — since 070 a coupon is applied to the
+ * total after the session discount, and the two compose. This stays as the
+ * baseline the combined saving is expressed against, which is the figure worth
+ * showing: "40% off" should mean off the price on the poster, not off an
+ * intermediate nobody was quoted.
+ */
 export function orderListTotal(order: OrderQuote): Money {
   return roundMoney({
     currency: order.total.currency,
