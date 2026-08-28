@@ -58,6 +58,11 @@ export function CouponField({
   // the verdict when the party changes, and re-checking there would fire a
   // request per tap of the passenger stepper.
   const autoChecked = useRef(false)
+  // Whether the box is showing at all. Someone who followed a coupon link is
+  // not entering a code — they were given one — so the field would be asking
+  // them to check our work. It stays reachable behind "코드 변경" for the
+  // person who has a different code than the link they were sent.
+  const [editing, setEditing] = useState(!initialCode?.trim())
   useEffect(() => {
     if (autoChecked.current) return
     const seeded = initialCode?.trim()
@@ -66,6 +71,42 @@ export function CouponField({
     check(seeded)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialCode])
+
+  // Arrived by link and still being checked. Rendering the input here and
+  // swapping it for the line below a moment later would flash a form control
+  // at somebody who never has to touch one.
+  if (!editing && !result) {
+    return (
+      <div className="mt-4 rounded-2xl border border-border bg-secondary/30 px-4 py-3">
+        <input type="hidden" name="couponCode" value={code.trim()} />
+        <p className="text-sm text-muted-foreground">
+          쿠폰 <span className="font-mono">{code.trim()}</span> 확인 중…
+        </p>
+      </div>
+    )
+  }
+
+  // Applied, arrived by link, and nobody has asked to change it: one line
+  // saying so, rather than a form control for a decision already made.
+  if (!editing && result?.ok) {
+    return (
+      <div className="mt-4 rounded-2xl border border-primary/30 bg-primary/5 px-4 py-3">
+        <input type="hidden" name="couponCode" value={code.trim()} />
+        <p className="text-sm text-primary">
+          쿠폰 <span className="font-mono font-medium">{code.trim()}</span> 적용됨
+          — {result.discount} 할인, 결제 금액 {result.total}
+          {result.percentOff > 0 ? ` (${result.percentOff}% off)` : ""}
+        </p>
+        <button
+          type="button"
+          onClick={() => setEditing(true)}
+          className="mt-1 text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+        >
+          코드 변경
+        </button>
+      </div>
+    )
+  }
 
   return (
     <div className="mt-4">
